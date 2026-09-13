@@ -1,0 +1,3254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StadiumSync // Studio 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* Verified DESIGN.md tokens */
+    --primary:#00f0ff;
+    --primary-dim:#00dbe9;
+    --on-primary:#00363d;
+    --secondary:#e86100; /* Auburn Orange - reserved for Auburn-specific content */
+    --on-secondary:#4d1600;
+    --tertiary:#99ff00;
+    --auburn-blue:#0b2341;
+
+    --bg:#0d1515;
+    --surface:#131313;
+    --surface-low:#1c1b1b;
+    --surface-container:#201f1f;
+    --surface-high:#2a2a2a;
+    --surface-highest:#353534;
+
+    --on-surface:#00f0ff;
+    --on-surface-variant:#7fd6de;
+    --outline:#5c5a5a;
+    --outline-variant:#3b3a3a;
+
+    --font-ui:'Inter', sans-serif;
+    --font-mono:'JetBrains Mono', monospace;
+
+    --radius-sm:0.125rem;
+    --radius:0.25rem;
+    --radius-md:0.375rem;
+    --radius-lg:0.5rem;
+    --radius-full:9999px;
+
+    --sidebar-width:280px;
+    --toolbar-height:64px;
+    --gutter:24px;
+    --space-sm:16px;
+    --space-lg:32px;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background:var(--bg);
+    color:var(--on-surface);
+    font-family:var(--font-ui);
+    font-size:14px;
+    line-height:1.5;
+    min-height:100vh;
+  }
+  h1,h2,h3{margin:0;}
+  button{font-family:inherit;cursor:pointer;}
+  input{font-family:inherit;}
+
+  a.skip-link{
+    position:absolute; left:-9999px; top:0; z-index:100;
+    background:var(--primary); color:var(--on-primary);
+    padding:8px 16px; border-radius:var(--radius);
+  }
+  a.skip-link:focus{left:16px; top:16px;}
+
+  :focus-visible{
+    outline:2px solid var(--primary);
+    outline-offset:2px;
+  }
+
+  /* ===== Header ===== */
+  header.app-header{
+    height:var(--toolbar-height);
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 var(--space-sm);
+    background:rgba(19,19,19,0.9);
+    backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--outline-variant);
+    position:sticky; top:0; z-index:20;
+  }
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand-mark{
+    width:32px;height:32px;border-radius:var(--radius-md);
+    background:linear-gradient(135deg,var(--primary),var(--primary-dim));
+    display:flex;align-items:center;justify-content:center;
+    color:var(--surface); font-weight:700; font-size:14px;
+  }
+  .brand h1{
+    font-size:16px; font-weight:700; letter-spacing:0.08em;
+    color:var(--primary); text-transform:uppercase;
+  }
+  .header-right{display:flex; align-items:center; gap:16px;}
+  .status-badge{
+    display:inline-flex; align-items:center; gap:6px;
+    font-family:var(--font-mono); font-size:11px; font-weight:700;
+    letter-spacing:0.08em; text-transform:uppercase;
+    padding:6px 12px; border-radius:var(--radius-full);
+    background:rgba(0,240,255,0.08); color:var(--primary);
+    border:1px solid rgba(0,240,255,0.25);
+  }
+  .status-badge .dot{
+    width:6px;height:6px;border-radius:50%;background:var(--primary);
+  }
+
+  /* ===== Shell layout ===== */
+  .app-shell{display:flex; min-height:calc(100vh - var(--toolbar-height));}
+
+  nav.sidebar{
+    width:var(--sidebar-width); flex-shrink:0;
+    background:var(--surface-low);
+    border-right:1px solid var(--outline-variant);
+    display:flex; flex-direction:column;
+    padding:var(--space-sm) 0;
+  }
+  .project-id{
+    padding:0 var(--space-sm) var(--space-sm);
+    border-bottom:1px solid var(--outline-variant);
+    margin-bottom:8px;
+  }
+  .project-id .name{
+    font-family:var(--font-mono); font-weight:700; font-size:13px;
+    color:var(--on-surface); text-transform:uppercase; letter-spacing:0.03em;
+  }
+  .project-id .sub{
+    font-family:var(--font-mono); font-size:10px;
+    color:var(--on-surface-variant); letter-spacing:0.05em; margin-top:2px;
+  }
+
+  .nav-list{list-style:none; margin:0; padding:8px;}
+  .nav-item{margin-bottom:2px;}
+  .nav-link{
+    display:flex; align-items:center; gap:12px;
+    width:100%; text-align:left;
+    background:none; border:none; border-left:3px solid transparent;
+    color:var(--on-surface-variant);
+    font-family:var(--font-mono); font-size:12px; letter-spacing:0.05em; text-transform:uppercase;
+    padding:11px 13px; border-radius:0 var(--radius) var(--radius) 0;
+  }
+  .nav-link:hover:not([disabled]){background:var(--surface-container); color:var(--on-surface);}
+  .nav-link[aria-current="page"]{
+    background:rgba(232,97,0,0.12);
+    border-left-color:var(--secondary);
+    color:var(--secondary);
+    font-weight:700;
+  }
+  .nav-link[disabled]{opacity:0.55; cursor:not-allowed; justify-content:space-between;}
+  .soon-tag{
+    font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:0.06em;
+    text-transform:uppercase; padding:2px 7px; border-radius:var(--radius-full);
+    background:var(--surface-high); color:var(--outline); margin-left:auto;
+  }
+  .nav-icon{width:16px; height:16px; flex-shrink:0;}
+
+  .nav-footer{margin-top:auto; padding:var(--space-sm); border-top:1px solid var(--outline-variant);}
+  .nav-footer p{
+    font-family:var(--font-mono); font-size:10px; color:var(--outline);
+    letter-spacing:0.04em; line-height:1.6;
+  }
+
+  main{flex:1; min-width:0;}
+  section.view{display:none; padding:var(--space-lg);}
+  section.view.active{display:block;}
+
+  .view-head{margin-bottom:var(--space-lg);}
+  .view-head h2{
+    font-size:22px; font-weight:700; color:var(--on-surface); margin-bottom:6px;
+  }
+  .view-head p{color:var(--on-surface-variant); font-size:13px;}
+
+  /* ===== Venue Selector ===== */
+  .toolbar-row{
+    display:flex; gap:16px; align-items:center; margin-bottom:var(--space-lg);
+  }
+  .search-field{
+    flex:1; max-width:420px; position:relative;
+  }
+  .search-field input{
+    width:100%; background:var(--surface-container); border:1px solid var(--outline-variant);
+    border-radius:var(--radius); padding:10px 14px 10px 38px;
+    color:var(--on-surface); font-size:13px;
+  }
+  .search-field input::placeholder{color:var(--outline);}
+  .search-field svg{position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--outline);}
+
+  .venue-grid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+    gap:var(--gutter);
+  }
+  .venue-card{
+    background:var(--surface-container);
+    border:1px solid var(--outline-variant);
+    border-radius:var(--radius-lg);
+    overflow:hidden;
+    display:flex; flex-direction:column;
+    transition:border-color .15s ease;
+    cursor:pointer;
+  }
+  .venue-card:hover{border-color:rgba(0,240,255,0.4);}
+  .venue-card.is-current{border-color:var(--primary); box-shadow:0 0 0 1px var(--primary);}
+  .venue-thumb{
+    height:130px; background:var(--surface-high);
+    display:flex; align-items:center; justify-content:center;
+    position:relative;
+  }
+  .venue-thumb svg{width:100%; height:100%;}
+  .venue-badge{
+    position:absolute; top:10px; right:10px;
+    font-family:var(--font-mono); font-size:10px; font-weight:700;
+    letter-spacing:0.06em; text-transform:uppercase;
+    padding:4px 9px; border-radius:var(--radius-full);
+    background:rgba(0,240,255,0.15); color:var(--primary);
+    border:1px solid rgba(0,240,255,0.3);
+  }
+  .venue-body{padding:16px; display:flex; flex-direction:column; gap:12px; flex:1;}
+  .venue-name{font-size:16px; font-weight:700; color:var(--on-surface);}
+  .venue-loc{font-size:12px; color:var(--on-surface-variant); margin-top:2px;}
+  .venue-stats{display:flex; gap:20px;}
+  .venue-stat .label{
+    font-family:var(--font-mono); font-size:9px; color:var(--outline);
+    text-transform:uppercase; letter-spacing:0.08em; display:block; margin-bottom:2px;
+  }
+  .venue-stat .value{font-family:var(--font-mono); font-size:13px; font-weight:700; color:var(--on-surface);}
+  .venue-actions{margin-top:auto;}
+  .btn{
+    width:100%; padding:10px; border-radius:var(--radius);
+    font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase;
+    border:1px solid var(--outline-variant); background:transparent; color:var(--on-surface-variant);
+  }
+  .btn:hover{border-color:var(--primary); color:var(--primary);}
+  .btn.btn-current{border-color:var(--primary); color:var(--primary); background:rgba(0,240,255,0.08); cursor:default;}
+  .venue-card.import{
+    align-items:center; justify-content:center; text-align:center; gap:10px;
+    border-style:dashed; background:transparent; padding:32px 16px; min-height:100%;
+  }
+  .import-icon{
+    width:44px; height:44px; border-radius:50%; background:var(--surface-high);
+    display:flex; align-items:center; justify-content:center; color:var(--on-surface-variant); font-size:22px;
+  }
+  .import-formats{font-family:var(--font-mono); font-size:10px; color:var(--outline);}
+
+  .sr-only{
+    position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+    overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+  }
+  [role="status"].toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:var(--surface-high); border:1px solid var(--primary);
+    color:var(--on-surface); padding:10px 20px; border-radius:var(--radius);
+    font-size:13px; opacity:0; pointer-events:none; transition:opacity .2s ease;
+    font-family:var(--font-mono);
+  }
+  [role="status"].toast.show{opacity:1;}
+
+  /* ===== Show Designer ===== */
+  .designer-grid{
+    display:grid;
+    grid-template-columns:260px 1fr 300px;
+    gap:1px;
+    background:var(--outline-variant);
+    border:1px solid var(--outline-variant);
+    border-radius:var(--radius-lg);
+    overflow:hidden;
+    min-height:560px;
+  }
+  .panel{background:var(--surface-container); padding:var(--space-sm); overflow-y:auto;}
+  .panel h3{
+    font-family:var(--font-mono); font-size:11px; font-weight:700;
+    letter-spacing:0.08em; text-transform:uppercase; color:var(--on-surface-variant);
+    margin-bottom:14px;
+  }
+  .layer-row{
+    display:flex; align-items:center; gap:10px;
+    padding:6px; border-radius:var(--radius);
+    border:1px solid transparent; margin-bottom:6px;
+  }
+  .layer-row:hover{background:var(--surface-high);}
+  .layer-row.selected{border-color:var(--secondary); background:rgba(232,97,0,0.1);}
+  .layer-toggle{
+    width:28px; height:16px; border-radius:var(--radius-full);
+    background:var(--outline-variant); position:relative; flex-shrink:0; border:none; padding:0;
+  }
+  .layer-toggle.on{background:var(--primary);}
+  .layer-toggle::after{
+    content:""; position:absolute; top:2px; left:2px; width:12px; height:12px;
+    border-radius:50%; background:var(--surface); transition:left .15s ease;
+  }
+  .layer-toggle.on::after{left:14px; background:var(--on-primary);}
+  .layer-select{
+    flex:1; min-width:0; text-align:left; background:none; border:none;
+    color:var(--on-surface); padding:4px 0;
+  }
+  .layer-name{font-size:13px; font-weight:600; display:block;}
+  .layer-nodes{font-family:var(--font-mono); font-size:10px; color:var(--on-surface-variant); display:block;}
+
+  .canvas-panel{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    position:relative; background:radial-gradient(ellipse at center, #16201f 0%, var(--surface-container) 75%);
+  }
+  .preview-flag{
+    position:absolute; top:16px; left:16px; z-index:2;
+    display:flex; align-items:center; gap:6px;
+    font-family:var(--font-mono); font-size:11px; font-weight:700; letter-spacing:0.05em;
+    color:var(--tertiary); text-transform:uppercase;
+  }
+  .preview-flag .dot{width:6px;height:6px;border-radius:50%;background:var(--tertiary);}
+  .stadium-svg{width:80%; max-width:420px;}
+  .schematic-source{display:none;}
+  .stadium3d-canvas{position:absolute; inset:0; width:100%; height:100%; display:block; outline:none; z-index:0;}
+  .schematic-fallback{
+    text-align:center; color:var(--on-surface-variant); font-size:12px; padding:20px;
+  }
+  .schematic-fallback p{ margin:4px 0; }
+  .zone-shape{
+    fill:rgba(255,255,255,0.03); stroke:var(--outline-variant); stroke-width:1.5;
+    transition:stroke .2s ease, fill .2s ease;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .zone-shape{ animation:none !important; }
+  }
+
+  .zone-inspector .field{margin-bottom:20px;}
+  .zone-inspector label{
+    display:block; font-family:var(--font-mono); font-size:10px; color:var(--outline);
+    text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;
+  }
+  .target-zone-name{font-size:16px; font-weight:700; color:var(--on-surface);}
+  .pattern-row{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .pattern-name{font-size:14px; font-weight:600; color:var(--on-surface);}
+  .pill{
+    font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:0.06em;
+    text-transform:uppercase; padding:3px 8px; border-radius:var(--radius-full);
+    background:rgba(153,255,0,0.12); color:var(--tertiary); border:1px solid rgba(153,255,0,0.3);
+  }
+  .color-swatch-row{display:flex; align-items:center; gap:10px;}
+  .color-swatch{width:22px; height:22px; border-radius:var(--radius-sm); border:1px solid var(--outline-variant); flex-shrink:0;}
+  .color-input-swatch{
+    width:30px; height:30px; border-radius:var(--radius-sm); border:1px solid var(--outline-variant);
+    flex-shrink:0; padding:2px; background:var(--surface-high); cursor:pointer;
+  }
+  .color-hex{font-family:var(--font-mono); font-size:12px; color:var(--on-surface-variant);}
+
+  .slider-field .slider-head{display:flex; justify-content:space-between; align-items:baseline;}
+  .slider-value{font-family:var(--font-mono); font-size:12px; color:var(--primary); font-weight:700;}
+  input[type="range"]{
+    width:100%; -webkit-appearance:none; appearance:none;
+    height:3px; background:var(--outline-variant); border-radius:var(--radius-full); margin-top:8px;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:14px; height:14px; border-radius:50%;
+    background:var(--primary); cursor:pointer; border:2px solid var(--surface);
+  }
+  input[type="range"]::-moz-range-thumb{
+    width:14px; height:14px; border-radius:50%; background:var(--primary); border:2px solid var(--surface); cursor:pointer;
+  }
+
+  @media (max-width:900px){
+    .designer-grid{grid-template-columns:1fr;}
+    nav.sidebar{position:fixed; left:0; top:var(--toolbar-height); bottom:0; transform:translateX(-100%); transition:transform .2s ease; z-index:30;}
+    nav.sidebar.open{transform:translateX(0);}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+
+  /* ===== Pattern Library ===== */
+  .pattern-layout{display:grid; grid-template-columns:1fr 300px; gap:var(--gutter); align-items:start;}
+  .pattern-grid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:16px; margin-top:16px;
+  }
+  .pattern-card{
+    background:var(--surface-container); border:1px solid var(--outline-variant);
+    border-radius:var(--radius-lg); overflow:hidden; text-align:left;
+    display:flex; flex-direction:column; color:var(--on-surface);
+  }
+  .pattern-card:hover{border-color:rgba(0,240,255,0.4);}
+  .pattern-card.selected{border-color:var(--secondary); box-shadow:0 0 0 1px var(--secondary);}
+  .pattern-swatch{height:70px; position:relative; overflow:hidden;}
+  .pattern-card-body{padding:12px; display:flex; flex-direction:column; gap:6px;}
+  .pattern-card-name{font-weight:700; font-size:13px;}
+  .pattern-tags{display:flex; gap:6px; flex-wrap:wrap;}
+  .pattern-tag{
+    font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:0.05em;
+    padding:2px 7px; border-radius:var(--radius-full); background:var(--surface-high); color:var(--on-surface-variant);
+  }
+  .pattern-card.new-pattern{
+    align-items:center; justify-content:center; border-style:dashed; min-height:150px; gap:8px; color:var(--on-surface-variant);
+  }
+  .pattern-preview-stage{
+    min-height:110px; max-height:280px; overflow-y:auto; border-radius:var(--radius-lg); background:#050a0a; border:1px solid var(--outline-variant);
+    margin-bottom:12px; padding:8px;
+  }
+  .led-matrix{
+    display:grid; grid-template-columns:repeat(24, 1fr); grid-template-rows:repeat(6, 1fr);
+    gap:2px; width:100%; height:94px;
+  }
+  .image-needs-zone-hint{
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    min-height:94px; padding:16px; color:var(--on-surface-variant); font-size:12px; line-height:1.5;
+  }
+  .zone-led-block{ margin-bottom:10px; }
+  .zone-led-block:last-child{ margin-bottom:0; }
+  .zone-led-label{
+    font-family:var(--font-mono); font-size:9px; color:var(--on-surface-variant);
+    text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;
+  }
+  .zone-led-matrix{ grid-template-rows:repeat(3, 1fr); height:34px; }
+  .apply-venue-range-row{display:flex; gap:10px;}
+  .apply-venue-range-field{flex:1; display:flex; flex-direction:column; gap:4px;}
+  .apply-venue-range-field label{font-size:11px; color:var(--on-surface-variant);}
+  .apply-venue-range-field input{width:100%; background:rgba(5,10,10,0.6); border:1px solid rgba(0,240,255,0.2); color:var(--primary); border-radius:4px; padding:6px 8px; font-family:inherit;}
+  .zone-test-picker{
+    max-height:150px; overflow-y:auto; border:1px solid var(--outline-variant); border-radius:var(--radius);
+    background:var(--surface-high);
+  }
+  .zone-check-row{ margin-top:0; border-radius:0; border:none; border-bottom:1px solid var(--outline-variant); }
+  .zone-check-row:last-child{ border-bottom:none; }
+  .pattern-schematic-wrap{ margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--outline-variant); }
+  .pattern-schematic-svg{ width:100%; max-width:380px; display:block; margin:4px auto 0; }
+  .svg-led-dot{ fill:rgba(255,255,255,0.05); }
+  .led-dot{
+    border-radius:50%; background:#00f0ff; opacity:0.08;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .led-dot{ transition:none !important; }
+  }
+
+  /* ===== Timeline Editor ===== */
+  .timeline-transport{
+    display:flex; align-items:center; gap:12px; margin-bottom:16px; padding:12px 16px;
+    background:var(--surface-container); border-radius:var(--radius-lg); border:1px solid var(--outline-variant);
+  }
+  .transport-btn{
+    width:32px; height:32px; border-radius:50%; background:var(--surface-high); border:1px solid var(--outline-variant);
+    color:var(--on-surface); display:flex; align-items:center; justify-content:center;
+  }
+  .transport-btn:hover{border-color:var(--primary); color:var(--primary);}
+  #tl-play.playing{background:var(--primary); color:var(--on-primary);}
+  .timecode{font-family:var(--font-mono); font-size:16px; font-weight:700; color:var(--primary); min-width:88px;}
+  .timeline-hint{font-size:11px; color:var(--on-surface-variant); margin-left:auto;}
+  .timeline-zoom{display:flex; align-items:center; gap:6px; margin-left:16px;}
+  .zoom-btn{
+    width:22px; height:22px; border-radius:50%; background:var(--surface-high);
+    border:1px solid var(--outline-variant); color:var(--on-surface); font-size:14px;
+    line-height:1; display:flex; align-items:center; justify-content:center; padding:0;
+  }
+  .zoom-btn:hover{border-color:var(--primary); color:var(--primary);}
+  .zoom-readout{font-family:var(--font-mono); font-size:11px; color:var(--on-surface-variant); min-width:28px; text-align:center;}
+  .timeline-wrap{
+    background:var(--surface-container); border:1px solid var(--outline-variant); border-radius:var(--radius-lg);
+    overflow-x:auto; position:relative;
+  }
+  .timeline-ruler{
+    display:flex; height:24px; border-bottom:1px solid var(--outline-variant); position:sticky; top:0;
+    background:var(--surface-container); z-index:2; min-width:960px;
+  }
+  .ruler-tick{
+    width:80px; flex-shrink:0; font-family:var(--font-mono); font-size:10px; color:var(--outline);
+    padding-left:4px; border-left:1px solid var(--outline-variant); display:flex; align-items:center;
+  }
+  .track-row{display:flex; border-bottom:1px solid var(--outline-variant); min-width:960px;}
+  .track-label{
+    width:140px; flex-shrink:0; padding:12px; font-size:12px; font-weight:600;
+    border-right:1px solid var(--outline-variant); background:var(--surface-low);
+    position:sticky; left:0; z-index:1;
+  }
+  .track-lane{flex:1; position:relative; height:52px; cursor:copy;}
+  .track-lane:hover{background:rgba(0,240,255,0.04);}
+  .playhead{position:absolute; top:0; bottom:0; width:2px; background:var(--primary); z-index:3; pointer-events:none;}
+  .cue-block{
+    position:absolute; top:8px; height:36px; border-radius:var(--radius);
+    cursor:pointer; overflow:hidden; border:1px solid rgba(0,0,0,0.35); background:#050a0a;
+  }
+  .cue-block.selected{outline:2px solid var(--primary); outline-offset:1px;}
+  .cue-dot-grid{
+    position:absolute; inset:2px; display:grid;
+    grid-template-columns:repeat(var(--cue-cols, 10), 1fr);
+    gap:1px;
+  }
+  .cue-led-dot{ border-radius:50%; }
+  .cue-block-label{
+    position:relative; z-index:2; font-family:var(--font-mono); font-size:9px; font-weight:700;
+    color:#04212a; padding:2px 6px; margin:3px; display:inline-block; border-radius:2px;
+    background:rgba(255,255,255,0.6); white-space:nowrap; pointer-events:none;
+  }
+
+  /* ===== Preview ===== */
+  .preview-layout{display:grid; grid-template-columns:1fr 300px; gap:var(--gutter); align-items:start;}
+  .preview-stage{position:relative; padding:0; overflow:hidden; min-height:420px; display:flex; align-items:center; justify-content:center;}
+  #preview-svg{width:100%; height:100%; position:absolute; top:0; left:0;}
+  .preview-timecode{position:absolute; top:16px; right:16px; z-index:2;}
+  .preview-schematic-host{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:70%; max-width:340px; z-index:1;
+  }
+  .preview-schematic-host svg{ width:100%; display:block; filter:drop-shadow(0 0 12px rgba(0,0,0,0.5)); }
+  .preview-start-hint{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    z-index:3; display:flex; align-items:center; gap:10px;
+    font-family:var(--font-mono); font-size:13px; font-weight:700; letter-spacing:0.04em;
+    color:var(--primary); background:rgba(5,10,10,0.7); border:1px solid rgba(0,240,255,0.3);
+    padding:14px 22px; border-radius:var(--radius-full); cursor:pointer;
+    animation:preview-hint-pulse 2s ease-in-out infinite;
+  }
+  .preview-start-hint:hover{ background:rgba(0,240,255,0.12); border-color:var(--primary); }
+  @keyframes preview-hint-pulse{ 0%,100%{opacity:0.75;} 50%{opacity:1;} }
+  @media (prefers-reduced-motion: reduce){
+    .preview-start-hint{ animation:none; }
+  }
+  .camera-btn-group{display:flex; flex-direction:column; gap:6px;}
+  .music-sync-field{margin-top:16px; padding-top:16px; border-top:1px solid var(--outline-variant);}
+  .music-file-input{display:none;}
+  .music-import-btn{
+    width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--outline-variant);
+    background:var(--surface-high); color:var(--on-surface); font-family:var(--font-mono); font-size:12px; cursor:pointer;
+  }
+  .music-import-btn:hover{border-color:var(--primary); color:var(--primary);}
+  .music-loaded-row{margin-top:10px; display:flex; flex-direction:column; gap:8px;}
+  .music-slider-row{display:flex; flex-direction:column; gap:4px; margin-top:4px;}
+  .music-slider-row label{display:flex; justify-content:space-between; font-size:11px; color:var(--on-surface-variant);}
+  .music-slider-row input[type="range"]{width:100%; accent-color:var(--primary);}
+  .music-file-name{font-family:var(--font-mono); font-size:11px; color:var(--on-surface-variant); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .music-sync-toggle-label{display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer;}
+  .music-sync-hint{font-size:11px; color:var(--on-surface-variant); margin-top:10px; line-height:1.5;}
+  .cam-btn{
+    text-align:left; padding:10px 12px; border-radius:var(--radius); border:1px solid var(--outline-variant);
+    background:var(--surface-high); color:var(--on-surface-variant); font-size:12px; font-weight:600;
+  }
+  .cam-btn.active{border-color:var(--primary); color:var(--primary); background:rgba(0,240,255,0.08);}
+
+  /* ===== Export ===== */
+  .export-layout{display:grid; grid-template-columns:1fr 300px; gap:var(--gutter); align-items:start;}
+  .export-row{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .export-main select{
+    width:100%; background:var(--surface-high); border:1px solid var(--outline-variant); color:var(--on-surface);
+    padding:9px 10px; border-radius:var(--radius); font-size:13px;
+  }
+  .check-row{
+    display:flex; align-items:center; gap:10px; padding:12px; margin-top:10px;
+    background:var(--surface-high); border:1px solid var(--outline-variant); border-radius:var(--radius);
+    font-size:13px; cursor:pointer;
+  }
+  .generate-btn{margin-top:24px; background:var(--primary); color:var(--on-primary); border:none; font-weight:700;}
+  .export-history-item{
+    padding:10px; border-radius:var(--radius); background:var(--surface-high); margin-bottom:8px; font-size:12px;
+  }
+  .export-history-item .file-name{font-family:var(--font-mono); font-weight:700; display:block;}
+  .export-history-item .file-meta{color:var(--on-surface-variant); font-size:11px;}
+  .empty-note{color:var(--outline); font-size:12px; font-style:italic;}
+
+  @media (max-width:900px){
+    .pattern-layout, .preview-layout, .export-layout{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<header class="app-header" role="banner">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">S</div>
+    <h1>StadiumSync // Studio 3D</h1>
+  </div>
+  <div class="header-right">
+    <span class="status-badge" aria-label="Project status: autosaved">
+      <span class="dot" aria-hidden="true"></span>AUTOSAVED
+    </span>
+  </div>
+</header>
+
+<div class="app-shell">
+  <nav class="sidebar" aria-label="Primary">
+    <div class="project-id">
+      <div class="name" id="project-name">JORDAN-HARE_PREVIS</div>
+      <div class="sub">AUBURN_HALFTIME_V1</div>
+    </div>
+    <ul class="nav-list">
+      <li class="nav-item">
+        <button class="nav-link" data-view="venue-view" aria-current="page">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Venue Database
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-view="pattern-view">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+          Pattern Library
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-view="designer-view">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
+          Layers &amp; Zones
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-view="timeline-view">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>
+          Timeline
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-view="preview-view">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          Preview
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-view="export-view">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+          Export
+        </button>
+      </li>
+    </ul>
+  </nav>
+
+  <main id="main-content">
+    <!-- ===================== VENUE SELECTOR ===================== -->
+    <section id="venue-view" class="view active" aria-labelledby="venue-heading">
+      <div class="view-head">
+        <h2 id="venue-heading">Venue Database</h2>
+        <p>Select a 3D venue model to begin choreographing light sequences.</p>
+      </div>
+
+      <div class="toolbar-row">
+        <div class="search-field">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <label for="venue-search" class="sr-only">Search venues</label>
+          <input type="text" id="venue-search" placeholder="Search venues..." aria-label="Search venues by name or location">
+        </div>
+      </div>
+
+      <div class="venue-grid" id="venue-grid" role="list" aria-label="Venue projects">
+        <!-- populated by JS -->
+      </div>
+    </section>
+
+    <!-- ===================== SHOW DESIGNER ===================== -->
+    <section id="designer-view" class="view" aria-labelledby="designer-heading">
+      <div class="view-head">
+        <h2 id="designer-heading">Show Designer — <span id="designer-venue-name">Jordan-Hare Stadium</span></h2>
+        <p>Map light patterns to seating zones for this venue.</p>
+      </div>
+
+      <div class="designer-grid">
+        <div class="panel" aria-label="Layers and zones">
+          <h3>Layers &amp; Zones</h3>
+          <div id="layer-list"><!-- populated by JS --></div>
+        </div>
+
+        <div class="panel canvas-panel" aria-label="Stadium preview canvas">
+          <div class="preview-flag"><span class="dot" aria-hidden="true"></span>Preview Active</div>
+          <canvas id="stadium3d-canvas-designer" class="stadium3d-canvas" aria-label="3D preview of the current venue's stadium bowl"></canvas>
+
+          <div class="schematic-source" aria-hidden="true">
+          <svg class="stadium-svg schematic" id="schematic-jordan-hare" viewBox="0 0 400 300" role="img" aria-label="Schematic top-down view of Jordan-Hare Stadium with each seating zone individually highlighted">
+            <!-- Field -->
+            <rect x="150" y="70" width="100" height="160" fill="#1b3a1f" stroke="#3f6b45" stroke-width="1.5"/>
+            <rect x="150" y="70" width="100" height="25" fill="#16321a" stroke="#3f6b45" stroke-width="1"/>
+            <rect x="150" y="205" width="100" height="25" fill="#16321a" stroke="#3f6b45" stroke-width="1"/>
+            <text x="200" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#7fae86" letter-spacing="1">FIELD_ZERO</text>
+
+            <!-- Lower Bowl ring -->
+            <rect class="zone-shape" id="zoneshape-jordan-hare-student-section" data-zone-slug="student-section" x="90" y="30" width="108" height="35" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-jordan-hare-lower-bowl-north" data-zone-slug="lower-bowl-north" x="202" y="30" width="108" height="35" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-jordan-hare-lower-bowl-south" data-zone-slug="lower-bowl-south" x="90" y="235" width="220" height="35" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-jordan-hare-lower-bowl-west-sideline" data-zone-slug="lower-bowl-west-sideline" x="90" y="68" width="55" height="164" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-jordan-hare-lower-bowl-east-sideline" data-zone-slug="lower-bowl-east-sideline" x="255" y="68" width="55" height="164" rx="2"/>
+
+            <!-- End zones (inside field) -->
+            <rect class="zone-shape" id="zoneshape-jordan-hare-north-end-zone" data-zone-slug="north-end-zone" x="150" y="70" width="100" height="25" rx="1"/>
+            <rect class="zone-shape" id="zoneshape-jordan-hare-south-end-zone" data-zone-slug="south-end-zone" x="150" y="205" width="100" height="25" rx="1"/>
+
+            <!-- Upper Deck ring -->
+            <rect class="zone-shape" id="zoneshape-jordan-hare-upper-deck-north" data-zone-slug="upper-deck-north" x="60" y="16" width="280" height="12" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-jordan-hare-upper-deck-south" data-zone-slug="upper-deck-south" x="60" y="272" width="280" height="12" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-jordan-hare-upper-deck-west" data-zone-slug="upper-deck-west" x="30" y="30" width="28" height="242" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-jordan-hare-upper-deck-east" data-zone-slug="upper-deck-east" x="342" y="30" width="28" height="242" rx="2"/>
+
+            <!-- Press level -->
+            <rect class="zone-shape" id="zoneshape-jordan-hare-tiger-suites-press-level" data-zone-slug="tiger-suites-press-level" x="140" y="1" width="120" height="12" rx="2"/>
+          </svg>
+
+          <svg class="stadium-svg schematic" id="schematic-neville" viewBox="0 0 400 300" role="img" aria-label="Schematic top-down view of Neville Arena with each seating zone individually highlighted" style="display:none;">
+            <!-- Court -->
+            <rect x="120" y="115" width="160" height="70" fill="#3d2a14" stroke="#6b4a24" stroke-width="1.5"/>
+            <line x1="200" y1="115" x2="200" y2="185" stroke="#6b4a24" stroke-width="1"/>
+            <circle cx="200" cy="150" r="12" fill="none" stroke="#6b4a24" stroke-width="1"/>
+            <text x="200" y="153" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#a9804a" letter-spacing="1">COURT_ZERO</text>
+
+            <!-- Baseline ends -->
+            <rect class="zone-shape" id="zoneshape-neville-student-section" data-zone-slug="student-section" x="65" y="95" width="40" height="110" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-neville-lower-bowl-east-baseline" data-zone-slug="lower-bowl-east-baseline" x="295" y="95" width="40" height="110" rx="2"/>
+
+            <!-- Sidelines -->
+            <rect class="zone-shape" id="zoneshape-neville-lower-bowl-north" data-zone-slug="lower-bowl-north" x="110" y="65" width="180" height="25" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-neville-lower-bowl-south" data-zone-slug="lower-bowl-south" x="110" y="210" width="180" height="25" rx="2"/>
+
+            <!-- Upper ring -->
+            <rect class="zone-shape" id="zoneshape-neville-upper-ring-north" data-zone-slug="upper-ring-north" x="70" y="35" width="260" height="15" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-neville-upper-ring-south" data-zone-slug="upper-ring-south" x="70" y="250" width="260" height="15" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-neville-upper-ring-west" data-zone-slug="upper-ring-west" x="30" y="50" width="25" height="200" rx="2"/>
+
+            <!-- Club level -->
+            <rect class="zone-shape" id="zoneshape-neville-tiger-club-press-level" data-zone-slug="tiger-club-press-level" x="340" y="50" width="25" height="200" rx="2"/>
+          </svg>
+
+          <svg class="stadium-svg schematic" id="schematic-alabama" viewBox="0 0 400 300" role="img" aria-label="Schematic top-down view of Bryant-Denny Stadium with each seating zone individually highlighted" style="display:none;">
+            <rect x="150" y="70" width="100" height="160" fill="#1b3a1f" stroke="#9e1b32" stroke-width="1.5"/>
+            <rect x="150" y="70" width="100" height="25" fill="#16321a" stroke="#9e1b32" stroke-width="1"/>
+            <rect x="150" y="205" width="100" height="25" fill="#16321a" stroke="#9e1b32" stroke-width="1"/>
+            <text x="200" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#c68a97" letter-spacing="1">DENNY_FIELD</text>
+            <rect class="zone-shape" id="zoneshape-alabama-student-section" data-zone-slug="student-section" x="90" y="30" width="108" height="35" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-alabama-lower-bowl-north" data-zone-slug="lower-bowl-north" x="202" y="30" width="108" height="35" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-alabama-lower-bowl-south" data-zone-slug="lower-bowl-south" x="90" y="235" width="220" height="35" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-alabama-lower-bowl-west-sideline" data-zone-slug="lower-bowl-west-sideline" x="90" y="68" width="55" height="164" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-alabama-lower-bowl-east-sideline" data-zone-slug="lower-bowl-east-sideline" x="255" y="68" width="55" height="164" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-alabama-north-end-zone" data-zone-slug="north-end-zone" x="150" y="70" width="100" height="25" rx="1"/>
+            <rect class="zone-shape" id="zoneshape-alabama-south-end-zone" data-zone-slug="south-end-zone" x="150" y="205" width="100" height="25" rx="1"/>
+            <rect class="zone-shape" id="zoneshape-alabama-upper-deck-north" data-zone-slug="upper-deck-north" x="60" y="16" width="280" height="12" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-alabama-upper-deck-south" data-zone-slug="upper-deck-south" x="60" y="272" width="280" height="12" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-alabama-upper-deck-west" data-zone-slug="upper-deck-west" x="30" y="30" width="28" height="242" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-alabama-upper-deck-east" data-zone-slug="upper-deck-east" x="342" y="30" width="28" height="242" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-alabama-champions-suites-press-level" data-zone-slug="champions-suites-press-level" x="140" y="1" width="120" height="12" rx="2"/>
+          </svg>
+
+          <svg class="stadium-svg schematic" id="schematic-georgia" viewBox="0 0 400 300" role="img" aria-label="Schematic top-down view of Sanford Stadium with each seating zone individually highlighted" style="display:none;">
+            <rect x="147" y="67" width="106" height="166" fill="none" stroke="#3f6b45" stroke-width="4"/>
+            <rect x="150" y="70" width="100" height="160" fill="#1b3a1f" stroke="#b3a369" stroke-width="1.5"/>
+            <rect x="150" y="70" width="100" height="25" fill="#16321a" stroke="#b3a369" stroke-width="1"/>
+            <rect x="150" y="205" width="100" height="25" fill="#16321a" stroke="#b3a369" stroke-width="1"/>
+            <text x="200" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#d6cc9e" letter-spacing="1">SANFORD_FIELD</text>
+            <rect class="zone-shape" id="zoneshape-georgia-student-section" data-zone-slug="student-section" x="90" y="30" width="108" height="35" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-georgia-lower-bowl-north" data-zone-slug="lower-bowl-north" x="202" y="30" width="108" height="35" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-georgia-lower-bowl-south" data-zone-slug="lower-bowl-south" x="90" y="235" width="220" height="35" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-georgia-lower-bowl-west-sideline" data-zone-slug="lower-bowl-west-sideline" x="90" y="68" width="55" height="164" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-georgia-lower-bowl-east-sideline" data-zone-slug="lower-bowl-east-sideline" x="255" y="68" width="55" height="164" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-georgia-north-end-zone" data-zone-slug="north-end-zone" x="150" y="70" width="100" height="25" rx="1"/>
+            <rect class="zone-shape" id="zoneshape-georgia-south-end-zone" data-zone-slug="south-end-zone" x="150" y="205" width="100" height="25" rx="1"/>
+            <rect class="zone-shape" id="zoneshape-georgia-upper-deck-north" data-zone-slug="upper-deck-north" x="60" y="16" width="280" height="12" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-georgia-upper-deck-south" data-zone-slug="upper-deck-south" x="60" y="272" width="280" height="12" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-georgia-upper-deck-west" data-zone-slug="upper-deck-west" x="30" y="30" width="28" height="242" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-georgia-upper-deck-east" data-zone-slug="upper-deck-east" x="342" y="30" width="28" height="242" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-georgia-bulldog-club-suites-press-level" data-zone-slug="bulldog-club-suites-press-level" x="140" y="1" width="120" height="12" rx="2"/>
+          </svg>
+
+          <svg class="stadium-svg schematic" id="schematic-lsu" viewBox="0 0 400 300" role="img" aria-label="Schematic top-down view of Tiger Stadium (Death Valley) with each seating zone individually highlighted" style="display:none;">
+            <rect x="0" y="0" width="400" height="300" fill="#08060c"/>
+            <rect x="150" y="70" width="100" height="160" fill="#16281a" stroke="#461d7c" stroke-width="1.5"/>
+            <rect x="150" y="70" width="100" height="25" fill="#122016" stroke="#461d7c" stroke-width="1"/>
+            <rect x="150" y="205" width="100" height="25" fill="#122016" stroke="#461d7c" stroke-width="1"/>
+            <text x="200" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#a98fc9" letter-spacing="1">DEATH_VALLEY</text>
+            <rect class="zone-shape" id="zoneshape-lsu-student-section" data-zone-slug="student-section" x="90" y="30" width="108" height="35" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-lsu-lower-bowl-north" data-zone-slug="lower-bowl-north" x="202" y="30" width="108" height="35" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-lsu-lower-bowl-south" data-zone-slug="lower-bowl-south" x="90" y="235" width="220" height="35" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-lsu-lower-bowl-west-sideline" data-zone-slug="lower-bowl-west-sideline" x="90" y="68" width="55" height="164" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-lsu-lower-bowl-east-sideline" data-zone-slug="lower-bowl-east-sideline" x="255" y="68" width="55" height="164" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-lsu-north-end-zone" data-zone-slug="north-end-zone" x="150" y="70" width="100" height="25" rx="1"/>
+            <rect class="zone-shape" id="zoneshape-lsu-south-end-zone" data-zone-slug="south-end-zone" x="150" y="205" width="100" height="25" rx="1"/>
+            <rect class="zone-shape" id="zoneshape-lsu-upper-deck-north" data-zone-slug="upper-deck-north" x="60" y="16" width="280" height="12" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-lsu-upper-deck-south" data-zone-slug="upper-deck-south" x="60" y="272" width="280" height="12" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-lsu-upper-deck-west" data-zone-slug="upper-deck-west" x="30" y="30" width="28" height="242" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-lsu-upper-deck-east" data-zone-slug="upper-deck-east" x="342" y="30" width="28" height="242" rx="2"/>
+            <rect class="zone-shape" id="zoneshape-lsu-tiger-den-suites-press-level" data-zone-slug="tiger-den-suites-press-level" x="140" y="1" width="120" height="12" rx="2"/>
+          </svg>
+
+          <div id="schematic-fallback" class="schematic-fallback" style="display:none;">
+            <p>No custom schematic is built for this venue yet.</p>
+            <p>Zone highlighting will be available once a layout is added.</p>
+          </div>
+          </div>
+        </div>
+
+        <div class="panel zone-inspector" aria-label="Zone inspector">
+          <h3>Zone Inspector</h3>
+          <div class="field">
+            <label for="target-zone">Target Zone</label>
+            <div class="target-zone-name" id="target-zone">Student Section</div>
+          </div>
+          <div class="field">
+            <label>Active Pattern</label>
+            <div class="pattern-row">
+              <span class="pattern-name" id="pattern-name">Tiger Wave</span>
+              <span class="pill">In Preview</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="base-color">Base Color</label>
+            <div class="color-swatch-row">
+              <span class="color-swatch" style="background:var(--auburn-blue)" aria-hidden="true"></span>
+              <span class="color-hex">Auburn Blue · #0B2341</span>
+            </div>
+          </div>
+          <div class="field slider-field">
+            <div class="slider-head">
+              <label for="intensity">Intensity</label>
+              <span class="slider-value" id="intensity-value">85%</span>
+            </div>
+            <input type="range" id="intensity" min="0" max="100" value="85" aria-describedby="intensity-value">
+          </div>
+          <div class="field slider-field">
+            <div class="slider-head">
+              <label for="wave-speed">Wave Speed</label>
+              <span class="slider-value" id="wave-speed-value">2.4x</span>
+            </div>
+            <input type="range" id="wave-speed" min="0" max="50" value="24" aria-describedby="wave-speed-value">
+          </div>
+          <div class="field slider-field">
+            <div class="slider-head">
+              <label for="density">Density</label>
+              <span class="slider-value" id="density-value">100%</span>
+            </div>
+            <input type="range" id="density" min="0" max="100" value="100" aria-describedby="density-value">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PATTERN LIBRARY ===================== -->
+    <section id="pattern-view" class="view" aria-labelledby="pattern-heading">
+      <div class="view-head">
+        <h2 id="pattern-heading">Pattern Library</h2>
+        <p>Manage and browse reusable light sequences for show choreography.</p>
+      </div>
+
+      <div class="pattern-layout">
+        <div class="pattern-main">
+          <div class="toolbar-row">
+            <div class="search-field">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+              <label for="pattern-search" class="sr-only">Search patterns</label>
+              <input type="text" id="pattern-search" placeholder="Search patterns or tags (e.g. 'fast', 'ambient')...">
+            </div>
+          </div>
+          <div class="pattern-grid" id="pattern-grid" role="list" aria-label="Saved patterns"></div>
+        </div>
+
+        <div class="panel zone-inspector" id="pattern-inspector" aria-label="Pattern parameters">
+          <h3>Pattern Parameters</h3>
+          <div id="pattern-inspector-body"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== TIMELINE EDITOR ===================== -->
+    <section id="timeline-view" class="view" aria-labelledby="timeline-heading">
+      <div class="view-head">
+        <h2 id="timeline-heading">Timeline Editor — <span id="timeline-venue-name">Jordan-Hare Stadium</span></h2>
+        <p>Sequence patterns against the show's music cues.</p>
+      </div>
+
+      <div class="timeline-transport">
+        <button class="transport-btn" id="tl-rewind" aria-label="Hold to rewind">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><polygon points="12,5 3,12 12,19"/><polygon points="21,5 12,12 21,19"/></svg>
+        </button>
+        <button class="transport-btn" id="tl-play" aria-label="Play">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="6,4 20,12 6,20"/></svg>
+        </button>
+        <button class="transport-btn" id="tl-ff" aria-label="Hold to fast-forward">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><polygon points="12,5 21,12 12,19"/><polygon points="3,5 12,12 3,19"/></svg>
+        </button>
+        <button class="transport-btn" id="tl-stop" aria-label="Stop and reset">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><rect x="5" y="5" width="14" height="14"/></svg>
+        </button>
+        <span class="timecode" id="tl-timecode">00:00:00</span>
+        <span class="timeline-hint">Click a track to add a cue. Hold rewind/forward to scrub.</span>
+        <div class="timeline-zoom">
+          <button class="zoom-btn" id="tl-zoom-out" aria-label="Zoom out">−</button>
+          <span class="zoom-readout" id="tl-zoom-readout">5.0x</span>
+          <button class="zoom-btn" id="tl-zoom-in" aria-label="Zoom in">+</button>
+        </div>
+      </div>
+
+      <div class="timeline-wrap" id="timeline-wrap">
+        <div class="timeline-ruler" id="timeline-ruler"></div>
+        <div id="timeline-tracks"></div>
+      </div>
+
+      <div class="panel zone-inspector" id="cue-inspector" style="margin-top:16px; display:none;" aria-label="Cue editor">
+        <h3>Cue Editor</h3>
+        <div id="cue-inspector-body"></div>
+      </div>
+    </section>
+
+    <!-- ===================== PREVIEW ===================== -->
+    <section id="preview-view" class="view" aria-labelledby="preview-heading">
+      <div class="view-head">
+        <h2 id="preview-heading">Preview — <span id="preview-venue-name">Jordan-Hare Stadium</span></h2>
+        <p>Rehearsal review of the real programmed show. Not a live broadcast feed.</p>
+      </div>
+
+      <div class="timeline-transport">
+        <button class="transport-btn" id="preview-rewind" aria-label="Hold to rewind">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><polygon points="12,5 3,12 12,19"/><polygon points="21,5 12,12 21,19"/></svg>
+        </button>
+        <button class="transport-btn" id="preview-play" aria-label="Play">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="6,4 20,12 6,20"/></svg>
+        </button>
+        <button class="transport-btn" id="preview-ff" aria-label="Hold to fast-forward">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><polygon points="12,5 21,12 12,19"/><polygon points="3,5 12,12 3,19"/></svg>
+        </button>
+        <button class="transport-btn" id="preview-stop" aria-label="Stop and reset">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><rect x="5" y="5" width="14" height="14"/></svg>
+        </button>
+        <span class="timecode" id="preview-timecode-2">00:00:00</span>
+        <span class="timeline-hint">Plays the actual programmed show from the Timeline — same clock, same cues.</span>
+      </div>
+
+      <div class="preview-layout">
+        <div class="panel preview-stage" aria-label="Stadium review canvas">
+          <div class="preview-flag"><span class="dot" aria-hidden="true"></span>Preview Mode</div>
+          <span class="timecode preview-timecode" id="preview-timecode">00:00:00</span>
+          <canvas id="stadium3d-canvas-preview" class="stadium3d-canvas" aria-label="3D rehearsal view of the programmed show"></canvas>
+          <div class="schematic-source" aria-hidden="true">
+          <svg id="preview-svg" viewBox="0 0 400 300" role="img" aria-label="Atmospheric backdrop for the stadium preview">
+            <defs>
+              <radialGradient id="sky-grad" cx="50%" cy="30%" r="80%">
+                <stop id="sky-stop-1" offset="0%" stop-color="#1a3a3d"/>
+                <stop id="sky-stop-2" offset="100%" stop-color="#050a0a"/>
+              </radialGradient>
+            </defs>
+            <rect x="0" y="0" width="400" height="300" fill="url(#sky-grad)"/>
+            <rect id="fog-overlay" x="0" y="0" width="400" height="300" fill="#dce8e8" opacity="0"/>
+          </svg>
+          <div class="preview-schematic-host" id="preview-schematic-host" aria-label="Real-time zone activity for the current show"></div>
+          </div>
+          <button type="button" class="preview-start-hint" id="preview-start-hint">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><polygon points="6,4 20,12 6,20"/></svg>
+            Press Play to Start
+          </button>
+        </div>
+
+        <div class="panel zone-inspector" aria-label="Preview settings">
+          <h3>Preview Settings</h3>
+          <div class="field">
+            <label>Camera View</label>
+            <div class="camera-btn-group" id="camera-group">
+              <button class="cam-btn active" data-cam="press">Press Box</button>
+              <button class="cam-btn" data-cam="field">Field Level</button>
+              <button class="cam-btn" data-cam="student">Student Section</button>
+            </div>
+            <button type="button" class="btn" id="auto-orbit-toggle" style="margin-top:8px;" aria-pressed="false">Auto-Orbit: Off</button>
+          </div>
+          <div class="field slider-field">
+            <div class="slider-head"><label for="time-of-day">Time of Day</label><span class="slider-value" id="tod-value">Night</span></div>
+            <input type="range" id="time-of-day" min="0" max="100" value="80">
+          </div>
+          <div class="field slider-field">
+            <div class="slider-head"><label for="fog-density">Fog Density</label><span class="slider-value" id="fog-value">45%</span></div>
+            <input type="range" id="fog-density" min="0" max="100" value="45">
+          </div>
+          <div class="field music-sync-field">
+            <label>Music Sync</label>
+            <input type="file" id="music-file-input" accept="audio/*" class="music-file-input">
+            <button type="button" class="music-import-btn" id="music-import-btn">Import Music</button>
+            <div class="music-loaded-row" id="music-loaded-row" style="display:none;">
+              <span class="music-file-name" id="music-file-name"></span>
+              <label class="music-sync-toggle-label">
+                <input type="checkbox" id="music-sync-toggle">
+                <span>Sync brightness to music</span>
+              </label>
+              <label class="music-sync-toggle-label">
+                <input type="checkbox" id="music-color-sync-toggle">
+                <span>Sync colors to music</span>
+              </label>
+              <div class="music-slider-row">
+                <label for="music-volume-slider">Music Volume <span id="music-volume-value">80%</span></label>
+                <input type="range" id="music-volume-slider" min="0" max="100" value="80">
+              </div>
+              <div class="music-slider-row">
+                <label for="music-sensitivity-slider">Beat Sensitivity <span id="music-sensitivity-value">Medium</span></label>
+                <input type="range" id="music-sensitivity-slider" min="1" max="9" value="5">
+              </div>
+            </div>
+            <p class="music-sync-hint">Brightness sync modulates how bright each zone gets in the moment. Color sync flashes each active zone through the venue's own colors based on which part of the music is loudest right now — bass, mid, or treble. Either can be used alone or together; Timeline still decides which zones are active and what pattern each one runs. Beat Sensitivity controls how big a jump in the kick-drum range counts as a "hit" — lower it if hits aren't triggering, raise it if quiet moments are triggering falsely.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== EXPORT ===================== -->
+    <section id="export-view" class="view" aria-labelledby="export-heading">
+      <div class="view-head">
+        <h2 id="export-heading">Export Project</h2>
+        <p id="export-project-sub">Jordan-Hare Stadium — Auburn Halftime V1</p>
+      </div>
+
+      <div class="export-layout">
+        <div class="panel export-main">
+          <h3>Video Render // Preview</h3>
+          <div class="export-row">
+            <div class="field">
+              <label for="exp-res">Resolution</label>
+              <select id="exp-res"><option>4K UHD (3840x2160)</option><option>1080p (1920x1080)</option><option>720p (1280x720)</option></select>
+            </div>
+            <div class="field">
+              <label for="exp-fps">Framerate</label>
+              <select id="exp-fps"><option>60 fps</option><option>30 fps</option><option>24 fps</option></select>
+            </div>
+          </div>
+
+          <h3 style="margin-top:24px;">Documentation &amp; Metadata</h3>
+          <label class="check-row"><input type="checkbox" id="chk-pdf" checked> Design Specification (printable) — zone maps, pattern schedules, and cue sheets</label>
+          <label class="check-row"><input type="checkbox" id="chk-json" checked> Show Metadata (.json) — structured project data</label>
+
+          <button class="btn generate-btn" id="generate-export">Generate Export</button>
+        </div>
+
+        <div class="panel" aria-label="Recent exports">
+          <h3>Recent Exports</h3>
+          <div id="export-history"><p class="empty-note">No exports generated yet this session.</p></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div role="status" class="toast" id="toast" aria-live="polite"></div>
+
+<script src="vendor/three.min.js"></script>
+<script src="vendor/OrbitControls.js"></script>
+<script src="vendor/shaders/CopyShader.js"></script>
+<script src="vendor/shaders/LuminosityHighPassShader.js"></script>
+<script src="vendor/postprocessing/EffectComposer.js"></script>
+<script src="vendor/postprocessing/RenderPass.js"></script>
+<script src="vendor/postprocessing/ShaderPass.js"></script>
+<script src="vendor/postprocessing/UnrealBloomPass.js"></script>
+<script src="stadium3d.js"></script>
+<script>
+(function(){
+  var venues = [
+    {
+      id:'jordan-hare', name:'Jordan-Hare Stadium', loc:'Auburn, AL',
+      capacity:'87,451', current:true,
+      zoneData:[
+        {name:'Student Section', nodes:'12,458', on:true, pattern:'Tiger Wave', intensity:85, speed:24, density:100},
+        {name:'Lower Bowl - North', nodes:'9,800', on:true, pattern:'Orange Pulse', intensity:70, speed:18, density:80},
+        {name:'Lower Bowl - South', nodes:'9,650', on:true, pattern:'Orange Pulse', intensity:70, speed:18, density:80},
+        {name:'Lower Bowl - East (Sideline)', nodes:'11,200', on:true, pattern:'Tiger Wave', intensity:80, speed:22, density:90},
+        {name:'Lower Bowl - West (Sideline)', nodes:'11,050', on:true, pattern:'Tiger Wave', intensity:80, speed:22, density:90},
+        {name:'Upper Deck - North', nodes:'7,400', on:false, pattern:'Solid Blue', intensity:60, speed:10, density:100},
+        {name:'Upper Deck - South', nodes:'7,250', on:false, pattern:'Solid Blue', intensity:60, speed:10, density:100},
+        {name:'Upper Deck - East', nodes:'6,900', on:true, pattern:'Strobe', intensity:90, speed:40, density:60},
+        {name:'Upper Deck - West', nodes:'6,800', on:true, pattern:'Strobe', intensity:90, speed:40, density:60},
+        {name:'North End Zone', nodes:'3,200', on:true, pattern:'Orange Pulse', intensity:75, speed:20, density:85},
+        {name:'South End Zone', nodes:'3,150', on:true, pattern:'Orange Pulse', intensity:75, speed:20, density:85},
+        {name:'Tiger Suites (Press Level)', nodes:'1,143', on:false, pattern:'Solid Blue', intensity:40, speed:5, density:100}
+      ]
+    },
+    {
+      id:'neville', name:'Neville Arena', loc:'Auburn, AL',
+      capacity:'9,121', current:false,
+      zoneData:[
+        {name:'Student Section', nodes:'1,200', on:true, pattern:'Tiger Wave', intensity:85, speed:24, density:100},
+        {name:'Lower Bowl - East Baseline', nodes:'1,100', on:true, pattern:'Orange Pulse', intensity:70, speed:18, density:80},
+        {name:'Lower Bowl - North', nodes:'1,450', on:true, pattern:'Strobe', intensity:90, speed:40, density:60},
+        {name:'Lower Bowl - South', nodes:'1,450', on:true, pattern:'Tiger Wave', intensity:80, speed:22, density:90},
+        {name:'Upper Ring - North', nodes:'950', on:false, pattern:'Solid Blue', intensity:55, speed:5, density:100},
+        {name:'Upper Ring - South', nodes:'950', on:false, pattern:'Solid Blue', intensity:55, speed:5, density:100},
+        {name:'Upper Ring - West', nodes:'900', on:true, pattern:'Orange Pulse', intensity:65, speed:16, density:75},
+        {name:'Tiger Club (Press Level)', nodes:'400', on:false, pattern:'Solid Blue', intensity:40, speed:5, density:100}
+      ]
+    },
+    {
+      id:'alabama', name:'Bryant-Denny Stadium', loc:'Tuscaloosa, AL',
+      capacity:'100,077', current:false,
+      zoneData:[
+        {name:'Student Section', nodes:'13,500', on:true, pattern:'Tiger Wave', intensity:88, speed:26, density:100},
+        {name:'Lower Bowl - North', nodes:'10,500', on:true, pattern:'Orange Pulse', intensity:70, speed:18, density:80},
+        {name:'Lower Bowl - South', nodes:'10,500', on:true, pattern:'Orange Pulse', intensity:70, speed:18, density:80},
+        {name:'Lower Bowl - East (Sideline)', nodes:'12,800', on:true, pattern:'Tiger Wave', intensity:82, speed:22, density:90},
+        {name:'Lower Bowl - West (Sideline)', nodes:'12,800', on:true, pattern:'Tiger Wave', intensity:82, speed:22, density:90},
+        {name:'Upper Deck - North', nodes:'8,600', on:false, pattern:'Solid Blue', intensity:60, speed:10, density:100},
+        {name:'Upper Deck - South', nodes:'8,600', on:false, pattern:'Solid Blue', intensity:60, speed:10, density:100},
+        {name:'Upper Deck - East', nodes:'8,200', on:true, pattern:'Strobe', intensity:92, speed:40, density:60},
+        {name:'Upper Deck - West', nodes:'8,200', on:true, pattern:'Strobe', intensity:92, speed:40, density:60},
+        {name:'North End Zone', nodes:'3,200', on:true, pattern:'Orange Pulse', intensity:76, speed:20, density:85},
+        {name:'South End Zone', nodes:'3,200', on:true, pattern:'Orange Pulse', intensity:76, speed:20, density:85},
+        {name:'Champions Suites (Press Level)', nodes:'1,977', on:false, pattern:'Solid Blue', intensity:42, speed:5, density:100}
+      ]
+    },
+    {
+      id:'georgia', name:'Sanford Stadium', loc:'Athens, GA',
+      capacity:'93,033', current:false,
+      zoneData:[
+        {name:'Student Section', nodes:'12,000', on:true, pattern:'Tiger Wave', intensity:86, speed:25, density:100},
+        {name:'Lower Bowl - North', nodes:'9,800', on:true, pattern:'Orange Pulse', intensity:69, speed:17, density:80},
+        {name:'Lower Bowl - South', nodes:'9,800', on:true, pattern:'Orange Pulse', intensity:69, speed:17, density:80},
+        {name:'Lower Bowl - East (Sideline)', nodes:'11,500', on:true, pattern:'Tiger Wave', intensity:81, speed:21, density:90},
+        {name:'Lower Bowl - West (Sideline)', nodes:'11,500', on:true, pattern:'Tiger Wave', intensity:81, speed:21, density:90},
+        {name:'Upper Deck - North', nodes:'8,000', on:false, pattern:'Solid Blue', intensity:58, speed:9, density:100},
+        {name:'Upper Deck - South', nodes:'8,000', on:false, pattern:'Solid Blue', intensity:58, speed:9, density:100},
+        {name:'Upper Deck - East', nodes:'7,600', on:true, pattern:'Strobe', intensity:90, speed:38, density:60},
+        {name:'Upper Deck - West', nodes:'7,600', on:true, pattern:'Strobe', intensity:90, speed:38, density:60},
+        {name:'North End Zone', nodes:'2,900', on:true, pattern:'Orange Pulse', intensity:74, speed:19, density:85},
+        {name:'South End Zone', nodes:'2,900', on:true, pattern:'Orange Pulse', intensity:74, speed:19, density:85},
+        {name:'Bulldog Club Suites (Press Level)', nodes:'1,433', on:false, pattern:'Solid Blue', intensity:40, speed:5, density:100}
+      ]
+    },
+    {
+      id:'lsu', name:'Tiger Stadium', loc:'Baton Rouge, LA',
+      capacity:'102,321', current:false,
+      zoneData:[
+        {name:'Student Section', nodes:'13,200', on:true, pattern:'Tiger Wave', intensity:90, speed:27, density:100},
+        {name:'Lower Bowl - North', nodes:'10,800', on:true, pattern:'Orange Pulse', intensity:71, speed:18, density:80},
+        {name:'Lower Bowl - South', nodes:'10,800', on:true, pattern:'Orange Pulse', intensity:71, speed:18, density:80},
+        {name:'Lower Bowl - East (Sideline)', nodes:'13,000', on:true, pattern:'Tiger Wave', intensity:84, speed:23, density:90},
+        {name:'Lower Bowl - West (Sideline)', nodes:'13,000', on:true, pattern:'Tiger Wave', intensity:84, speed:23, density:90},
+        {name:'Upper Deck - North', nodes:'8,800', on:false, pattern:'Solid Blue', intensity:62, speed:10, density:100},
+        {name:'Upper Deck - South', nodes:'8,800', on:false, pattern:'Solid Blue', intensity:62, speed:10, density:100},
+        {name:'Upper Deck - East', nodes:'8,400', on:true, pattern:'Strobe', intensity:94, speed:42, density:60},
+        {name:'Upper Deck - West', nodes:'8,400', on:true, pattern:'Strobe', intensity:94, speed:42, density:60},
+        {name:'North End Zone', nodes:'3,300', on:true, pattern:'Orange Pulse', intensity:77, speed:21, density:85},
+        {name:'South End Zone', nodes:'3,300', on:true, pattern:'Orange Pulse', intensity:77, speed:21, density:85},
+        {name:'Tiger Den Suites (Press Level)', nodes:'521', on:false, pattern:'Solid Blue', intensity:38, speed:5, density:100}
+      ]
+    }
+  ];
+
+  var currentVenueId = 'jordan-hare';
+  var selectedLayerIndex = 0;
+  var designerStadium = null;
+  var previewStadium = null;
+  var currentZoneIndexBySlug = {};
+  var autoOrbitOn = false;
+
+  function venueStadiumThumb(){
+    return '<svg viewBox="0 0 200 130" role="img" aria-label="Schematic stadium bowl illustration"><ellipse cx="100" cy="65" rx="92" ry="58" fill="none" stroke="#3b4a4b" stroke-width="2"/><ellipse cx="100" cy="65" rx="68" ry="42" fill="none" stroke="#3b4a4b" stroke-width="1.5"/><rect x="66" y="45" width="68" height="40" rx="3" fill="#1b3a1f" stroke="#3f6b45"/></svg>';
+  }
+
+  function renderVenues(filter){
+    var grid = document.getElementById('venue-grid');
+    grid.innerHTML = '';
+    var q = (filter || '').trim().toLowerCase();
+    venues.filter(function(v){
+      return !q || v.name.toLowerCase().indexOf(q) !== -1 || v.loc.toLowerCase().indexOf(q) !== -1;
+    }).forEach(function(v){
+      var isCurrent = v.id === currentVenueId;
+      var card = document.createElement('div');
+      card.className = 'venue-card' + (isCurrent ? ' is-current' : '');
+      card.setAttribute('role','button');
+      card.setAttribute('tabindex','0');
+      card.setAttribute('data-load', v.id);
+      card.setAttribute('aria-label', (isCurrent ? 'Currently loaded: ' : 'Load ') + v.name);
+      card.innerHTML =
+        '<div class="venue-thumb">' + venueStadiumThumb() + (isCurrent ? '<span class="venue-badge">Current</span>' : '') + '</div>' +
+        '<div class="venue-body">' +
+          '<div><div class="venue-name">' + v.name + '</div><div class="venue-loc">' + v.loc + '</div></div>' +
+          '<div class="venue-stats">' +
+            '<div class="venue-stat"><span class="label">Capacity</span><span class="value">' + v.capacity + '</span></div>' +
+            '<div class="venue-stat"><span class="label">Zones</span><span class="value">' + v.zoneData.length + ' active</span></div>' +
+          '</div>' +
+          '<div class="venue-actions"><span class="btn ' + (isCurrent ? 'btn-current' : '') + '">' + (isCurrent ? 'Loaded' : 'Load Project') + '</span></div>' +
+        '</div>';
+      grid.appendChild(card);
+    });
+
+    var importCard = document.createElement('div');
+    importCard.className = 'venue-card import';
+    importCard.setAttribute('role','listitem');
+    importCard.innerHTML = '<div class="import-icon" aria-hidden="true">+</div><div>Import Model</div><div class="import-formats">Supported formats: .OBJ, .FBX, .GLTF</div>';
+    grid.appendChild(importCard);
+  }
+
+  function loadVenue(id){
+    var v = venues.find(function(x){ return x.id === id; });
+    if(!v) return;
+    currentVenueId = id;
+    document.getElementById('project-name').textContent = v.name.toUpperCase().replace(/ /g,'_');
+    document.getElementById('designer-venue-name').textContent = v.name;
+    document.getElementById('preview-venue-name').textContent = v.name;
+    selectedLayerIndex = 0;
+    selectedCue = null;
+    playheadSeconds = 0;
+    testZoneNames = [];
+    applyVenueColorTheme(id);
+    currentZoneIndexBySlug = {};
+    v.zoneData.forEach(function(z, i){ currentZoneIndexBySlug[zoneSlug(z.name)] = i; });
+    if(designerStadium) designerStadium.loadVenue(v, VENUE_PALETTES[id]);
+    if(previewStadium) previewStadium.loadVenue(v, VENUE_PALETTES[id]);
+    renderVenues(document.getElementById('venue-search').value);
+    renderLayers();
+    renderInspector();
+    if(typeof renderTimeline === 'function') renderTimeline();
+    if(typeof renderExportView === 'function') renderExportView();
+    if(typeof renderPatternGrid === 'function') renderPatternGrid(document.getElementById('pattern-search') ? document.getElementById('pattern-search').value : '');
+    if(typeof renderPatternInspector === 'function') renderPatternInspector();
+    if(typeof buildPreviewSchematic === 'function'){
+      buildPreviewSchematic();
+      updatePreviewStadium(playheadSeconds);
+      if(typeof updatePreviewStartHint === 'function') updatePreviewStartHint();
+    }
+    showToast(v.name + ' loaded');
+  }
+
+  function renderLayers(){
+    var v = venues.find(function(x){ return x.id === currentVenueId; });
+    var list = document.getElementById('layer-list');
+    list.innerHTML = '';
+    v.zoneData.forEach(function(z, i){
+      var row = document.createElement('div');
+      row.className = 'layer-row' + (i === selectedLayerIndex ? ' selected' : '');
+      row.innerHTML =
+        '<button type="button" class="layer-toggle' + (z.on ? ' on' : '') + '" role="switch" aria-checked="' + z.on + '" aria-label="Toggle ' + z.name + ' visibility" data-toggle-index="' + i + '"></button>' +
+        '<button type="button" class="layer-select" data-select-index="' + i + '">' +
+          '<span class="layer-name">' + z.name + '</span>' +
+          '<span class="layer-nodes">NODES: ' + z.nodes + '</span>' +
+        '</button>';
+      list.appendChild(row);
+    });
+  }
+
+  function renderInspector(){
+    var v = venues.find(function(x){ return x.id === currentVenueId; });
+    var z = v.zoneData[selectedLayerIndex];
+    document.getElementById('target-zone').textContent = z.name;
+    document.getElementById('pattern-name').textContent = z.pattern;
+    document.getElementById('intensity').value = z.intensity;
+    document.getElementById('intensity-value').textContent = z.intensity + '%';
+    document.getElementById('wave-speed').value = z.speed;
+    document.getElementById('wave-speed-value').textContent = (z.speed/10).toFixed(1) + 'x';
+    document.getElementById('density').value = z.density;
+    document.getElementById('density-value').textContent = z.density + '%';
+    updateActiveSchematic();
+    applyZoneHighlightStyle(z);
+  }
+
+  function zoneSlug(name){
+    return name.toLowerCase().replace(/[()]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  }
+
+  function updateActiveSchematic(){
+    var schematics = document.querySelectorAll('.schematic');
+    var fallback = document.getElementById('schematic-fallback');
+    var match = document.getElementById('schematic-' + currentVenueId);
+    schematics.forEach(function(s){ s.style.display = 'none'; });
+    if(match){
+      match.style.display = '';
+      fallback.style.display = 'none';
+    } else {
+      fallback.style.display = '';
+    }
+  }
+
+  var designerDots = [];
+  var designerRafId = null;
+  var designerStartTime = null;
+
+  function clearDesignerDotOverlay(){
+    document.querySelectorAll('#designer-view .zone-dot-overlay').forEach(function(g){ g.remove(); });
+    designerDots = [];
+    if(designerRafId){ window.cancelAnimationFrame(designerRafId); designerRafId = null; }
+  }
+
+  function designerFrame(pat, timestamp){
+    if(designerStartTime === null) designerStartTime = timestamp;
+    var t = (timestamp - designerStartTime) / 1000;
+    designerDots.forEach(function(d){
+      d.el.style.fill = getDotColor(pat, d.col, d.row, d.cols, d.rows);
+      d.el.style.opacity = computeDotBrightness(pat, d.col, t, d.cols, d.row, d.rows);
+    });
+    designerRafId = window.requestAnimationFrame(function(ts){ designerFrame(pat, ts); });
+  }
+
+  function applyZoneHighlightStyle(zone){
+    if(designerStadium) designerStadium.highlightZone(selectedLayerIndex);
+    clearDesignerDotOverlay();
+    // Reset every zone shape to neutral first, so only the selected zone stands out
+    document.querySelectorAll('.zone-shape').forEach(function(shape){
+      shape.setAttribute('class', 'zone-shape');
+      shape.style.stroke = '';
+      shape.style.fill = '';
+      shape.style.fillOpacity = '';
+    });
+
+    var target = document.getElementById('zoneshape-' + currentVenueId + '-' + zoneSlug(zone.name));
+    if(!target) return; // this venue doesn't have a custom shape for this zone name yet
+
+    if(!zone.on){
+      // This zone's layer is toggled off in the list — the preview should
+      // honestly show it dark, not run its assigned pattern as if it were live.
+      target.style.stroke = 'var(--outline-variant)';
+      target.style.fill = 'rgba(255,255,255,0.02)';
+      return;
+    }
+
+    var pat = findPatternByName(zone.pattern);
+    if(!pat){ target.style.stroke = 'var(--primary)'; return; }
+
+    // Inline style, not setAttribute: SVG presentation attributes lose to
+    // stylesheet rules in the CSS cascade, so setAttribute('fill', ...) here
+    // was being silently overridden by the base .zone-shape{fill:...} rule
+    // and never actually showed on screen. Inline style wins over both.
+    target.style.stroke = pat.color;
+    target.style.fill = 'rgba(255,255,255,0.02)'; // dots carry the real signal, not a flat fill
+    designerDots = buildZoneDotOverlay(target, pat);
+    designerStartTime = null;
+    designerRafId = window.requestAnimationFrame(function(ts){ designerFrame(pat, ts); });
+  }
+
+  function showToast(msg){
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function(){ t.classList.remove('show'); }, 2200);
+  }
+
+  // Delegated click handling — bound once, survives every re-render
+  document.getElementById('venue-grid').addEventListener('click', function(e){
+    var btn = e.target.closest('[data-load]');
+    if(btn) loadVenue(btn.getAttribute('data-load'));
+  });
+  document.getElementById('venue-grid').addEventListener('keydown', function(e){
+    if(e.key !== 'Enter' && e.key !== ' ') return;
+    var btn = e.target.closest('[data-load]');
+    if(btn){ e.preventDefault(); loadVenue(btn.getAttribute('data-load')); }
+  });
+
+  document.getElementById('layer-list').addEventListener('click', function(e){
+    var toggleBtn = e.target.closest('[data-toggle-index]');
+    var selectBtn = e.target.closest('[data-select-index]');
+    var v = venues.find(function(x){ return x.id === currentVenueId; });
+    if(toggleBtn){
+      var i = parseInt(toggleBtn.getAttribute('data-toggle-index'), 10);
+      v.zoneData[i].on = !v.zoneData[i].on;
+      renderLayers();
+      if(i === selectedLayerIndex) renderInspector();
+      return;
+    }
+    if(selectBtn){
+      selectedLayerIndex = parseInt(selectBtn.getAttribute('data-select-index'), 10);
+      renderLayers();
+      renderInspector();
+    }
+  });
+
+  // Nav switching
+  document.querySelectorAll('.nav-link[data-view]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.nav-link[data-view]').forEach(function(b){ b.removeAttribute('aria-current'); });
+      btn.setAttribute('aria-current','page');
+      document.querySelectorAll('section.view').forEach(function(s){ s.classList.remove('active'); });
+      document.getElementById(btn.getAttribute('data-view')).classList.add('active');
+      var view = btn.getAttribute('data-view');
+      if(view === 'designer-view' && designerStadium) designerStadium.onResize();
+      if(view === 'preview-view' && previewStadium) previewStadium.onResize();
+    });
+  });
+
+  // Search
+  document.getElementById('venue-search').addEventListener('input', function(e){
+    renderVenues(e.target.value);
+  });
+
+  // Sliders -> live update + write back to model
+  function bindSlider(id, labelId, format){
+    document.getElementById(id).addEventListener('input', function(e){
+      var v = venues.find(function(x){ return x.id === currentVenueId; });
+      var z = v.zoneData[selectedLayerIndex];
+      var val = parseInt(e.target.value, 10);
+      document.getElementById(labelId).textContent = format(val);
+      if(id === 'intensity') z.intensity = val;
+      if(id === 'wave-speed') z.speed = val;
+      if(id === 'density') z.density = val;
+    });
+  }
+  bindSlider('intensity','intensity-value', function(v){ return v + '%'; });
+  bindSlider('wave-speed','wave-speed-value', function(v){ return (v/10).toFixed(1) + 'x'; });
+  bindSlider('density','density-value', function(v){ return v + '%'; });
+
+  // ===================== PATTERN LIBRARY =====================
+  var patternLibrary = [
+    {id:'tiger-wave', name:'Tiger Wave', tags:['High Energy','Sweep'], color:'#2e6fff', colorRole:'secondary', intensity:85, spread:35, frequency:2.4, bpmBase:128, multiplier:2.0, lockClock:true, motion:'wave'},
+    {id:'orange-pulse', name:'Orange Pulse', tags:['Ambient','BPM Sync'], color:'#e86100', colorRole:'primary', intensity:70, spread:20, frequency:1.2, bpmBase:128, multiplier:1.0, lockClock:true, motion:'pulse'},
+    {id:'strobe', name:'Strobe', tags:['High Energy','Impact'], color:'#2e6fff', colorRole:'secondary', intensity:95, spread:10, frequency:8, bpmBase:128, multiplier:4.0, lockClock:false, motion:'strobe'},
+    {id:'solid-blue', name:'Solid Blue', tags:['Ambient','Base Layer'], color:'#2e6fff', colorRole:'secondary', intensity:60, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'solid'},
+    {id:'solid-orange', name:'Solid Orange', tags:['Ambient','Base Layer'], color:'#e86100', colorRole:'primary', intensity:70, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'solid'},
+    {id:'solid-white', name:'Solid White', tags:['Ambient','Base Layer'], color:'#f5f5f5', colorRole:'neutral', intensity:75, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'solid'},
+    {id:'twinkle-blue', name:'Twinkle Blue', tags:['Sparkle','Ambient'], color:'#2e6fff', colorRole:'secondary', intensity:85, spread:100, frequency:1.5, bpmBase:128, multiplier:1.0, lockClock:false, motion:'twinkle'},
+    {id:'twinkle-orange', name:'Twinkle Orange', tags:['Sparkle','Ambient'], color:'#e86100', colorRole:'primary', intensity:85, spread:100, frequency:1.5, bpmBase:128, multiplier:1.0, lockClock:false, motion:'twinkle'},
+    {id:'twinkle-white', name:'Twinkle White', tags:['Sparkle','Ambient'], color:'#f5f5f5', colorRole:'neutral', intensity:90, spread:100, frequency:1.5, bpmBase:128, multiplier:1.0, lockClock:false, motion:'twinkle'},
+    {id:'twinkle-mixed', name:'Twinkle Mixed', tags:['Sparkle','Multi-Color'], colors:['#e86100','#2e6fff','#f5f5f5'], colorRoles:['primary','secondary','neutral'], color:'#e86100', colorRole:'primary', intensity:85, spread:100, frequency:1.5, bpmBase:128, multiplier:1.0, lockClock:false, motion:'twinkle'},
+    {id:'checkerboard-streak', name:'Checkerboard + 50-Yard Streak', tags:['Structural','Venue-Wide'], color:'#e86100', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'solid'},
+    {id:'sine-wave-split', name:'Sine Wave Split', tags:['Motion','Dynamic'], color:'#e86100', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'solid'},
+    {id:'circulating-wave', name:'Circulating Wave', tags:['Motion','Dynamic'], color:'#e86100', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'solid'},
+    {id:'radar-sweep', name:'Radar Sweep', tags:['Motion','Dynamic'], color:'#e86100', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'solid'},
+    {id:'au-logo', name:'AU Logo', tags:['Image','Static'], color:'#e86100', bgColor:'#2e6fff', trimColor:'#ffffff', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'text', textBitmap:'au-logo'},
+    {id:'auburn-text', name:'AUBURN Text', tags:['Image','Static'], color:'#e86100', bgColor:'#2e6fff', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'text', textBitmap:'auburn-text'}
+  ];
+  var selectedPatternId = 'tiger-wave';
+
+  // Each school's primary/secondary colors. Auburn is the "home" palette
+  // that everything reverts to when an Auburn venue is loaded.
+  var VENUE_PALETTES = {
+    'jordan-hare': {primary:'#e86100', secondary:'#2e6fff'},
+    'neville':     {primary:'#e86100', secondary:'#2e6fff'},
+    'alabama':     {primary:'#9e1b32', secondary:'#828a8c'}, // Crimson + grey
+    'georgia':     {primary:'#ba0c2f', secondary:'#000000'}, // Red + Black
+    'lsu':         {primary:'#461d7c', secondary:'#fdd023'}  // Purple + Gold
+  };
+
+  // Each zone's schematic rect (matches the SVG coordinates in the venue's
+  // top-down diagram, 400x300 viewBox), used by the Checkerboard + Streak
+  // pattern to figure out where a zone's dots physically sit on the field
+  // so it can checker them by real position and lay a straight streak
+  // through the middle regardless of which zone a dot belongs to. Currently
+  // only mapped for Jordan-Hare; other venues fall back to a plain
+  // checker-by-zone-index look until their rects are added here too.
+  var ZONE_RECTS = {
+    'jordan-hare': {
+      'student-section': {x:90, y:30, w:108, h:35},
+      'lower-bowl-north': {x:202, y:30, w:108, h:35},
+      'lower-bowl-south': {x:90, y:235, w:220, h:35},
+      'lower-bowl-west-sideline': {x:90, y:68, w:55, h:164},
+      'lower-bowl-east-sideline': {x:255, y:68, w:55, h:164},
+      'north-end-zone': {x:150, y:70, w:100, h:25},
+      'south-end-zone': {x:150, y:205, w:100, h:25},
+      'upper-deck-north': {x:60, y:16, w:280, h:12},
+      'upper-deck-south': {x:60, y:272, w:280, h:12},
+      'upper-deck-west': {x:30, y:30, w:28, h:242},
+      'upper-deck-east': {x:342, y:30, w:28, h:242},
+      'tiger-suites-press-level': {x:140, y:1, w:120, h:12}
+    }
+  };
+
+  // Colors one dot for the Checkerboard + Streak pattern: a white vertical
+  // streak down the field's centerline (running through the 50-yard line
+  // and both end zones), with everywhere else checkered between the
+  // venue's two colors based on real position — so the checker squares
+  // line up across zone boundaries instead of just alternating whole
+  // sections.
+  function getCheckerboardStreakColor(slug, col, row, cols, rows, primary, secondary){
+    var rect = (ZONE_RECTS[currentVenueId] || {})[slug];
+    if(!rect) return primary; // venue not mapped yet — safe fallback
+    var absX = rect.x + ((col + 0.5) / cols) * rect.w;
+    var absY = rect.y + ((row + 0.5) / rows) * rect.h;
+    var STREAK_HALF_WIDTH = 10; // out of a 400-wide viewBox — a clearly visible but not overwhelming stripe
+    if(Math.abs(absX - 200) <= STREAK_HALF_WIDTH) return '#ffffff';
+    var CHECKER_CELL = 50;
+    var cellCol = Math.floor(absX / CHECKER_CELL);
+    var cellRow = Math.floor(absY / CHECKER_CELL);
+    return ((cellCol + cellRow) % 2 === 0) ? primary : secondary;
+  }
+
+  // Colors one dot for the Sine Wave Split pattern: a wavy boundary line
+  // between the venue's two colors, with a thin white seam tracing the
+  // boundary itself. The ripple SHAPE stays fixed relative to X (so it
+  // doesn't scroll sideways); instead, the whole shape's vertical center
+  // sweeps from the north end of the stadium to the south end and back
+  // over time — so watching any single peak of the ripple, it travels top
+  // to bottom, which is the actual "wave" motion asked for.
+  // Colors one dot for the Sine Wave Split pattern: a plain, classic
+  // oscilloscope-style trace — rises above the zero line (positive), dips
+  // below it (negative), exactly like a real wave silhouette. The key
+  // difference from a flat oscilloscope: what drives the wave's phase is
+  // each dot's ANGULAR position around the stadium's center, not its flat
+  // left-right position — so the peak and trough don't slide across the
+  // field, they travel around the bowl's circumference, clockwise or
+  // counter-clockwise, the same way a real stadium wave (or a hand on a
+  // clock) moves around the venue rather than straight across it.
+  function getSineWaveSplitColor(slug, col, row, cols, rows, t, primary, secondary){
+    var rect = (ZONE_RECTS[currentVenueId] || {})[slug];
+    if(!rect) return primary; // venue not mapped yet — safe fallback
+    var absX = rect.x + ((col + 0.5) / cols) * rect.w;
+    var absY = rect.y + ((row + 0.5) / rows) * rect.h;
+    var CENTER_X = 200, CENTER_Y = 150;
+    var ZERO_LINE_Y = 150;  // the "zero" line — fixed, dead center of the stadium, never moves
+    var AMPLITUDE = 130;    // large enough to actually reach the outer tiers (upper deck) so the ripples read as real scallops poking into the stands, not a band confined to the middle
+    var CYCLES = 6;         // several ripples per lap around the stadium, matching the scalloped hand-drawn reference
+    var SPEED = 0.5;        // radians/second — positive value sweeps the ripple pattern clockwise around the venue
+    var WHITE_BAND = 8;     // thickness of the white trace line itself
+    var angle = Math.atan2(absY - CENTER_Y, absX - CENTER_X);
+    var waveY = ZERO_LINE_Y - AMPLITUDE * Math.sin(CYCLES * angle - t * SPEED);
+    if(Math.abs(absY - waveY) <= WHITE_BAND) return '#ffffff';
+    return (absY < ZERO_LINE_Y) ? secondary : primary; // fixed background: top half secondary (blue), bottom half primary (orange) — never moves, only the white trace does
+  }
+
+  // Colors one dot for the Circulating Wave pattern — this is the exact
+  // "single wave, one peak/one trough, reaches every tier, travels around
+  // the whole bowl" version Mike liked. Saved here as its own pattern
+  // before Sine Wave Split gets redesigned further, so this version isn't
+  // lost.
+  function getCirculatingWaveColor(slug, col, row, cols, rows, t, primary, secondary){
+    var rect = (ZONE_RECTS[currentVenueId] || {})[slug];
+    if(!rect) return primary;
+    var absX = rect.x + ((col + 0.5) / cols) * rect.w;
+    var absY = rect.y + ((row + 0.5) / rows) * rect.h;
+    var CENTER_X = 200, CENTER_Y = 150;
+    var ZERO_LINE_Y = 150;
+    var AMPLITUDE = 134;
+    var CYCLES = 1;
+    var SPEED = 0.5;
+    var WHITE_BAND = 8;
+    var angle = Math.atan2(absY - CENTER_Y, absX - CENTER_X);
+    var waveY = ZERO_LINE_Y - AMPLITUDE * Math.sin(CYCLES * angle - t * SPEED);
+    if(Math.abs(absY - waveY) <= WHITE_BAND) return '#ffffff';
+    return (absY < ZERO_LINE_Y) ? secondary : primary;
+  }
+
+  // Colors one dot for the Radar Sweep pattern: orange and blue hold a
+  // permanent, unmoving split (west half blue, east half orange), and a
+  // single white beam continuously rotates around the stadium's center
+  // like a lighthouse or radar sweep, turning whatever it currently passes
+  // over white without disturbing the fixed background anywhere else.
+  function getRadarSweepColor(slug, col, row, cols, rows, t, primary, secondary){
+    var rect = (ZONE_RECTS[currentVenueId] || {})[slug];
+    if(!rect) return primary; // venue not mapped yet — safe fallback
+    var absX = rect.x + ((col + 0.5) / cols) * rect.w;
+    var absY = rect.y + ((row + 0.5) / rows) * rect.h;
+    var CENTER_X = 200, CENTER_Y = 150;
+    var REVOLUTION_SECONDS = 6; // time for the beam to complete one full lap
+    var WHITE_ANGLE = 0.15;     // half-width of the beam, in radians
+    var fixedColor = (absX < CENTER_X) ? secondary : primary; // permanent, never changes
+    var angle = Math.atan2(absY - CENTER_Y, absX - CENTER_X);
+    var beamAngle = (t / REVOLUTION_SECONDS) * 2 * Math.PI;
+    var diff = angle - beamAngle;
+    diff = ((diff % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+    if(diff < WHITE_ANGLE || diff > (2 * Math.PI - WHITE_ANGLE)) return '#ffffff';
+    return fixedColor;
+  }
+
+  // Remaps every pattern's color to the given venue's palette, based on
+  // each pattern's colorRole (primary/secondary/neutral). AU Logo and
+  // AUBURN Text are Auburn's own brand identity, not a generic light
+  // effect — they stay Auburn orange regardless of which venue's stadium
+  // is loaded, the same way traveling fans' own gear doesn't change color
+  // just because the game is on the road.
+  function applyVenueColorTheme(venueId){
+    var palette = VENUE_PALETTES[venueId];
+    if(!palette) return;
+    patternLibrary.forEach(function(pat){
+      // AU Logo stays Auburn's actual mark — I don't have real reference
+      // art for the other schools' logos, and guessing at trademarked
+      // shapes from memory risks getting them wrong (the same lesson
+      // learned building the AU mark itself). The spelled-out text
+      // pattern, on the other hand, uses a generic pixel font that can
+      // honestly spell any school's name, so that one fully retheme.
+      if(pat.id === 'au-logo') return;
+      if(pat.colorRoles && pat.colors){
+        pat.colors = pat.colorRoles.map(function(role){
+          return role === 'neutral' ? '#f5f5f5' : palette[role];
+        });
+        pat.color = pat.colors[0];
+      } else if(pat.colorRole && pat.colorRole !== 'neutral'){
+        pat.color = palette[pat.colorRole];
+      }
+    });
+
+    // Swap the spelled-out text pattern's displayed name and rendered
+    // content to match whichever school's venue is currently loaded.
+    var textPat = patternLibrary.find(function(p){ return p.id === 'auburn-text'; });
+    var nameInfo = VENUE_NAME_BITMAPS[venueId];
+    if(textPat && nameInfo){
+      textPat.name = nameInfo.name + ' Text';
+      textPat.textBitmap = nameInfo.bitmap;
+    }
+  }
+
+  function findPattern(id){ return patternLibrary.find(function(p){ return p.id === id; }); }
+  function findPatternByName(name){ return patternLibrary.find(function(p){ return p.name === name; }); }
+  function computeAnimDuration(pat){
+    var freq = pat.frequency > 0 ? pat.frequency : 0.5;
+    return pat.motion === 'strobe' ? Math.max(0.15, 1/freq/2) : Math.max(0.3, 2/freq);
+  }
+
+  // For a normal single-color pattern, a flat dot texture in that color.
+  // For a multi-color pattern (like Twinkle Mixed), builds several dot
+  // layers offset from each other so the colors visually interleave
+  // across the swatch, rather than the thumbnail always defaulting to
+  // just the pattern's single fallback color.
+  // Builds an interleaved multi-dot swatch from a weighted list of colors
+  // (a color can repeat to make it visually dominant, matching how much
+  // of the real pattern it actually covers). Uses an explicit pixel
+  // radius rather than a percentage stop — percentages are relative to
+  // the tile size, and a weighted list can need a much wider tile than
+  // a 2-3 color mix, which stretched the dots into solid blocks instead
+  // of staying round and matching every other swatch in the grid.
+  function buildInterleavedSwatch(colorList){
+    var n = colorList.length;
+    var images = [], sizes = [], positions = [];
+    colorList.forEach(function(c, i){
+      images.push('radial-gradient(circle 2.6px, ' + c + ' 97%, transparent 100%)');
+      sizes.push((11 * n) + 'px 11px');
+      positions.push((5 + i * 11) + 'px 5px');
+    });
+    return 'background-color:#050a0a; background-image:' + images.join(',') + '; background-size:' + sizes.join(',') + '; background-position:' + positions.join(',') + ';';
+  }
+
+  // Builds a small dotted-grid SVG for the Checkerboard + Streak swatch —
+  // matching the actual dot texture every other pattern card uses, instead
+  // of the flat color blocks from the first pass, with the white streak
+  // rendered as its own column of white dots down the middle. Drawn at
+  // roughly the card's real on-screen size (rather than a small tile
+  // stretched up) so the dots come out the same size as every other
+  // pattern's swatch instead of oversized.
+  function buildCheckerboardSwatchSVG(primary, secondary){
+    var w = 220, h = 70, cell = 11;
+    var cols = Math.round(w / cell), rows = Math.round(h / cell);
+    var circles = '';
+    for(var r = 0; r < rows; r++){
+      for(var c = 0; c < cols; c++){
+        var cx = c * cell + cell / 2, cy = r * cell + cell / 2;
+        var color = (Math.abs(cx - w / 2) <= cell * 0.6) ? '#ffffff' : (cx < w / 2 ? primary : secondary);
+        circles += '<circle cx="' + cx + '" cy="' + cy + '" r="2.6" fill="' + color + '"/>';
+      }
+    }
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '"><rect width="' + w + '" height="' + h + '" fill="#050a0a"/>' + circles + '</svg>';
+  }
+
+  // Same idea as the checkerboard swatch, but the dividing line is a sine
+  // wave snapshot (frozen at its starting phase) instead of a straight
+  // stripe, so the card reads as "wavy boundary" at a glance. Also drawn
+  // near the card's real size for the same reason — matching dot size.
+  function buildSineWaveSwatchSVG(primary, secondary){
+    var w = 220, h = 70, cell = 11;
+    var cols = Math.round(w / cell), rows = Math.round(h / cell);
+    var circles = '';
+    for(var r = 0; r < rows; r++){
+      for(var c = 0; c < cols; c++){
+        var cx = c * cell + cell / 2, cy = r * cell + cell / 2;
+        var boundaryY = h / 2 + (h * 0.28) * Math.sin(2 * Math.PI * 1.5 * (cx / w));
+        var color = (Math.abs(cy - boundaryY) <= cell * 0.55) ? '#ffffff' : (cy < boundaryY ? secondary : primary);
+        circles += '<circle cx="' + cx + '" cy="' + cy + '" r="2.6" fill="' + color + '"/>';
+      }
+    }
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '"><rect width="' + w + '" height="' + h + '" fill="#050a0a"/>' + circles + '</svg>';
+  }
+
+  // A frozen snapshot of the Radar Sweep pattern: a fixed left/right split
+  // with a single angled white beam crossing it, hinting at the rotating
+  // motion without needing to actually animate the card thumbnail.
+  function buildRadarSweepSwatchSVG(primary, secondary){
+    var w = 220, h = 70, cell = 11;
+    var cols = Math.round(w / cell), rows = Math.round(h / cell);
+    var cx0 = w / 2, cy0 = h / 2;
+    var beamAngle = -0.6; // fixed angle for the snapshot
+    var circles = '';
+    for(var r = 0; r < rows; r++){
+      for(var c = 0; c < cols; c++){
+        var cx = c * cell + cell / 2, cy = r * cell + cell / 2;
+        var fixedColor = (cx < cx0) ? secondary : primary;
+        var angle = Math.atan2(cy - cy0, cx - cx0);
+        var diff = ((angle - beamAngle) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+        var color = (diff < 0.35 || diff > (2 * Math.PI - 0.35)) ? '#ffffff' : fixedColor;
+        circles += '<circle cx="' + cx + '" cy="' + cy + '" r="2.6" fill="' + color + '"/>';
+      }
+    }
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '"><rect width="' + w + '" height="' + h + '" fill="#050a0a"/>' + circles + '</svg>';
+  }
+
+  function buildSwatchStyle(p){
+    if(p.id === 'checkerboard-streak' || p.id === 'sine-wave-split' || p.id === 'circulating-wave' || p.id === 'radar-sweep'){
+      // A dotted preview (matching every other pattern card's texture)
+      // instead of flat color blocks — orange dots on the left, a white
+      // dotted stripe down the middle, blue dots on the right.
+      var palette = VENUE_PALETTES[currentVenueId] || VENUE_PALETTES['jordan-hare'];
+      var svg = p.id === 'checkerboard-streak'
+        ? buildCheckerboardSwatchSVG(palette.primary, palette.secondary)
+        : (p.id === 'sine-wave-split' || p.id === 'circulating-wave')
+        ? buildSineWaveSwatchSVG(palette.primary, palette.secondary)
+        : buildRadarSweepSwatchSVG(palette.primary, palette.secondary);
+      return 'background-color:#050a0a; background-image:url(&quot;data:image/svg+xml;base64,' + btoa(svg) + '&quot;); background-size:100% 100%; background-repeat:no-repeat;';
+    }
+    if(p.colors && p.colors.length >= 2){
+      return buildInterleavedSwatch(p.colors);
+    }
+    if(p.motion === 'text' && p.bgColor){
+      // Background covers most of the real pattern (letters/logo are a
+      // small fraction of the dots), so weight the swatch the same way
+      // instead of showing the accent color as if it were dominant.
+      var weighted = p.trimColor
+        ? [p.bgColor, p.bgColor, p.bgColor, p.bgColor, p.bgColor, p.bgColor, p.color, p.trimColor]
+        : [p.bgColor, p.bgColor, p.bgColor, p.color];
+      return buildInterleavedSwatch(weighted);
+    }
+    return 'background-color:#050a0a; background-image:radial-gradient(circle, ' + p.color + ' 32%, transparent 34%); background-size:11px 11px; background-position:5px 5px;';
+  }
+
+  function renderPatternGrid(filter){
+    var grid = document.getElementById('pattern-grid');
+    grid.innerHTML = '';
+    var q = (filter || '').trim().toLowerCase();
+    patternLibrary.filter(function(p){
+      return !q || p.name.toLowerCase().indexOf(q) !== -1 || p.tags.join(' ').toLowerCase().indexOf(q) !== -1;
+    }).forEach(function(p){
+      var card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'pattern-card' + (p.id === selectedPatternId ? ' selected' : '');
+      card.setAttribute('data-pattern-id', p.id);
+      card.innerHTML =
+        '<div class="pattern-swatch" style="' + buildSwatchStyle(p) + '"></div>' +
+        '<div class="pattern-card-body">' +
+          '<div class="pattern-card-name">' + p.name + '</div>' +
+          '<div class="pattern-tags">' + p.tags.map(function(t){ return '<span class="pattern-tag">' + t + '</span>'; }).join('') + '</div>' +
+        '</div>';
+      grid.appendChild(card);
+    });
+    var addCard = document.createElement('button');
+    addCard.type = 'button';
+    addCard.className = 'pattern-card new-pattern';
+    addCard.id = 'add-pattern-btn';
+    addCard.innerHTML = '<div class="import-icon" aria-hidden="true">+</div><div>Create New Pattern</div>';
+    grid.appendChild(addCard);
+  }
+
+  function renderPatternInspector(){
+    var p = findPattern(selectedPatternId);
+    var body = document.getElementById('pattern-inspector-body');
+    if(!p){ body.innerHTML = '<p class="empty-note">Select a pattern to edit its parameters.</p>'; return; }
+    body.innerHTML =
+      '<div class="pattern-preview-stage" id="pattern-preview-stage"></div>' +
+      '<button class="btn" id="pattern-preview-toggle" style="margin-bottom:16px;">Preview Pattern</button>' +
+      '<div class="field">' +
+        '<label>Apply to Entire Venue</label>' +
+        '<div class="apply-venue-range-row">' +
+          '<div class="apply-venue-range-field"><label for="apply-venue-start">Start at (sec)</label><input type="number" id="apply-venue-start" min="0" max="' + TIMELINE_DURATION + '" value="' + Math.round(playheadSeconds) + '"></div>' +
+          '<div class="apply-venue-range-field"><label for="apply-venue-duration">For (sec)</label><input type="number" id="apply-venue-duration" min="1" max="' + TIMELINE_DURATION + '" value="30"></div>' +
+        '</div>' +
+        '<button class="btn" id="pattern-apply-venue-btn" style="margin-top:8px;">Apply to Entire Venue</button>' +
+      '</div>' +
+      '<div class="field">' +
+        '<label>Test In Zone(s)</label>' +
+        '<div id="zone-test-picker" class="zone-test-picker"></div>' +
+      '</div>' +
+      '<div class="field"><label>Pattern</label><div class="target-zone-name">' + p.name + '</div></div>' +
+      '<div class="field"><label for="p-color">Color</label><div class="color-swatch-row"><input type="color" id="p-color" class="color-input-swatch" value="' + p.color + '"><span class="color-hex" id="p-color-hex">' + p.color.toUpperCase() + '</span></div></div>' +
+      '<div class="field slider-field"><div class="slider-head"><label for="p-intensity">Intensity</label><span class="slider-value" id="p-intensity-val">' + p.intensity + '%</span></div><input type="range" id="p-intensity" min="0" max="100" value="' + p.intensity + '"></div>' +
+      '<div class="field slider-field"><div class="slider-head"><label for="p-spread">Band Width</label><span class="slider-value" id="p-spread-val">' + p.spread + '%</span></div><input type="range" id="p-spread" min="2" max="100" value="' + p.spread + '"></div>' +
+      '<div class="field slider-field"><div class="slider-head"><label for="p-freq">Frequency</label><span class="slider-value" id="p-freq-val">' + p.frequency + ' Hz</span></div><input type="range" id="p-freq" min="0" max="10" step="0.1" value="' + p.frequency + '"></div>' +
+      '<div class="field"><label>Time Sync</label><label class="check-row"><input type="checkbox" id="p-lock" ' + (p.lockClock ? 'checked' : '') + '> Lock to Master Clock (' + p.bpmBase + ' BPM)</label></div>';
+
+    document.getElementById('p-intensity').addEventListener('input', function(e){
+      p.intensity = parseInt(e.target.value,10);
+      document.getElementById('p-intensity-val').textContent = p.intensity + '%';
+      if(!ledPlaying) renderLedMatrixStatic(p);
+    });
+    document.getElementById('p-color').addEventListener('input', function(e){
+      p.color = e.target.value;
+      document.getElementById('p-color-hex').textContent = p.color.toUpperCase();
+      renderPatternGrid(document.getElementById('pattern-search').value); // refresh the card thumbnail too
+      if(!ledPlaying) renderLedMatrixStatic(p);
+    });
+    document.getElementById('p-spread').addEventListener('input', function(e){
+      p.spread = parseInt(e.target.value,10);
+      document.getElementById('p-spread-val').textContent = p.spread + '%';
+      if(!ledPlaying) renderLedMatrixStatic(p);
+    });
+    document.getElementById('p-freq').addEventListener('input', function(e){
+      p.frequency = parseFloat(e.target.value);
+      document.getElementById('p-freq-val').textContent = p.frequency + ' Hz';
+      if(!ledPlaying) renderLedMatrixStatic(p);
+    });
+    document.getElementById('p-lock').addEventListener('change', function(e){
+      p.lockClock = e.target.checked;
+    });
+
+    renderZoneTestPicker();
+    document.getElementById('zone-test-picker').addEventListener('change', function(e){
+      if(!e.target.classList.contains('zone-test-check')) return;
+      var name = e.target.value;
+      var idx = testZoneNames.indexOf(name);
+      if(e.target.checked && idx === -1) testZoneNames.push(name);
+      if(!e.target.checked && idx > -1) testZoneNames.splice(idx, 1);
+      buildLedMatrix(p);
+      if(ledPlaying){ startLedPreview(p); } else { renderLedMatrixStatic(p); }
+    });
+
+    buildLedMatrix(p);
+    renderLedMatrixStatic(p);
+    document.getElementById('pattern-preview-toggle').addEventListener('click', function(){
+      if(ledPlaying){
+        stopLedPreview(p);
+      } else {
+        startLedPreview(p);
+      }
+      this.textContent = ledPlaying ? 'Stop Preview' : 'Preview Pattern';
+    });
+    document.getElementById('pattern-apply-venue-btn').addEventListener('click', function(){
+      var tracks = timelineTracksByVenue[currentVenueId] || [];
+      if(!tracks.length) return;
+      var start = Math.max(0, Math.min(TIMELINE_DURATION, parseInt(document.getElementById('apply-venue-start').value, 10) || 0));
+      var duration = Math.max(1, parseInt(document.getElementById('apply-venue-duration').value, 10) || 30);
+      var end = Math.min(TIMELINE_DURATION, start + duration);
+      if(end <= start){ window.alert('That start time leaves no room in the show for this — try an earlier start.'); return; }
+      var ok = window.confirm('Apply "' + p.name + '" to the entire venue from ' + start + 's to ' + end + 's? Any existing cues in that window, on any track, will be replaced — everything outside that window stays untouched.');
+      if(!ok) return;
+      var cues = timelineCuesByVenue[currentVenueId] || [];
+      // Drop anything that overlaps the chosen window at all, on every
+      // track, then lay the new cue down cleanly across the same window —
+      // cues fully outside the window are left exactly as they were.
+      var kept = cues.filter(function(c){
+        return !(c.start < end && (c.start + c.duration) > start);
+      });
+      tracks.forEach(function(trackName){
+        kept.push({track: trackName, pattern: p.id, start: start, duration: end - start});
+      });
+      timelineCuesByVenue[currentVenueId] = kept;
+      if(typeof renderTimeline === 'function') renderTimeline();
+      if(typeof updatePreviewStadium === 'function') updatePreviewStadium(typeof playheadSeconds !== 'undefined' ? playheadSeconds : 0);
+    });
+  }
+
+  var testZoneNames = []; // zones currently selected for pattern-testing, by name
+
+  function renderZoneTestPicker(){
+    var v = venues.find(function(x){ return x.id === currentVenueId; });
+    var container = document.getElementById('zone-test-picker');
+    if(!container) return;
+    container.innerHTML = v.zoneData.map(function(z){
+      var checked = testZoneNames.indexOf(z.name) > -1 ? 'checked' : '';
+      return '<label class="check-row zone-check-row"><input type="checkbox" class="zone-test-check" value="' + z.name + '" ' + checked + '> ' + z.name + '</label>';
+    }).join('');
+  }
+
+  var LED_COLS = 24, LED_ROWS = 6;
+  var ledDots = []; // flat list for the default (no zone selected) matrix
+  var schematicDots = []; // dots overlaid inside each test-selected zone shape
+  var ledRafId = null;
+  var ledPlaying = false;
+  var ledStartTime = null;
+
+  function buildDotGroup(container, rows){
+    var group = [];
+    for(var r=0; r<rows; r++){
+      for(var c=0; c<LED_COLS; c++){
+        var dot = document.createElement('div');
+        dot.className = 'led-dot';
+        container.appendChild(dot);
+        group.push({el:dot, col:c, row:r});
+      }
+    }
+    return group;
+  }
+
+  function buildLedMatrix(p){
+    var stage = document.getElementById('pattern-preview-stage');
+    if(!stage) return;
+    stage.innerHTML = '';
+    ledDots = [];
+    schematicDots = [];
+
+    var isImage = p && p.motion === 'text';
+    if(testZoneNames.length > 0){
+      buildSchematicClone(stage, p);
+    } else if(isImage){
+      // The default matrix is a fixed 24x6 shape (very wide, very short).
+      // Even with correct proportions preserved, a portrait-oriented logo
+      // forced into that shape shrinks to just a few columns wide — nowhere
+      // near enough resolution to read as anything. Rather than render a
+      // doomed, illegible sparse preview, say so directly and point at the
+      // real fix: pick a zone, which gives the image actual room to work with.
+      var msg = document.createElement('div');
+      msg.className = 'image-needs-zone-hint';
+      msg.textContent = 'Image and text patterns need a real zone to render clearly — check one or more zones below to preview this pattern.';
+      stage.appendChild(msg);
+    } else {
+      var wrap = document.createElement('div');
+      wrap.className = 'led-matrix';
+      stage.appendChild(wrap);
+      ledDots = buildDotGroup(wrap, LED_ROWS);
+    }
+    if(p) updateSchematicPreview(p);
+  }
+
+  // Builds a real grid of individual LED dots sized to fit inside a zone
+  // shape's actual SVG geometry, so a wide thin zone (Upper Deck) gets a
+  // wide thin dot grid and a tall narrow zone (Lower Bowl sideline) gets a
+  // tall narrow one, rather than every zone showing the same generic block.
+  // Builds a real grid of individual LED dots sized to fit inside a zone
+  // shape's actual SVG geometry. Motion patterns (wave/pulse/strobe/twinkle)
+  // read fine at a coarse spacing since they're just brightness changing
+  // over a simple shape. Image/text patterns need real resolution to be
+  // recognizable at all, so when `pattern` is an image-type pattern, this
+  // switches to a much finer grid — closer to how a real LED wristband
+  // section (thousands of individual wearers) would actually resolve a
+  // logo, rather than the coarse sampling that works fine for motion.
+  function buildZoneDotOverlay(shape, pattern){
+    var x = parseFloat(shape.getAttribute('x'));
+    var y = parseFloat(shape.getAttribute('y'));
+    var w = parseFloat(shape.getAttribute('width'));
+    var h = parseFloat(shape.getAttribute('height'));
+    var isImage = pattern && pattern.motion === 'text';
+    var spacing = isImage ? 1.6 : 7;
+    var dotRadius = isImage ? 0.65 : 1.8;
+    var cols = Math.max(2, Math.round(w / spacing));
+    var rows = Math.max(1, Math.round(h / spacing));
+    var padX = (w - (cols - 1) * spacing) / 2;
+    var padY = (h - (rows - 1) * spacing) / 2;
+
+    var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('class', 'zone-dot-overlay');
+    var dots = [];
+    for(var r = 0; r < rows; r++){
+      for(var c = 0; c < cols; c++){
+        var dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('cx', x + padX + c * spacing);
+        dot.setAttribute('cy', y + padY + r * spacing);
+        dot.setAttribute('r', dotRadius);
+        dot.setAttribute('class', 'svg-led-dot');
+        g.appendChild(dot);
+        dots.push({el: dot, col: c, cols: cols, row: r, rows: rows});
+      }
+    }
+    shape.parentNode.insertBefore(g, shape.nextSibling);
+    return dots;
+  }
+
+  // Clones the current venue's real Show Designer schematic into Pattern
+  // Library so zone tests show up on the actual stadium map, not just an
+  // abstract strip. Shapes are matched via data-zone-slug (not id) since a
+  // clone can't reuse ids without colliding with the live Show Designer copy.
+  function buildSchematicClone(stage, pattern){
+    var source = document.getElementById('schematic-' + currentVenueId);
+    if(!source) return; // this venue has no custom schematic yet
+
+    var wrap = document.createElement('div');
+    wrap.className = 'pattern-schematic-wrap';
+    var label = document.createElement('div');
+    label.className = 'zone-led-label';
+    label.textContent = 'Stadium View';
+    wrap.appendChild(label);
+
+    var clone = source.cloneNode(true);
+    clone.removeAttribute('style');
+    clone.removeAttribute('id');
+    clone.classList.add('pattern-schematic-svg');
+    clone.querySelectorAll('.zone-shape').forEach(function(shape){
+      shape.removeAttribute('id'); // avoid duplicate ids with the live Show Designer copy
+      shape.setAttribute('class', 'zone-shape');
+      shape.style.stroke = '';
+      shape.style.fill = '';
+      shape.style.fillOpacity = '';
+    });
+    wrap.appendChild(clone);
+    stage.appendChild(wrap);
+
+    // Give every currently test-selected zone a real LED dot grid instead
+    // of a flat fill color.
+    clone.querySelectorAll('.zone-shape').forEach(function(shape){
+      var slug = shape.getAttribute('data-zone-slug');
+      var isTestZone = testZoneNames.some(function(n){ return zoneSlug(n) === slug; });
+      if(!isTestZone) return;
+      shape.style.fill = 'rgba(255,255,255,0.02)'; // keep the boundary faintly visible; dots carry the real signal
+      schematicDots = schematicDots.concat(buildZoneDotOverlay(shape, pattern));
+    });
+  }
+
+  function updateSchematicPreview(p){
+    var clone = document.querySelector('#pattern-preview-stage .pattern-schematic-svg');
+    if(!clone) return;
+    clone.querySelectorAll('.zone-shape').forEach(function(shape){
+      var slug = shape.getAttribute('data-zone-slug');
+      var isTestZone = testZoneNames.some(function(n){ return zoneSlug(n) === slug; });
+      shape.style.stroke = isTestZone ? p.color : '';
+    });
+  }
+
+  // Small 5x7 pixel font — covers the letters needed for AUBURN plus each
+  // SEC opponent's name (ALABAMA, GEORGIA, LSU). Each glyph is 7 rows of
+  // a 5-char '1'/'0' string.
+  var GLYPHS = {
+    'A': ['01110','10001','10001','11111','10001','10001','10001'],
+    'U': ['10001','10001','10001','10001','10001','10001','01110'],
+    'B': ['11110','10001','10001','11110','10001','10001','11110'],
+    'R': ['11110','10001','10001','11110','10100','10010','10001'],
+    'N': ['10001','11001','10101','10101','10011','10001','10001'],
+    'L': ['10000','10000','10000','10000','10000','10000','11111'],
+    'M': ['10001','11011','10101','10101','10001','10001','10001'],
+    'G': ['01111','10000','10000','10111','10001','10001','01111'],
+    'E': ['11111','10000','10000','11110','10000','10000','11111'],
+    'O': ['01110','10001','10001','10001','10001','10001','01110'],
+    'I': ['11111','00100','00100','00100','00100','00100','11111'],
+    'S': ['01111','10000','10000','01110','00001','00001','11110'],
+    ' ': ['00000','00000','00000','00000','00000','00000','00000']
+  };
+  var GLYPH_W = 5, GLYPH_H = 7;
+
+  function buildTextBitmap(str){
+    var chars = str.toUpperCase().split('').map(function(c){ return GLYPHS[c] || GLYPHS[' ']; });
+    var width = chars.length * GLYPH_W + Math.max(0, chars.length - 1);
+    var rows = [];
+    for(var r = 0; r < GLYPH_H; r++){
+      var line = '';
+      chars.forEach(function(glyph, i){
+        line += glyph[r];
+        if(i < chars.length - 1) line += '0'; // 1-column gap between letters
+      });
+      rows.push(line);
+    }
+    return {width: width, height: GLYPH_H, rows: rows};
+  }
+
+  // Hand-built low-resolution approximation of Auburn's interlocking AU
+  // athletics mark — the A's peak/legs/crossbar sit distinctly above and
+  // within the U's rounded bowl, rather than merging into one shape.
+  // This is a coarse LED-grid approximation of the silhouette, the same
+  // way any physical stadium display would necessarily simplify it —
+  // not a precise trace of the vector artwork.
+  var AU_LOGO_BITMAP = {
+    width: 15, height: 18,
+    rows: [
+      '000001111100000',
+      '000011111110000',
+      '000011000110000',
+      '000011000110000',
+      '111011000110111',
+      '111001111100111',
+      '111001101100111',
+      '111001101100111',
+      '111000000000111',
+      '111000000000111',
+      '111000000000111',
+      '111000000000111',
+      '111000000000111',
+      '111000000000111',
+      '111000000000111',
+      '011100000001110',
+      '000111000111000',
+      '000001111100000'
+    ]
+  };
+
+  var TEXT_BITMAPS = {
+    'au-logo': AU_LOGO_BITMAP,
+    'auburn-text': buildTextBitmap('AUBURN'),
+    'alabama-text': buildTextBitmap('ALABAMA'),
+    'georgia-text': buildTextBitmap('GEORGIA'),
+    'lsu-text': buildTextBitmap('LSU')
+  };
+
+  // Which name/bitmap the spelled-out text pattern shows for each venue.
+  var VENUE_NAME_BITMAPS = {
+    'jordan-hare': {name:'AUBURN', bitmap:'auburn-text'},
+    'neville':     {name:'AUBURN', bitmap:'auburn-text'},
+    'alabama':     {name:'ALABAMA', bitmap:'alabama-text'},
+    'georgia':     {name:'GEORGIA', bitmap:'georgia-text'},
+    'lsu':         {name:'LSU', bitmap:'lsu-text'}
+  };
+
+  // Maps a dot's (col,row) position in the zone's real grid to a bitmap
+  // pixel, preserving the bitmap's true proportions (fit + centered,
+  // never stretched). Returns null when the dot falls outside the fitted
+  // image entirely. Shared by isTextLit and the three-tone trim logic
+  // below, so both use exactly the same fitting math.
+  function resolveBitmapPixel(bitmapKey, col, row, totalCols, totalRows){
+    var bmp = TEXT_BITMAPS[bitmapKey];
+    if(!bmp) return null;
+    var bmpAspect = bmp.width / bmp.height;
+    var targetAspect = totalCols / totalRows;
+    var fitCols, fitRows;
+    if(targetAspect > bmpAspect){
+      fitRows = totalRows;
+      fitCols = totalRows * bmpAspect;
+    } else {
+      fitCols = totalCols;
+      fitRows = totalCols / bmpAspect;
+    }
+    var offsetCols = (totalCols - fitCols) / 2;
+    var offsetRows = (totalRows - fitRows) / 2;
+    var localCol = col - offsetCols;
+    var localRow = row - offsetRows;
+    if(localCol < 0 || localCol >= fitCols || localRow < 0 || localRow >= fitRows) return null;
+    var bx = Math.min(bmp.width - 1, Math.max(0, Math.floor(localCol / fitCols * bmp.width)));
+    var by = Math.min(bmp.height - 1, Math.max(0, Math.floor(localRow / fitRows * bmp.height)));
+    return {bmp: bmp, bx: bx, by: by};
+  }
+
+  function isTextLit(bitmapKey, col, row, totalCols, totalRows){
+    var px = resolveBitmapPixel(bitmapKey, col, row, totalCols, totalRows);
+    if(!px) return false;
+    return px.bmp.rows[px.by][px.bx] === '1';
+  }
+
+  // Classifies a dot into one of three zones for logos that need a real
+  // outline, not just flat lit/unlit: 'core' (the shape's own fill),
+  // 'trim' (a one-pixel outline where the shape borders open background —
+  // found by checking the bitmap's own neighboring pixels), or
+  // 'background' (everything else).
+  function classifyLogoZone(bitmapKey, col, row, totalCols, totalRows){
+    var px = resolveBitmapPixel(bitmapKey, col, row, totalCols, totalRows);
+    if(!px) return 'background';
+    if(px.bmp.rows[px.by][px.bx] === '1') return 'core';
+    for(var dy = -1; dy <= 1; dy++){
+      for(var dx = -1; dx <= 1; dx++){
+        if(dx === 0 && dy === 0) continue;
+        var ny = px.by + dy, nx = px.bx + dx;
+        if(ny < 0 || ny >= px.bmp.height || nx < 0 || nx >= px.bmp.width) continue;
+        if(px.bmp.rows[ny][nx] === '1') return 'trim';
+      }
+    }
+    return 'background';
+  }
+
+  // Deterministic 0..1 pseudo-random value from an integer seed — same
+  // seed always gives the same value, so a dot's "randomness" stays
+  // stable across frames instead of flickering chaotically. Uses an
+  // integer bit-mixing hash rather than sin()*bignumber: the sin-based
+  // trick is known to produce faint periodic banding at small grid sizes
+  // (adjacent dots ending up weakly correlated, which reads as motion
+  // "traveling" through the twinkle instead of true independent sparkle).
+  function pseudoRandom(seed){
+    var n = seed | 0;
+    n = Math.imul(n ^ (n >>> 16), 0x45d9f3b);
+    n = Math.imul(n ^ (n >>> 16), 0x45d9f3b);
+    n = n ^ (n >>> 16);
+    return (n >>> 0) / 4294967296;
+  }
+
+  // Resolves the color for one specific dot. Patterns with a single
+  // `color` use it everywhere; patterns with a `colors` array (like a
+  // mixed multi-color twinkle) assign each dot ONE fixed color from the
+  // list, chosen deterministically from its position so it doesn't
+  // change color from frame to frame.
+  function getDotColor(p, col, row, totalCols, totalRows){
+    if(p.motion === 'text' && p.trimColor){
+      var zone = classifyLogoZone(p.textBitmap, col, row, totalCols || LED_COLS, totalRows || 1);
+      if(zone === 'core') return p.color;
+      if(zone === 'trim') return p.trimColor;
+      return p.bgColor;
+    }
+    if(p.motion === 'text' && p.bgColor){
+      var lit = isTextLit(p.textBitmap, col, row, totalCols || LED_COLS, totalRows || 1);
+      return lit ? p.color : p.bgColor;
+    }
+    if(p.colors && p.colors.length){
+      var seed = col * 92821 + row * 68917;
+      var idx = Math.floor(pseudoRandom(seed) * p.colors.length) % p.colors.length;
+      return p.colors[idx];
+    }
+    return p.color;
+  }
+
+  // Computes one LED's brightness (0-1) for pattern `p` at time `t` seconds,
+  // within a grid `totalCols` wide (and, for row-aware motions, `totalRows`
+  // tall). Reads p's CURRENT values every call, so live slider edits apply
+  // on the very next frame with no restart trick needed. totalCols/totalRows
+  // default to the generic matrix size, but each zone's own dot grid passes
+  // its own real dimensions so patterns scale correctly to that zone.
+  function computeDotBrightness(p, col, t, totalCols, row, totalRows){
+    totalCols = totalCols || LED_COLS;
+    row = row || 0;
+    totalRows = totalRows || 1;
+    var freq = p.frequency > 0 ? p.frequency : 0.5;
+    var peak = Math.max(0.05, p.intensity / 100);
+    var floor = 0.06;
+    if(p.motion === 'solid') return peak;
+    if(p.motion === 'text'){
+      if(p.trimColor){
+        var zone2 = classifyLogoZone(p.textBitmap, col, row, totalCols, totalRows);
+        if(zone2 === 'core') return peak;
+        if(zone2 === 'trim') return Math.min(peak, 0.75);
+        return 0.4; // background — a real, visible color, but clearly subordinate to the mark itself
+      }
+      var lit = isTextLit(p.textBitmap, col, row, totalCols, totalRows);
+      if(lit) return peak;
+      return p.bgColor ? 0.55 : floor; // two-tone background should read as a real color, not near-invisible
+    }
+    if(p.motion === 'twinkle'){
+      // Each dot gets its own fixed phase, speed, and on-duration from its
+      // position, so dots sparkle independently instead of moving in a
+      // coordinated wave or blinking in visible lockstep.
+      var seed = col * 92821 + row * 68917;
+      var randPhase = pseudoRandom(seed) * 10;
+      var randSpeed = 0.6 + pseudoRandom(seed + 1) * 1.4;
+      var randOnWidth = 0.72 + pseudoRandom(seed + 2) * 0.16;
+      var cyclePos = ((t + randPhase) * freq * randSpeed) % 1;
+      return cyclePos < randOnWidth ? peak : floor;
+    }
+    if(p.motion === 'strobe'){
+      var cyclePos2 = (t * freq) % 1;
+      return cyclePos2 < 0.5 ? peak : floor;
+    }
+    if(p.motion === 'pulse'){
+      var phase = (Math.sin(t * freq * Math.PI * 2) + 1) / 2;
+      return floor + phase * (peak - floor);
+    }
+    // wave: a lit band of columns sweeps left to right, band width from Spread
+    var bandCols = Math.max(1, (p.spread / 100) * totalCols);
+    var peakCol = (t * freq * (totalCols / 2)) % totalCols;
+    var dist = Math.abs(col - peakCol);
+    dist = Math.min(dist, totalCols - dist); // wrap around for a seamless loop
+    if(dist > bandCols / 2) return floor;
+    var falloff = 1 - (dist / (bandCols/2 + 0.001));
+    return floor + falloff * (peak - floor);
+  }
+
+  function renderLedMatrixStatic(p){
+    ledDots.forEach(function(d){
+      d.el.style.background = getDotColor(p, d.col, d.row, LED_COLS, LED_ROWS);
+      d.el.style.opacity = (p.motion === 'text') ? computeDotBrightness(p, d.col, 0, LED_COLS, d.row, LED_ROWS) : 0.1;
+    });
+    schematicDots.forEach(function(d){
+      d.el.style.fill = getDotColor(p, d.col, d.row, d.cols, d.rows);
+      d.el.style.opacity = (p.motion === 'text') ? computeDotBrightness(p, d.col, 0, d.cols, d.row, d.rows) : 0.12;
+    });
+    updateSchematicPreview(p);
+  }
+
+  function ledFrame(p, timestamp){
+    if(ledStartTime === null) ledStartTime = timestamp;
+    var t = (timestamp - ledStartTime) / 1000;
+    ledDots.forEach(function(d){
+      d.el.style.background = getDotColor(p, d.col, d.row, LED_COLS, LED_ROWS);
+      d.el.style.opacity = computeDotBrightness(p, d.col, t, LED_COLS, d.row, LED_ROWS);
+    });
+    schematicDots.forEach(function(d){
+      d.el.style.fill = getDotColor(p, d.col, d.row, d.cols, d.rows);
+      d.el.style.opacity = computeDotBrightness(p, d.col, t, d.cols, d.row, d.rows);
+    });
+    ledRafId = window.requestAnimationFrame(function(ts){ ledFrame(p, ts); });
+  }
+
+  function startLedPreview(p){
+    ledPlaying = true;
+    ledStartTime = null;
+    if(ledRafId) window.cancelAnimationFrame(ledRafId);
+    ledRafId = window.requestAnimationFrame(function(ts){ ledFrame(p, ts); });
+    updateSchematicPreview(p);
+  }
+
+  function stopLedPreview(p){
+    ledPlaying = false;
+    if(ledRafId) window.cancelAnimationFrame(ledRafId);
+    ledRafId = null;
+    renderLedMatrixStatic(p);
+  }
+
+  document.getElementById('pattern-grid').addEventListener('click', function(e){
+    if(e.target.closest('#add-pattern-btn')){
+      var name = window.prompt('Name this new pattern:', 'New Pattern');
+      if(!name) return;
+      var id = 'custom-' + Date.now();
+      patternLibrary.push({id:id, name:name, tags:['Custom'], color:'#00f0ff', intensity:70, spread:40, frequency:1.0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'pulse'});
+      selectedPatternId = id;
+      renderPatternGrid(document.getElementById('pattern-search').value);
+      renderPatternInspector();
+      return;
+    }
+    var card = e.target.closest('[data-pattern-id]');
+    if(card){
+      selectedPatternId = card.getAttribute('data-pattern-id');
+      renderPatternGrid(document.getElementById('pattern-search').value);
+      renderPatternInspector();
+    }
+  });
+  document.getElementById('pattern-search').addEventListener('input', function(e){
+    renderPatternGrid(e.target.value);
+  });
+
+  // ===================== TIMELINE EDITOR =====================
+  var TIMELINE_DURATION = 240; // 4:00 show — a realistic single-song light segment, not the full halftime
+  var BASE_PX_PER_SEC = 960 / TIMELINE_DURATION;
+  var timelineZoom = 5; // default zoomed in 5x so pattern blocks are clearly readable
+  var PX_PER_SEC = BASE_PX_PER_SEC * timelineZoom;
+  var timelineTracksByVenue = {
+    'jordan-hare': ['Student Section','Lower Bowl','Upper Deck','End Zones'],
+    'neville': ['Student Section','Lower Bowl','Upper Ring','Tiger Club'],
+    'alabama': ['Student Section','Lower Bowl','Upper Deck','End Zones'],
+    'georgia': ['Student Section','Lower Bowl','Upper Deck','End Zones'],
+    'lsu': ['Student Section','Lower Bowl','Upper Deck','End Zones']
+  };
+  var timelineCuesByVenue = {
+    'jordan-hare': [
+      // TEMP TEST SHOW: Twinkle Mixed (orange/blue/white sparkle) running
+      // continuously with no gaps, so the ambient look is a full-color
+      // twinkle throughout — the big kick accent hits then cut through it
+      // with a solid orange/blue flash (see updatePreviewStadium's
+      // isBigFlash branch). The original choreographed jordan-hare show is
+      // preserved in StadiumSync_Studio_Prototype_ORIGINAL_SHOW_BACKUP.html
+      // and can be restored once music sync is confirmed working.
+      {track:'Student Section', pattern:'twinkle-mixed', start:0, duration:236},
+      {track:'Lower Bowl', pattern:'twinkle-mixed', start:0, duration:236},
+      {track:'Upper Deck', pattern:'twinkle-mixed', start:0, duration:236},
+      {track:'End Zones', pattern:'twinkle-mixed', start:0, duration:236}
+    ],
+    'neville': [
+      {track:'Student Section', pattern:'tiger-wave', start:0, duration:8},
+      {track:'Student Section', pattern:'strobe', start:8, duration:8},
+      {track:'Student Section', pattern:'orange-pulse', start:16, duration:12},
+      {track:'Student Section', pattern:'strobe', start:28, duration:6},
+      {track:'Student Section', pattern:'tiger-wave', start:34, duration:12},
+      {track:'Student Section', pattern:'solid-blue', start:46, duration:16},
+      {track:'Student Section', pattern:'orange-pulse', start:62, duration:20},
+      {track:'Student Section', pattern:'strobe', start:82, duration:16},
+      {track:'Student Section', pattern:'tiger-wave', start:98, duration:22},
+      {track:'Student Section', pattern:'solid-blue', start:120, duration:22},
+      {track:'Student Section', pattern:'orange-pulse', start:142, duration:22},
+      {track:'Student Section', pattern:'strobe', start:164, duration:20},
+      {track:'Student Section', pattern:'tiger-wave', start:184, duration:22},
+      {track:'Student Section', pattern:'strobe', start:206, duration:30},
+      {track:'Lower Bowl', pattern:'orange-pulse', start:5, duration:10},
+      {track:'Lower Bowl', pattern:'strobe', start:15, duration:6},
+      {track:'Lower Bowl', pattern:'tiger-wave', start:21, duration:12},
+      {track:'Lower Bowl', pattern:'solid-blue', start:33, duration:12},
+      {track:'Lower Bowl', pattern:'orange-pulse', start:45, duration:18},
+      {track:'Lower Bowl', pattern:'tiger-wave', start:63, duration:20},
+      {track:'Lower Bowl', pattern:'solid-blue', start:83, duration:20},
+      {track:'Lower Bowl', pattern:'orange-pulse', start:103, duration:22},
+      {track:'Lower Bowl', pattern:'tiger-wave', start:125, duration:22},
+      {track:'Lower Bowl', pattern:'solid-blue', start:147, duration:22},
+      {track:'Lower Bowl', pattern:'orange-pulse', start:169, duration:22},
+      {track:'Lower Bowl', pattern:'tiger-wave', start:191, duration:45},
+      {track:'Upper Ring', pattern:'solid-blue', start:10, duration:12},
+      {track:'Upper Ring', pattern:'orange-pulse', start:22, duration:8},
+      {track:'Upper Ring', pattern:'strobe', start:30, duration:10},
+      {track:'Upper Ring', pattern:'solid-blue', start:40, duration:20},
+      {track:'Upper Ring', pattern:'orange-pulse', start:60, duration:20},
+      {track:'Upper Ring', pattern:'strobe', start:80, duration:18},
+      {track:'Upper Ring', pattern:'solid-blue', start:98, duration:22},
+      {track:'Upper Ring', pattern:'orange-pulse', start:120, duration:22},
+      {track:'Upper Ring', pattern:'strobe', start:142, duration:22},
+      {track:'Upper Ring', pattern:'solid-blue', start:164, duration:22},
+      {track:'Upper Ring', pattern:'orange-pulse', start:186, duration:22},
+      {track:'Upper Ring', pattern:'strobe', start:208, duration:28},
+      {track:'Tiger Club', pattern:'solid-blue', start:0, duration:20},
+      {track:'Tiger Club', pattern:'orange-pulse', start:20, duration:12},
+      {track:'Tiger Club', pattern:'solid-blue', start:32, duration:20},
+      {track:'Tiger Club', pattern:'orange-pulse', start:52, duration:22},
+      {track:'Tiger Club', pattern:'solid-blue', start:74, duration:22},
+      {track:'Tiger Club', pattern:'orange-pulse', start:96, duration:24},
+      {track:'Tiger Club', pattern:'solid-blue', start:120, duration:24},
+      {track:'Tiger Club', pattern:'orange-pulse', start:144, duration:24},
+      {track:'Tiger Club', pattern:'solid-blue', start:168, duration:24},
+      {track:'Tiger Club', pattern:'orange-pulse', start:192, duration:46}
+    ],
+    'alabama': [
+      {track:'Student Section', pattern:'tiger-wave', start:0, duration:9},
+      {track:'Student Section', pattern:'orange-pulse', start:9, duration:8},
+      {track:'Student Section', pattern:'strobe', start:17, duration:6},
+      {track:'Student Section', pattern:'tiger-wave', start:23, duration:12},
+      {track:'Student Section', pattern:'solid-blue', start:35, duration:12},
+      {track:'Student Section', pattern:'orange-pulse', start:47, duration:18},
+      {track:'Student Section', pattern:'tiger-wave', start:65, duration:20},
+      {track:'Student Section', pattern:'solid-blue', start:85, duration:20},
+      {track:'Student Section', pattern:'orange-pulse', start:105, duration:22},
+      {track:'Student Section', pattern:'tiger-wave', start:127, duration:22},
+      {track:'Student Section', pattern:'solid-blue', start:149, duration:22},
+      {track:'Student Section', pattern:'orange-pulse', start:171, duration:22},
+      {track:'Student Section', pattern:'tiger-wave', start:193, duration:44},
+      {track:'Lower Bowl', pattern:'orange-pulse', start:6, duration:10},
+      {track:'Lower Bowl', pattern:'tiger-wave', start:16, duration:12},
+      {track:'Lower Bowl', pattern:'strobe', start:28, duration:6},
+      {track:'Lower Bowl', pattern:'orange-pulse', start:34, duration:16},
+      {track:'Lower Bowl', pattern:'tiger-wave', start:50, duration:20},
+      {track:'Lower Bowl', pattern:'solid-blue', start:70, duration:20},
+      {track:'Lower Bowl', pattern:'orange-pulse', start:90, duration:22},
+      {track:'Lower Bowl', pattern:'tiger-wave', start:112, duration:22},
+      {track:'Lower Bowl', pattern:'solid-blue', start:134, duration:22},
+      {track:'Lower Bowl', pattern:'orange-pulse', start:156, duration:22},
+      {track:'Lower Bowl', pattern:'strobe', start:178, duration:20},
+      {track:'Lower Bowl', pattern:'tiger-wave', start:198, duration:40},
+      {track:'Upper Deck', pattern:'strobe', start:12, duration:6},
+      {track:'Upper Deck', pattern:'orange-pulse', start:18, duration:14},
+      {track:'Upper Deck', pattern:'tiger-wave', start:32, duration:12},
+      {track:'Upper Deck', pattern:'solid-blue', start:44, duration:18},
+      {track:'Upper Deck', pattern:'orange-pulse', start:62, duration:20},
+      {track:'Upper Deck', pattern:'tiger-wave', start:82, duration:20},
+      {track:'Upper Deck', pattern:'solid-blue', start:102, duration:22},
+      {track:'Upper Deck', pattern:'orange-pulse', start:124, duration:22},
+      {track:'Upper Deck', pattern:'tiger-wave', start:146, duration:22},
+      {track:'Upper Deck', pattern:'strobe', start:168, duration:20},
+      {track:'Upper Deck', pattern:'orange-pulse', start:188, duration:50},
+      {track:'End Zones', pattern:'orange-pulse', start:20, duration:8},
+      {track:'End Zones', pattern:'strobe', start:28, duration:6},
+      {track:'End Zones', pattern:'tiger-wave', start:34, duration:14},
+      {track:'End Zones', pattern:'orange-pulse', start:48, duration:18},
+      {track:'End Zones', pattern:'tiger-wave', start:66, duration:20},
+      {track:'End Zones', pattern:'solid-blue', start:86, duration:20},
+      {track:'End Zones', pattern:'orange-pulse', start:106, duration:22},
+      {track:'End Zones', pattern:'tiger-wave', start:128, duration:22},
+      {track:'End Zones', pattern:'solid-blue', start:150, duration:22},
+      {track:'End Zones', pattern:'strobe', start:172, duration:24},
+      {track:'End Zones', pattern:'tiger-wave', start:196, duration:38}
+    ],
+    'georgia': [
+      {track:'Student Section', pattern:'tiger-wave', start:0, duration:8},
+      {track:'Student Section', pattern:'orange-pulse', start:8, duration:10},
+      {track:'Student Section', pattern:'strobe', start:18, duration:6},
+      {track:'Student Section', pattern:'tiger-wave', start:24, duration:12},
+      {track:'Student Section', pattern:'solid-blue', start:36, duration:12},
+      {track:'Student Section', pattern:'orange-pulse', start:48, duration:18},
+      {track:'Student Section', pattern:'tiger-wave', start:66, duration:20},
+      {track:'Student Section', pattern:'solid-blue', start:86, duration:20},
+      {track:'Student Section', pattern:'orange-pulse', start:106, duration:22},
+      {track:'Student Section', pattern:'tiger-wave', start:128, duration:22},
+      {track:'Student Section', pattern:'solid-blue', start:150, duration:22},
+      {track:'Student Section', pattern:'orange-pulse', start:172, duration:22},
+      {track:'Student Section', pattern:'tiger-wave', start:194, duration:43},
+      {track:'Lower Bowl', pattern:'orange-pulse', start:5, duration:10},
+      {track:'Lower Bowl', pattern:'tiger-wave', start:15, duration:12},
+      {track:'Lower Bowl', pattern:'strobe', start:27, duration:6},
+      {track:'Lower Bowl', pattern:'orange-pulse', start:33, duration:16},
+      {track:'Lower Bowl', pattern:'tiger-wave', start:49, duration:20},
+      {track:'Lower Bowl', pattern:'solid-blue', start:69, duration:20},
+      {track:'Lower Bowl', pattern:'orange-pulse', start:89, duration:22},
+      {track:'Lower Bowl', pattern:'tiger-wave', start:111, duration:22},
+      {track:'Lower Bowl', pattern:'solid-blue', start:133, duration:22},
+      {track:'Lower Bowl', pattern:'orange-pulse', start:155, duration:22},
+      {track:'Lower Bowl', pattern:'strobe', start:177, duration:20},
+      {track:'Lower Bowl', pattern:'tiger-wave', start:197, duration:41},
+      {track:'Upper Deck', pattern:'strobe', start:11, duration:6},
+      {track:'Upper Deck', pattern:'orange-pulse', start:17, duration:14},
+      {track:'Upper Deck', pattern:'tiger-wave', start:31, duration:12},
+      {track:'Upper Deck', pattern:'solid-blue', start:43, duration:18},
+      {track:'Upper Deck', pattern:'orange-pulse', start:61, duration:20},
+      {track:'Upper Deck', pattern:'tiger-wave', start:81, duration:20},
+      {track:'Upper Deck', pattern:'solid-blue', start:101, duration:22},
+      {track:'Upper Deck', pattern:'orange-pulse', start:123, duration:22},
+      {track:'Upper Deck', pattern:'tiger-wave', start:145, duration:22},
+      {track:'Upper Deck', pattern:'strobe', start:167, duration:20},
+      {track:'Upper Deck', pattern:'orange-pulse', start:187, duration:51},
+      {track:'End Zones', pattern:'orange-pulse', start:19, duration:8},
+      {track:'End Zones', pattern:'strobe', start:27, duration:6},
+      {track:'End Zones', pattern:'tiger-wave', start:33, duration:14},
+      {track:'End Zones', pattern:'orange-pulse', start:47, duration:18},
+      {track:'End Zones', pattern:'tiger-wave', start:65, duration:20},
+      {track:'End Zones', pattern:'solid-blue', start:85, duration:20},
+      {track:'End Zones', pattern:'orange-pulse', start:105, duration:22},
+      {track:'End Zones', pattern:'tiger-wave', start:127, duration:22},
+      {track:'End Zones', pattern:'solid-blue', start:149, duration:22},
+      {track:'End Zones', pattern:'strobe', start:171, duration:24},
+      {track:'End Zones', pattern:'tiger-wave', start:195, duration:39}
+    ],
+    'lsu': [
+      {track:'Student Section', pattern:'tiger-wave', start:0, duration:10},
+      {track:'Student Section', pattern:'orange-pulse', start:10, duration:8},
+      {track:'Student Section', pattern:'strobe', start:18, duration:6},
+      {track:'Student Section', pattern:'tiger-wave', start:24, duration:14},
+      {track:'Student Section', pattern:'solid-blue', start:38, duration:12},
+      {track:'Student Section', pattern:'orange-pulse', start:50, duration:18},
+      {track:'Student Section', pattern:'tiger-wave', start:68, duration:20},
+      {track:'Student Section', pattern:'solid-blue', start:88, duration:20},
+      {track:'Student Section', pattern:'orange-pulse', start:108, duration:22},
+      {track:'Student Section', pattern:'tiger-wave', start:130, duration:22},
+      {track:'Student Section', pattern:'solid-blue', start:152, duration:22},
+      {track:'Student Section', pattern:'orange-pulse', start:174, duration:22},
+      {track:'Student Section', pattern:'tiger-wave', start:196, duration:41},
+      {track:'Lower Bowl', pattern:'orange-pulse', start:6, duration:10},
+      {track:'Lower Bowl', pattern:'tiger-wave', start:16, duration:12},
+      {track:'Lower Bowl', pattern:'strobe', start:28, duration:6},
+      {track:'Lower Bowl', pattern:'orange-pulse', start:34, duration:16},
+      {track:'Lower Bowl', pattern:'tiger-wave', start:50, duration:20},
+      {track:'Lower Bowl', pattern:'solid-blue', start:70, duration:20},
+      {track:'Lower Bowl', pattern:'orange-pulse', start:90, duration:22},
+      {track:'Lower Bowl', pattern:'tiger-wave', start:112, duration:22},
+      {track:'Lower Bowl', pattern:'solid-blue', start:134, duration:22},
+      {track:'Lower Bowl', pattern:'orange-pulse', start:156, duration:22},
+      {track:'Lower Bowl', pattern:'strobe', start:178, duration:20},
+      {track:'Lower Bowl', pattern:'tiger-wave', start:198, duration:40},
+      {track:'Upper Deck', pattern:'strobe', start:13, duration:6},
+      {track:'Upper Deck', pattern:'orange-pulse', start:19, duration:14},
+      {track:'Upper Deck', pattern:'tiger-wave', start:33, duration:13},
+      {track:'Upper Deck', pattern:'solid-blue', start:46, duration:18},
+      {track:'Upper Deck', pattern:'orange-pulse', start:64, duration:20},
+      {track:'Upper Deck', pattern:'tiger-wave', start:84, duration:20},
+      {track:'Upper Deck', pattern:'solid-blue', start:104, duration:22},
+      {track:'Upper Deck', pattern:'orange-pulse', start:126, duration:22},
+      {track:'Upper Deck', pattern:'tiger-wave', start:148, duration:22},
+      {track:'Upper Deck', pattern:'strobe', start:170, duration:20},
+      {track:'Upper Deck', pattern:'orange-pulse', start:190, duration:48},
+      {track:'End Zones', pattern:'orange-pulse', start:21, duration:8},
+      {track:'End Zones', pattern:'strobe', start:29, duration:6},
+      {track:'End Zones', pattern:'tiger-wave', start:35, duration:14},
+      {track:'End Zones', pattern:'orange-pulse', start:49, duration:18},
+      {track:'End Zones', pattern:'tiger-wave', start:67, duration:20},
+      {track:'End Zones', pattern:'solid-blue', start:87, duration:20},
+      {track:'End Zones', pattern:'orange-pulse', start:107, duration:22},
+      {track:'End Zones', pattern:'tiger-wave', start:129, duration:22},
+      {track:'End Zones', pattern:'solid-blue', start:151, duration:22},
+      {track:'End Zones', pattern:'strobe', start:173, duration:24},
+      {track:'End Zones', pattern:'tiger-wave', start:197, duration:40}
+    ]
+  };
+  var playheadSeconds = 0;
+  var isPlaying = false;
+  var playTimer = null;
+  var selectedCue = null;
+
+  function formatTimecode(sec){
+    var m = Math.floor(sec/60);
+    var s = Math.floor(sec%60);
+    var cs = Math.floor((sec % 1) * 100);
+    return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0') + ':' + String(cs).padStart(2,'0');
+  }
+
+  function renderTimeline(){
+    var v = venues.find(function(x){ return x.id === currentVenueId; });
+    document.getElementById('timeline-venue-name').textContent = v.name;
+    var tracks = timelineTracksByVenue[currentVenueId] || [];
+    var cues = timelineCuesByVenue[currentVenueId] || [];
+
+    var ruler = document.getElementById('timeline-ruler');
+    ruler.innerHTML = '<div class="track-label" style="background:var(--surface-container); border-right:1px solid var(--outline-variant);"></div>';
+    for(var m=0; m*60 <= TIMELINE_DURATION; m++){
+      var tick = document.createElement('div');
+      tick.className = 'ruler-tick';
+      tick.style.width = (60 * PX_PER_SEC) + 'px';
+      tick.textContent = String(m).padStart(2,'0') + ':00';
+      ruler.appendChild(tick);
+    }
+
+    var tracksEl = document.getElementById('timeline-tracks');
+    tracksEl.innerHTML = '';
+    tracks.forEach(function(trackName){
+      var row = document.createElement('div');
+      row.className = 'track-row';
+      var label = document.createElement('div');
+      label.className = 'track-label';
+      label.textContent = trackName;
+      row.appendChild(label);
+
+      var lane = document.createElement('div');
+      lane.className = 'track-lane';
+      lane.style.width = (TIMELINE_DURATION * PX_PER_SEC) + 'px';
+      lane.setAttribute('data-track', trackName);
+
+      cues.filter(function(c){ return c.track === trackName; }).forEach(function(cue, idx){
+        var block = document.createElement('div');
+        var pat = findPattern(cue.pattern);
+        block.className = 'cue-block' + (selectedCue === cue ? ' selected' : '');
+        var widthPx = cue.duration * PX_PER_SEC;
+        block.style.left = (cue.start * PX_PER_SEC) + 'px';
+        block.style.width = widthPx + 'px';
+        block.setAttribute('data-cue-track', trackName);
+        block.setAttribute('data-cue-index', idx);
+
+        if(pat){
+          var dotWrap = document.createElement('div');
+          dotWrap.className = 'cue-dot-grid';
+          var spacing = 6;
+          var cols = Math.max(2, Math.floor(widthPx / spacing));
+          var rows = 5;
+          dotWrap.style.setProperty('--cue-cols', cols);
+          dotWrap.style.gridTemplateRows = 'repeat(' + rows + ', 1fr)';
+          // Animate relative to when THIS cue starts, not the absolute show
+          // clock, so its pattern always begins fresh at its own start point.
+          var localT = Math.max(0, playheadSeconds - cue.start);
+          for(var rr=0; rr<rows; rr++){
+            for(var cc=0; cc<cols; cc++){
+              var dot = document.createElement('div');
+              dot.className = 'cue-led-dot';
+              dot.style.background = getDotColor(pat, cc, rr, cols, rows);
+              dot.style.opacity = computeDotBrightness(pat, cc, localT, cols, rr, rows);
+              dotWrap.appendChild(dot);
+            }
+          }
+          block.appendChild(dotWrap);
+        } else {
+          block.style.background = '#888';
+        }
+
+        // No visible text label — the dot matrix itself is the primary
+        // visual. Full pattern name and time range are always available
+        // on hover via the tooltip, so nothing is actually hidden.
+        var fullName = pat ? pat.name : cue.pattern;
+        block.title = fullName + ' — ' + formatTimecode(cue.start) + ' to ' + formatTimecode(cue.start + cue.duration);
+
+        lane.appendChild(block);
+      });
+
+      if(trackName === tracks[0]){
+        var playhead = document.createElement('div');
+        playhead.className = 'playhead';
+        playhead.id = 'timeline-playhead';
+        playhead.style.left = (playheadSeconds * PX_PER_SEC) + 'px';
+        playhead.style.height = (tracks.length * 52) + 'px';
+        lane.style.position = 'relative';
+        lane.appendChild(playhead);
+      }
+
+      row.appendChild(lane);
+      tracksEl.appendChild(row);
+    });
+
+    // single playhead spanning all rows visually via absolute position on wrapper
+    var wrap = document.getElementById('timeline-tracks');
+    var existingGlobalHead = document.getElementById('global-playhead');
+    if(existingGlobalHead) existingGlobalHead.remove();
+    var globalHead = document.createElement('div');
+    globalHead.id = 'global-playhead';
+    globalHead.style.position = 'absolute';
+    globalHead.style.top = '24px';
+    globalHead.style.bottom = '0';
+    globalHead.style.left = (140 + playheadSeconds * PX_PER_SEC) + 'px';
+    globalHead.style.width = '2px';
+    globalHead.style.background = 'var(--primary)';
+    globalHead.style.pointerEvents = 'none';
+    globalHead.style.zIndex = '3';
+    document.getElementById('timeline-wrap').style.position = 'relative';
+    document.getElementById('timeline-wrap').appendChild(globalHead);
+
+    document.getElementById('tl-timecode').textContent = formatTimecode(playheadSeconds);
+    renderCueInspector();
+  }
+
+  function renderCueInspector(){
+    var panel = document.getElementById('cue-inspector');
+    var body = document.getElementById('cue-inspector-body');
+    if(!selectedCue){ panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+    var options = patternLibrary.map(function(p){
+      return '<option value="' + p.id + '"' + (p.id === selectedCue.pattern ? ' selected' : '') + '>' + p.name + '</option>';
+    }).join('');
+    body.innerHTML =
+      '<div class="field"><label for="cue-pattern">Pattern</label><select id="cue-pattern">' + options + '</select></div>' +
+      '<div class="export-row">' +
+        '<div class="field"><label for="cue-start">Start (sec)</label><input type="number" id="cue-start" min="0" max="' + TIMELINE_DURATION + '" value="' + selectedCue.start + '" style="width:100%; background:var(--surface-high); border:1px solid var(--outline-variant); color:var(--on-surface); padding:8px; border-radius:var(--radius);"></div>' +
+        '<div class="field"><label for="cue-duration">Duration (sec)</label><input type="number" id="cue-duration" min="1" max="' + TIMELINE_DURATION + '" value="' + selectedCue.duration + '" style="width:100%; background:var(--surface-high); border:1px solid var(--outline-variant); color:var(--on-surface); padding:8px; border-radius:var(--radius);"></div>' +
+      '</div>' +
+      '<button class="btn" id="cue-delete" style="margin-top:12px; border-color:var(--error);">Delete Cue</button>';
+
+    document.getElementById('cue-pattern').addEventListener('change', function(e){ selectedCue.pattern = e.target.value; renderTimeline(); });
+    document.getElementById('cue-start').addEventListener('input', function(e){ selectedCue.start = Math.max(0, parseInt(e.target.value,10) || 0); renderTimeline(); });
+    document.getElementById('cue-duration').addEventListener('input', function(e){ selectedCue.duration = Math.max(1, parseInt(e.target.value,10) || 1); renderTimeline(); });
+    document.getElementById('cue-delete').addEventListener('click', function(){
+      var cues = timelineCuesByVenue[currentVenueId];
+      var i = cues.indexOf(selectedCue);
+      if(i > -1) cues.splice(i,1);
+      selectedCue = null;
+      renderTimeline();
+    });
+  }
+
+  document.getElementById('timeline-tracks').addEventListener('click', function(e){
+    var cueBlock = e.target.closest('.cue-block');
+    if(cueBlock){
+      var trackName = cueBlock.getAttribute('data-cue-track');
+      var idx = parseInt(cueBlock.getAttribute('data-cue-index'),10);
+      var trackCues = timelineCuesByVenue[currentVenueId].filter(function(c){ return c.track === trackName; });
+      selectedCue = trackCues[idx];
+      renderTimeline();
+      return;
+    }
+    var lane = e.target.closest('.track-lane');
+    if(lane){
+      var rect = lane.getBoundingClientRect();
+      var clickSec = Math.max(0, Math.min(TIMELINE_DURATION - 15, (e.clientX - rect.left) / PX_PER_SEC));
+      var newCue = {track: lane.getAttribute('data-track'), pattern: patternLibrary[0].id, start: Math.round(clickSec), duration: 30};
+      timelineCuesByVenue[currentVenueId].push(newCue);
+      selectedCue = newCue;
+      renderTimeline();
+    }
+  });
+
+  // Shared show-clock playback. Timeline and Preview both drive (and reflect)
+  // the SAME playheadSeconds/isPlaying state, so pressing play on either
+  // screen plays the one real show, not two independent clocks.
+  function setTransportIcon(btn, playing){
+    btn.classList.toggle('playing', playing);
+    btn.innerHTML = playing
+      ? '<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><rect x="5" y="4" width="4" height="16"/><rect x="15" y="4" width="4" height="16"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="6,4 20,12 6,20"/></svg>';
+  }
+
+  function updatePreviewStartHint(){
+    var hint = document.getElementById('preview-start-hint');
+    if(!hint) return;
+    hint.style.display = (!isPlaying && playheadSeconds === 0) ? 'flex' : 'none';
+  }
+
+  function toggleShowPlayback(){
+    isPlaying = !isPlaying;
+    setTransportIcon(document.getElementById('tl-play'), isPlaying);
+    setTransportIcon(document.getElementById('preview-play'), isPlaying);
+    updatePreviewStartHint();
+    if(isPlaying){
+      if((musicSyncEnabled || musicColorSyncEnabled) && musicAudioEl){
+        try { musicAudioEl.currentTime = playheadSeconds; musicAudioEl.play(); } catch(e){}
+      }
+      var last = performance.now();
+      playTimer = setInterval(function(){
+        var now = performance.now();
+        var delta = (now - last) / 1000;
+        last = now;
+        playheadSeconds = Math.min(TIMELINE_DURATION, playheadSeconds + delta);
+        if(playheadSeconds >= TIMELINE_DURATION){
+          playheadSeconds = TIMELINE_DURATION;
+          toggleShowPlayback();
+          return;
+        }
+        renderTimeline();
+        syncPreviewTimecode();
+        updatePreviewStadium(playheadSeconds);
+      }, 100);
+    } else {
+      clearInterval(playTimer);
+      if(musicAudioEl) { try { musicAudioEl.pause(); } catch(e){} }
+    }
+  }
+
+  function stopShowPlayback(){
+    isPlaying = false;
+    clearInterval(playTimer);
+    playheadSeconds = 0;
+    setTransportIcon(document.getElementById('tl-play'), false);
+    setTransportIcon(document.getElementById('preview-play'), false);
+    if(musicAudioEl){ try { musicAudioEl.pause(); musicAudioEl.currentTime = 0; } catch(e){} }
+    renderTimeline();
+    syncPreviewTimecode();
+    updatePreviewStadium(playheadSeconds);
+    updatePreviewStartHint();
+  }
+
+  // Press-and-hold scrubbing: while the button is held, the show clock
+  // moves smoothly at an accelerated rate, rather than jumping in fixed
+  // increments. Releasing stops the scrub exactly where it landed.
+  var scrubTimer = null;
+  var SCRUB_SPEED = 6; // multiples of real-time while scrubbing
+
+  function startScrub(direction){
+    if(isPlaying) toggleShowPlayback(); // pause normal playback while scrubbing
+    if(scrubTimer) window.clearInterval(scrubTimer);
+    var last = performance.now();
+    scrubTimer = window.setInterval(function(){
+      var now = performance.now();
+      var delta = (now - last) / 1000;
+      last = now;
+      playheadSeconds = Math.max(0, Math.min(TIMELINE_DURATION, playheadSeconds + direction * delta * SCRUB_SPEED));
+      renderTimeline();
+      syncPreviewTimecode();
+      updatePreviewStadium(playheadSeconds);
+      updatePreviewStartHint();
+    }, 40);
+  }
+
+  function stopScrub(){
+    if(scrubTimer){ window.clearInterval(scrubTimer); scrubTimer = null; }
+  }
+
+  function wireScrubButton(id, direction){
+    var btn = document.getElementById(id);
+    btn.addEventListener('mousedown', function(){ startScrub(direction); });
+    btn.addEventListener('touchstart', function(e){ e.preventDefault(); startScrub(direction); });
+    ['mouseup','mouseleave','touchend','touchcancel'].forEach(function(evt){
+      btn.addEventListener(evt, stopScrub);
+    });
+  }
+
+  document.getElementById('tl-play').addEventListener('click', toggleShowPlayback);
+  document.getElementById('tl-stop').addEventListener('click', stopShowPlayback);
+  wireScrubButton('tl-rewind', -1);
+  wireScrubButton('tl-ff', 1);
+  document.getElementById('preview-play').addEventListener('click', toggleShowPlayback);
+  document.getElementById('preview-stop').addEventListener('click', stopShowPlayback);
+  wireScrubButton('preview-rewind', -1);
+  wireScrubButton('preview-ff', 1);
+  document.getElementById('preview-start-hint').addEventListener('click', toggleShowPlayback);
+
+  var ZOOM_MIN = 1, ZOOM_MAX = 8, ZOOM_STEP = 0.5;
+  function setTimelineZoom(z){
+    timelineZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
+    PX_PER_SEC = BASE_PX_PER_SEC * timelineZoom;
+    document.getElementById('tl-zoom-readout').textContent = timelineZoom.toFixed(1) + 'x';
+    renderTimeline();
+  }
+  document.getElementById('tl-zoom-in').addEventListener('click', function(){ setTimelineZoom(timelineZoom + ZOOM_STEP); });
+  document.getElementById('tl-zoom-out').addEventListener('click', function(){ setTimelineZoom(timelineZoom - ZOOM_STEP); });
+
+  function syncPreviewTimecode(){
+    var el = document.getElementById('preview-timecode');
+    if(el) el.textContent = formatTimecode(playheadSeconds);
+    var el2 = document.getElementById('preview-timecode-2');
+    if(el2) el2.textContent = formatTimecode(playheadSeconds);
+  }
+
+  // ===================== PREVIEW =====================
+  // Which real zone shapes light up when a given Timeline TRACK has an
+  // active cue. Timeline tracks are coarser groupings than the full zone
+  // list (e.g. "Lower Bowl" covers 3-4 real zones at once).
+  var footballTrackZoneMap = {
+    'Student Section': ['student-section'],
+    'Lower Bowl': ['lower-bowl-north','lower-bowl-south','lower-bowl-west-sideline','lower-bowl-east-sideline'],
+    'Upper Deck': ['upper-deck-north','upper-deck-south','upper-deck-west','upper-deck-east'],
+    'End Zones': ['north-end-zone','south-end-zone']
+  };
+  var nevilleTrackZoneMap = {
+    'Student Section': ['student-section'],
+    'Lower Bowl': ['lower-bowl-north','lower-bowl-south','lower-bowl-east-baseline'],
+    'Upper Ring': ['upper-ring-north','upper-ring-south','upper-ring-west'],
+    'Tiger Club': ['tiger-club-press-level']
+  };
+  var trackZoneMapsByVenue = {
+    'jordan-hare': footballTrackZoneMap,
+    'alabama': footballTrackZoneMap,
+    'georgia': footballTrackZoneMap,
+    'lsu': footballTrackZoneMap,
+    'neville': nevilleTrackZoneMap
+  };
+
+  var previewZoneDots = {}; // slug -> array of dot refs, for every zone in the current schematic
+
+  // ===== Music Sync =====
+  // Mirrors the real Unity codebase's AudioPeer/MusicSynchronizer pair:
+  // decode an imported audio file and analyze its live frequency spectrum
+  // every frame. Brightness sync (matching the real production code)
+  // modulates how bright each zone gets. Color sync is a StadiumSync
+  // addition on top of that same analysis — it doesn't exist in the
+  // Unity codebase — which flashes each active zone through the loaded
+  // venue's own colors based on which part of the spectrum is loudest
+  // right now. Both are independent toggles; Timeline still decides
+  // which zones are active and which pattern each one runs either way.
+  var musicAudioEl = null;
+  var musicAudioCtx = null;
+  var musicAnalyser = null;
+  var musicFreqData = null;
+  var musicSyncEnabled = false;
+  var musicColorSyncEnabled = false;
+  var musicBandMax = [1, 1, 1]; // rolling per-band ceiling, used to normalize color-band comparison
+  var MUSIC_BAND_DECAY = 0.985; // ceiling relaxes slowly so it adapts over the course of a song
+
+  function setupMusicAudioGraph(){
+    if(musicAudioCtx) return; // only ever build the graph once; reused across imports
+    musicAudioEl = new Audio();
+    musicAudioEl.loop = false;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return; // Web Audio API unavailable in this browser — sync stays a no-op
+    musicAudioCtx = new AC();
+    var source = musicAudioCtx.createMediaElementSource(musicAudioEl);
+    musicAnalyser = musicAudioCtx.createAnalyser();
+    musicAnalyser.fftSize = 1024;
+    // Default browser smoothing blends each reading ~80% with the previous
+    // one — great for a calm visualizer, terrible for catching a kick drum
+    // transient, which is exactly what flattened the pulse to almost
+    // nothing. We do our own short-baseline comparison for the pulse, so we
+    // want the raw, unsmoothed reading here instead.
+    musicAnalyser.smoothingTimeConstant = 0.2;
+    musicFreqData = new Uint8Array(musicAnalyser.frequencyBinCount);
+    source.connect(musicAnalyser);
+    musicAnalyser.connect(musicAudioCtx.destination);
+  }
+
+  var musicPulseLevel = 0; // smoothed 0-1 pulse: snaps up fast, fades down slower
+  var musicKickHistory = []; // ~4s rolling window of the kick-drum band's own recent levels
+  var musicChantHistory = []; // ~4s rolling window of the vocal-chant band's own recent levels — kept fully separate from the kick band
+  var MUSIC_BASS_HISTORY_LEN = 40; // ~4s at the ~100ms sample rate this runs at
+  var musicOnsetThreshold = 0.19; // how far ABOVE a band's own normal level a hit must jump to count as a "big" accent — controlled by the Beat Sensitivity slider
+
+  // Converts a frequency in Hz to the nearest analyser bin index. The
+  // earlier version split bins into three equal-COUNT thirds, which is not
+  // the same as three equal-FREQUENCY thirds — with a small fftSize, that
+  // put nearly the entire musical spectrum (kick, bass, vocals, guitars)
+  // into the "bass" bucket and left "high" covering only near-silent
+  // ultra-treble air that almost no track has real energy in. Going by
+  // actual Hz ranges fixes both the color bias and the bass isolation.
+  function musicHzToBin(hz){
+    if(!musicAudioCtx || !musicFreqData) return 0;
+    var binHz = musicAudioCtx.sampleRate / musicAnalyser.fftSize;
+    return Math.min(musicFreqData.length - 1, Math.max(0, Math.round(hz / binHz)));
+  }
+
+  // Compares one frequency band's CURRENT level against a rolling average
+  // of ONLY THAT BAND's own recent history — kept fully independent per
+  // band (rather than one shared blended range) so a busy patch in one
+  // band can't dull sensitivity in the other. This mirrors how real
+  // sound-to-light gear does it: separate bandpass channels, each with its
+  // own independent auto-gain, not one combined detector.
+  function bandOnset(lo, hi, history){
+    var sum = 0;
+    for(var i = lo; i <= hi; i++) sum += musicFreqData[i];
+    var avg = sum / (hi - lo + 1); // 0-255
+    var baseline = history.length ? history.reduce(function(a, b){ return a + b; }, 0) / history.length : avg;
+    var onset = Math.max(0, (avg - baseline) / (baseline + 8)); // +8 keeps this stable during near-silent passages
+    history.push(avg);
+    if(history.length > MUSIC_BASS_HISTORY_LEN) history.shift();
+    return onset;
+  }
+
+  function getLiveMusicAmplitude(){
+    if(!musicAnalyser || !musicFreqData){ musicPulseLevel = 0; musicKickHistory.length = 0; musicChantHistory.length = 0; return 1; } // no analyser yet — don't dim anything
+    musicAnalyser.getByteFrequencyData(musicFreqData);
+    // Kick drum fundamentals sit roughly 40-200Hz. This song's recurring
+    // accent for most of its length isn't the kick though — it's the crowd
+    // shouting "THUNDER," a massed vocal chant living higher up (roughly
+    // 200-900Hz). Judging each band only against ITS OWN recent history
+    // (rather than blending them into one range) means a busy kick pattern
+    // can't mask a chant, or vice versa — either one can trigger the flash
+    // independently.
+    var kickLo = musicHzToBin(40), kickHi = Math.max(kickLo, musicHzToBin(200));
+    var chantLo = musicHzToBin(201), chantHi = Math.max(chantLo, musicHzToBin(900));
+    var kickOnset = bandOnset(kickLo, kickHi, musicKickHistory);
+    var chantOnset = bandOnset(chantLo, chantHi, musicChantHistory);
+    var onset = Math.max(kickOnset, chantOnset);
+    // Below the threshold: barely any response (it's just the riff/groove
+    // continuing). Cross it: full pulse — that's what gives a real hit a
+    // clean on/off snap instead of a gentle brightening.
+    var target = onset >= musicOnsetThreshold ? 1 : Math.min(1, (onset / musicOnsetThreshold) * 0.25);
+    // Fast attack (snap straight up on a hit), faster release than before
+    // so the flash reads as a crisp on/off rather than a lingering glow.
+    musicPulseLevel = (target > musicPulseLevel) ? target : musicPulseLevel * 0.55;
+    return musicPulseLevel;
+  }
+
+  // Splits the live spectrum into low/mid/high thirds, finds whichever is
+  // currently loudest, and maps that to one of the loaded venue's own
+  // colors — so a bass-heavy moment flashes one school color, a
+  // treble-heavy moment flashes another, and it stays correctly themed
+  // no matter which venue is loaded.
+  function getLiveMusicColor(){
+    var palette = VENUE_PALETTES[currentVenueId] || VENUE_PALETTES['jordan-hare'];
+    if(!musicAnalyser || !musicFreqData) return palette.primary;
+    musicAnalyser.getByteFrequencyData(musicFreqData);
+    // Real frequency ranges, not equal bin-count thirds: bass (kick/bassline),
+    // mid (vocals/guitars/snare body), high (cymbals/hi-hats/shimmer). Using
+    // average magnitude per band (not a raw sum) keeps the comparison fair
+    // even though these three ranges don't contain the same number of bins.
+    var bassLo = 0, bassHi = musicHzToBin(250);
+    var midLo = bassHi + 1, midHi = Math.max(midLo, musicHzToBin(4000));
+    // Capped at 9kHz rather than running to Nyquist: cymbals and hi-hats
+    // live around 4-9kHz, and everything above that is near-silent "air" in
+    // most recordings — including it was diluting real cymbal hits down to
+    // where they could never win the comparison.
+    var highLo = midHi + 1, highHi = Math.max(highLo, musicHzToBin(9000));
+    function bandAvg(lo, hi){
+      if(hi < lo) return 0;
+      var sum = 0;
+      for(var i = lo; i <= hi; i++) sum += musicFreqData[i];
+      return sum / (hi - lo + 1);
+    }
+    var bands = [bandAvg(bassLo, bassHi), bandAvg(midLo, midHi), bandAvg(highLo, highHi)];
+    // Raw magnitude sums are heavily bass-biased for almost all real music —
+    // low frequencies simply carry far more raw energy than highs, so a
+    // straight three-way comparison of totals picks "bass" nearly every
+    // time regardless of the song (this is why color sync was showing only
+    // the venue's primary color). Instead, track a slowly-decaying ceiling
+    // per band and compare each band's CURRENT value against its OWN recent
+    // peak — asking "which band is unusually prominent right now" rather
+    // than "which band is loudest in absolute terms."
+    for(var b = 0; b < 3; b++){
+      musicBandMax[b] = Math.max(bands[b], musicBandMax[b] * MUSIC_BAND_DECAY);
+    }
+    var ratios = [
+      bands[0] / musicBandMax[0],
+      bands[1] / musicBandMax[1],
+      bands[2] / musicBandMax[2]
+    ];
+    var dominant = 0;
+    if(ratios[1] > ratios[dominant]) dominant = 1;
+    if(ratios[2] > ratios[dominant]) dominant = 2;
+    return dominant === 0 ? palette.primary : (dominant === 1 ? palette.secondary : '#ffffff');
+  }
+
+  function handleMusicFileImport(file){
+    if(!file) return;
+    setupMusicAudioGraph();
+    if(!musicAudioEl) return; // Web Audio unavailable
+    if(musicAudioCtx && musicAudioCtx.state === 'suspended') musicAudioCtx.resume();
+    musicAudioEl.src = URL.createObjectURL(file);
+    document.getElementById('music-file-name').textContent = file.name;
+    document.getElementById('music-loaded-row').style.display = 'flex';
+    // Reset the adaptive levels so a new song doesn't inherit the previous
+    // song's loudness ceiling and start out under- or over-reactive.
+    musicKickHistory.length = 0;
+    musicChantHistory.length = 0;
+    musicPulseLevel = 0;
+    musicBandMax = [1, 1, 1];
+    if(musicAudioEl) musicAudioEl.volume = (document.getElementById('music-volume-slider').value || 80) / 100;
+  }
+
+  document.getElementById('music-import-btn').addEventListener('click', function(){
+    document.getElementById('music-file-input').click();
+  });
+  document.getElementById('music-file-input').addEventListener('change', function(e){
+    var file = e.target.files && e.target.files[0];
+    if(file) handleMusicFileImport(file);
+  });
+  document.getElementById('music-volume-slider').addEventListener('input', function(e){
+    var pct = parseInt(e.target.value, 10);
+    document.getElementById('music-volume-value').textContent = pct + '%';
+    if(musicAudioEl) musicAudioEl.volume = pct / 100;
+  });
+  var SENSITIVITY_LABELS = {1:'Very Low',2:'Low',3:'Low',4:'Medium-Low',5:'Medium',6:'Medium-High',7:'High',8:'High',9:'Very High'};
+  document.getElementById('music-sensitivity-slider').addEventListener('input', function(e){
+    var step = parseInt(e.target.value, 10);
+    document.getElementById('music-sensitivity-value').textContent = SENSITIVITY_LABELS[step] || 'Medium';
+    // Slider goes low-sensitivity (needs a bigger jump to trigger) to
+    // high-sensitivity (triggers on a smaller jump) — so it's an inverse
+    // map onto the onset threshold. Range chosen so 5 (default) lands on
+    // the 0.35 value already tuned against Thunderstruck.
+    musicOnsetThreshold = 0.35 - (step - 1) * 0.04; // step 1 -> 0.35 (least sensitive), step 9 -> 0.03 (most sensitive)
+  });
+  document.getElementById('music-sync-toggle').addEventListener('change', function(e){
+    musicSyncEnabled = e.target.checked;
+    if(!musicSyncEnabled && !musicColorSyncEnabled && musicAudioEl){ try { musicAudioEl.pause(); } catch(err){} }
+    updatePreviewStadium(playheadSeconds);
+  });
+  document.getElementById('music-color-sync-toggle').addEventListener('change', function(e){
+    musicColorSyncEnabled = e.target.checked;
+    if(!musicSyncEnabled && !musicColorSyncEnabled && musicAudioEl){ try { musicAudioEl.pause(); } catch(err){} }
+    updatePreviewStadium(playheadSeconds);
+  });
+
+  function buildPreviewSchematic(){
+    var host = document.getElementById('preview-schematic-host');
+    if(!host) return;
+    host.innerHTML = '';
+    previewZoneDots = {};
+
+    var source = document.getElementById('schematic-' + currentVenueId);
+    if(!source) return; // venue has no custom schematic yet
+
+    var clone = source.cloneNode(true);
+    clone.removeAttribute('style');
+    clone.removeAttribute('id');
+    // In real life there are no wristband lights ON the playing field
+    // itself — these two zones sit right at the field's edge and, in this
+    // top-down preview, visually read as if they're sitting on the field
+    // graphic. Hidden from the Preview schematic entirely (Timeline/Layers
+    // & Zones still have them, in case they're useful there for something
+    // like a video-board or entrance cue later).
+    var HIDDEN_FROM_PREVIEW = ['north-end-zone', 'south-end-zone'];
+    clone.querySelectorAll('.zone-shape').forEach(function(shape){
+      var slug = shape.getAttribute('data-zone-slug');
+      if(HIDDEN_FROM_PREVIEW.indexOf(slug) !== -1){
+        shape.remove();
+        return;
+      }
+      shape.removeAttribute('id');
+      shape.setAttribute('class', 'zone-shape');
+      shape.style.stroke = '';
+      shape.style.fill = 'rgba(255,255,255,0.02)';
+      previewZoneDots[slug] = buildZoneDotOverlay(shape);
+    });
+    host.appendChild(clone);
+  }
+
+  var FLASH_VISIBLE_THRESHOLD = 0.5; // pulse level above this counts as an actual "big flash" moment, not just background reactivity
+
+  // Deterministic per-TRACK (whole section: Student Section, Lower Bowl,
+  // Upper Deck, End Zones) pick of primary vs. secondary venue color, so an
+  // entire tier of the stadium flashes together as one color rather than
+  // individual sub-zones within the same tier disagreeing with each other.
+  function trackFlashIsSecondary(trackName){
+    var hash = 0;
+    for(var i = 0; i < trackName.length; i++) hash = (hash * 31 + trackName.charCodeAt(i)) >>> 0;
+    return (hash % 2) === 1;
+  }
+
+  function updatePreviewStadium(t){
+    var map = trackZoneMapsByVenue[currentVenueId];
+    if(!map) return;
+    var cues = timelineCuesByVenue[currentVenueId] || [];
+    var musicFactor = (musicSyncEnabled && isPlaying) ? getLiveMusicAmplitude() : 1;
+    var isBigFlash = musicSyncEnabled && isPlaying && musicFactor > FLASH_VISIBLE_THRESHOLD;
+    var flashPalette = VENUE_PALETTES[currentVenueId] || VENUE_PALETTES['jordan-hare'];
+    // Computed once per frame, not per dot, so every zone flashes the
+    // same color together rather than each zone sampling the spectrum
+    // independently and drifting out of sync with each other.
+    var liveColor = (musicColorSyncEnabled && isPlaying) ? getLiveMusicColor() : null;
+
+    Object.keys(map).forEach(function(trackName){
+      var activeCue = cues.find(function(c){
+        return c.track === trackName && t >= c.start && t < c.start + c.duration;
+      });
+      var pat = activeCue ? findPattern(activeCue.pattern) : null;
+      var localT = activeCue ? Math.max(0, t - activeCue.start) : 0;
+      var flashColor = trackFlashIsSecondary(trackName) ? flashPalette.secondary : flashPalette.primary;
+
+      map[trackName].forEach(function(slug){
+        if(previewStadium){
+          var zoneIdx = currentZoneIndexBySlug[slug];
+          if(zoneIdx !== undefined){
+            var pat3d = isBigFlash ? { color: flashColor, intensity: 100, frequency: 0, motion: 'solid' } : pat;
+            previewStadium.setZoneFrame(zoneIdx, pat3d, localT, !!pat3d);
+          }
+        }
+        var dots = previewZoneDots[slug];
+        if(!dots) return;
+        dots.forEach(function(d){
+          if(pat){
+            if(isBigFlash){
+              // The big accent hit cuts straight through whatever the
+              // pattern is doing (twinkle, wave, whatever) with a solid,
+              // full-brightness flash in one of the venue's two colors —
+              // deliberately NOT the pattern's own per-dot color or
+              // brightness, so the accent reads as a distinct event.
+              d.el.style.fill = flashColor;
+              d.el.style.opacity = 1;
+            } else {
+              // Between accent hits, the pattern runs completely normally —
+              // full twinkle sparkle, full wave motion, whatever it is —
+              // untouched by music sync. Only the big hits interrupt it.
+              d.el.style.fill = liveColor || (pat.id === 'checkerboard-streak'
+                ? getCheckerboardStreakColor(slug, d.col, d.row, d.cols, d.rows, flashPalette.primary, flashPalette.secondary)
+                : pat.id === 'sine-wave-split'
+                ? getSineWaveSplitColor(slug, d.col, d.row, d.cols, d.rows, localT, flashPalette.primary, flashPalette.secondary)
+                : pat.id === 'circulating-wave'
+                ? getCirculatingWaveColor(slug, d.col, d.row, d.cols, d.rows, localT, flashPalette.primary, flashPalette.secondary)
+                : pat.id === 'radar-sweep'
+                ? getRadarSweepColor(slug, d.col, d.row, d.cols, d.rows, localT, flashPalette.primary, flashPalette.secondary)
+                : getDotColor(pat, d.col, d.row, d.cols, d.rows));
+              d.el.style.opacity = computeDotBrightness(pat, d.col, localT, d.cols, d.row, d.rows);
+            }
+          } else {
+            d.el.style.fill = 'rgba(255,255,255,0.3)';
+            d.el.style.opacity = 0.05;
+          }
+        });
+      });
+    });
+  }
+
+  document.getElementById('camera-group').addEventListener('click', function(e){
+    var btn = e.target.closest('.cam-btn');
+    if(!btn) return;
+    document.querySelectorAll('.cam-btn').forEach(function(b){ b.classList.toggle('active', b === btn); });
+    if(previewStadium) previewStadium.setCameraPreset(btn.getAttribute('data-cam'));
+  });
+  document.getElementById('auto-orbit-toggle').addEventListener('click', function(){
+    autoOrbitOn = !autoOrbitOn;
+    this.textContent = 'Auto-Orbit: ' + (autoOrbitOn ? 'On' : 'Off');
+    this.setAttribute('aria-pressed', String(autoOrbitOn));
+    this.classList.toggle('btn-current', autoOrbitOn);
+    if(previewStadium) previewStadium.setAutoOrbit(autoOrbitOn);
+  });
+  document.getElementById('time-of-day').addEventListener('input', function(e){
+    var v = parseInt(e.target.value,10);
+    var label = v < 34 ? 'Day' : (v < 67 ? 'Dusk' : 'Night');
+    document.getElementById('tod-value').textContent = label;
+    var top = v < 34 ? '#3a6a70' : (v < 67 ? '#2a4a4d' : '#1a3a3d');
+    var bottom = v < 34 ? '#0d2020' : (v < 67 ? '#080f0f' : '#050a0a');
+    document.getElementById('sky-stop-1').setAttribute('stop-color', top);
+    document.getElementById('sky-stop-2').setAttribute('stop-color', bottom);
+    if(previewStadium) previewStadium.setTimeOfDay(v);
+  });
+  document.getElementById('fog-density').addEventListener('input', function(e){
+    var v = parseInt(e.target.value,10);
+    document.getElementById('fog-value').textContent = v + '%';
+    document.getElementById('fog-overlay').setAttribute('opacity', (v/100*0.5).toFixed(2));
+    if(previewStadium) previewStadium.setFogDensity(v);
+  });
+
+  // ===================== EXPORT =====================
+  function buildShowMetadata(){
+    var v = venues.find(function(x){ return x.id === currentVenueId; });
+    return {
+      project: document.getElementById('project-name').textContent,
+      venue: v.name,
+      capacity: v.capacity,
+      zones: v.zoneData.map(function(z){
+        return {name:z.name, nodes:z.nodes, visible:z.on, pattern:z.pattern, intensity:z.intensity, waveSpeed:z.speed, density:z.density};
+      }),
+      timeline: (timelineCuesByVenue[currentVenueId] || []).map(function(c){
+        var pat = findPattern(c.pattern);
+        return {track:c.track, pattern: pat ? pat.name : c.pattern, start:c.start, duration:c.duration};
+      }),
+      generatedAt: new Date().toISOString()
+    };
+  }
+
+  function downloadFile(filename, content, type){
+    var blob = new Blob([content], {type:type});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function buildDesignSpecHTML(meta){
+    var zoneRows = meta.zones.map(function(z){
+      return '<tr><td>'+z.name+'</td><td>'+z.nodes+'</td><td>'+(z.visible?'Active':'Off')+'</td><td>'+z.pattern+'</td><td>'+z.intensity+'%</td></tr>';
+    }).join('');
+    var cueRows = meta.timeline.map(function(c){
+      return '<tr><td>'+c.track+'</td><td>'+c.pattern+'</td><td>'+formatTimecode(c.start)+'</td><td>'+formatTimecode(c.start+c.duration)+'</td></tr>';
+    }).join('');
+    return '<html><head><title>Design Specification — '+meta.venue+'</title><meta charset="utf-8">' +
+      '<style>body{font-family:Arial,sans-serif; padding:40px; color:#111;} h1{margin-bottom:0;} h2{border-bottom:2px solid #ccc; padding-bottom:6px; margin-top:32px;} table{width:100%; border-collapse:collapse; margin-top:12px;} th,td{border:1px solid #ccc; padding:8px; text-align:left; font-size:13px;} th{background:#f0f0f0;}</style>' +
+      '</head><body>' +
+      '<h1>'+meta.project+'</h1><p>'+meta.venue+' &middot; Capacity '+meta.capacity+' &middot; Generated '+new Date(meta.generatedAt).toLocaleString()+'</p>' +
+      '<h2>Zone Map</h2><table><tr><th>Zone</th><th>Nodes</th><th>Status</th><th>Pattern</th><th>Intensity</th></tr>'+zoneRows+'</table>' +
+      '<h2>Pattern Schedule</h2><table><tr><th>Track</th><th>Pattern</th><th>Start</th><th>End</th></tr>'+cueRows+'</table>' +
+      '<h2>Notes</h2><p style="color:#666;">This is a design record for planning and rehearsal only. It does not contain live hardware control data.</p>' +
+      '<script>window.onload=function(){window.print();}<\/script>' +
+      '</body></html>';
+  }
+
+  document.getElementById('generate-export').addEventListener('click', function(){
+    var meta = buildShowMetadata();
+    var wantJson = document.getElementById('chk-json').checked;
+    var wantPdf = document.getElementById('chk-pdf').checked;
+    var fileBase = meta.venue.replace(/ /g,'_') + '_Show';
+
+    if(wantJson){
+      downloadFile(fileBase + '.json', JSON.stringify(meta, null, 2), 'application/json');
+    }
+    if(wantPdf){
+      var w = window.open('', '_blank');
+      if(w){ w.document.write(buildDesignSpecHTML(meta)); w.document.close(); }
+    }
+
+    var hist = document.getElementById('export-history');
+    if(hist.querySelector('.empty-note')) hist.innerHTML = '';
+    var item = document.createElement('div');
+    item.className = 'export-history-item';
+    item.innerHTML = '<span class="file-name">' + fileBase + '</span><span class="file-meta">' + new Date().toLocaleTimeString() + ' &middot; ' + (wantJson && wantPdf ? 'JSON + PDF' : wantJson ? 'JSON' : 'PDF') + '</span>';
+    hist.prepend(item);
+    showToast('Export generated');
+  });
+
+  function renderExportView(){
+    var v = venues.find(function(x){ return x.id === currentVenueId; });
+    document.getElementById('export-project-sub').textContent = v.name + ' — ' + document.getElementById('project-name').textContent.split('_').join(' ');
+  }
+
+  // ===================== 3D STADIUM =====================
+  if(window.Stadium3D){
+    designerStadium = window.Stadium3D.createStadium3D(document.getElementById('stadium3d-canvas-designer'), {
+      computeDotBrightness: computeDotBrightness,
+      getDotColor: getDotColor
+    });
+    previewStadium = window.Stadium3D.createStadium3D(document.getElementById('stadium3d-canvas-preview'), {
+      computeDotBrightness: computeDotBrightness,
+      getDotColor: getDotColor
+    });
+    // Every zone in the Show Designer view animates its own assigned
+    // pattern continuously, the same way the real LEDs would be live all
+    // the time; the selected layer additionally gets a brighter deck via
+    // highlightZone() (see applyZoneHighlightStyle).
+    designerStadium.onFrame = function(t){
+      var v = venues.find(function(x){ return x.id === currentVenueId; });
+      if(!v) return;
+      v.zoneData.forEach(function(z, i){
+        designerStadium.setZoneFrame(i, findPatternByName(z.pattern), t, z.on);
+      });
+    };
+    var initialVenue = venues.find(function(x){ return x.id === currentVenueId; });
+    initialVenue.zoneData.forEach(function(z, i){ currentZoneIndexBySlug[zoneSlug(z.name)] = i; });
+    designerStadium.loadVenue(initialVenue, VENUE_PALETTES[currentVenueId]);
+    previewStadium.loadVenue(initialVenue, VENUE_PALETTES[currentVenueId]);
+    window.addEventListener('resize', function(){
+      designerStadium.onResize();
+      previewStadium.onResize();
+    });
+  }
+
+  // init
+  renderVenues('');
+  renderLayers();
+  renderInspector();
+  renderPatternGrid('');
+  renderPatternInspector();
+  renderTimeline();
+  buildPreviewSchematic();
+  updatePreviewStadium(playheadSeconds);
+  updatePreviewStartHint();
+  renderExportView();
+})();
+</script>
+</body>
+</html>
