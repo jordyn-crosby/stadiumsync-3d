@@ -56,4 +56,6 @@ The Preview view can drive pattern playback from an uploaded audio file via the 
 
 - No new build tooling, package manager, or module bundler — keep the app dependency-free and directly servable as static files.
 - New third-party code goes in `vendor/` as a plain script, loaded via a `<script>` tag in `index.html`, consistent with the existing Three.js/postprocessing setup.
-- Design tokens (colors, spacing, radii) are CSS custom properties on `:root` in `index.html` — reuse them rather than hardcoding new values.
+- Design tokens (colors, spacing, radii) are CSS custom properties on `:root` in `index.html` — reuse them rather than hardcoding new values. The look is "night game": Auburn navy chrome, off-white text, and Auburn orange (`--accent`) as the only accent, reserved for selection and primary actions. Keep saturated color in the LED content, not the chrome.
+- Type is Barlow (UI) and Barlow Semi Condensed (`--font-display`: view titles, timecodes, big numbers). UI copy is plain sentence case — no all-caps/tracked labels, no monospace labels, no `A // B` or `NAME_V1` styling.
+- The sidebar collapses to an icon rail (`.app-shell.sidebar-collapsed`, remembered in `localStorage` as a UI preference only). Every nav item needs a `title` and a `.nav-label` span so the rail stays usable.

@@ -4,16 +4,16 @@ StadiumSync is a browser-based studio for designing stadium LED light shows. It 
 
 ## Features
 
-- **Venue Database**: Jordan-Hare Stadium, with capacity, location and LED zone layout.
-- **Show Designer**: organize LED layers and zones for the venue, inspect individual zones, and **paint individual seats**. Click paints a seat, Shift-click a row, Alt-click a section; paint groups can be static, pulse, twinkle or random.
-- **Pattern Library** — build and preview reusable LED patterns with configurable parameters.
-- **Timeline Editor** — sequence patterns into cues across a show timeline.
-- **3D Preview**: the real Jordan-Hare stadium model with all 24,778 per-seat LEDs, ported from the team's Unity simulation. It includes:
+- **Venue**: Jordan-Hare Stadium, with capacity, seat LEDs and zones.
+- **Designer**: organize LED layers and zones for the venue, inspect individual zones, and **paint individual seats**. Click paints a seat, Shift-click a row, Alt-click a section; paint groups can be static, pulse, twinkle or random.
+- **Patterns** — build and preview reusable LED patterns with configurable parameters.
+- **Timeline** — sequence patterns into cues across a show timeline.
+- **Preview**: the real Jordan-Hare stadium model with all 24,778 per-seat LEDs, ported from the team's Unity simulation. It includes:
   - Orbit, Aerial and Free-Fly (WASD) cameras, plus the Unity fixed camera views.
   - Bloom.
   - Music-to-light: beat sync, plus the Unity sim's 8-band per-seat modes.
   - The Spring '25 demo light show.
-- **Export** — render a video preview and export project documentation/metadata.
+- **Export** — download a printable show sheet and a show data file (.json), including seat paint.
 
 ## Getting Started
 
@@ -61,7 +61,7 @@ Then open [http://localhost:8000](http://localhost:8000) in your browser.
 
 ## Usage
 
-Open the app in your browser and use the top navigation to move between **Venues**, **Show Designer**, **Patterns**, **Timeline**, **Preview**, and **Export**. Start in the Show Designer to assign patterns to zones (or paint seats), then build patterns, sequence them on the timeline, and preview the show in 3D before exporting.
+Open the app in your browser and use the sidebar (collapsible to an icon rail) to move between **Venue**, **Patterns**, **Designer**, **Timeline**, **Preview**, and **Export**. Start in the Designer to assign patterns to zones (or paint seats), then build patterns, sequence them on the timeline, and preview the show in 3D before exporting.
 
 ## Technology
 
