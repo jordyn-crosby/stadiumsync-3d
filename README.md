@@ -4,11 +4,15 @@ StadiumSync is a browser-based studio for designing stadium LED light shows. It 
 
 ## Features
 
-- **Venue Database** — browse, import, and manage stadium venue profiles (capacity, location, LED zone layout).
-- **Show Designer** — organize LED layers and zones for a venue and inspect individual zones.
+- **Venue Database**: Jordan-Hare Stadium, with capacity, location and LED zone layout.
+- **Show Designer**: organize LED layers and zones for the venue, inspect individual zones, and **paint individual seats**. Click paints a seat, Shift-click a row, Alt-click a section; paint groups can be static, pulse, twinkle or random.
 - **Pattern Library** — build and preview reusable LED patterns with configurable parameters.
 - **Timeline Editor** — sequence patterns into cues across a show timeline.
-- **3D Preview** — a real-time Three.js stadium renderer (bloom-enhanced LED bands, orbit camera) that mirrors the same brightness/color logic used elsewhere in the app.
+- **3D Preview**: the real Jordan-Hare stadium model with all 24,778 per-seat LEDs, ported from the team's Unity simulation. It includes:
+  - Orbit, Aerial and Free-Fly (WASD) cameras, plus the Unity fixed camera views.
+  - Bloom.
+  - Music-to-light: beat sync, plus the Unity sim's 8-band per-seat modes.
+  - The Spring '25 demo light show.
 - **Export** — render a video preview and export project documentation/metadata.
 
 ## Getting Started
@@ -42,17 +46,22 @@ Then open [http://localhost:8000](http://localhost:8000) in your browser.
 ```
 .
 ├── index.html      # App shell, UI, styles, and application logic
-├── stadium3d.js    # Procedural 3D stadium renderer (Three.js)
+├── stadium3d.js    # 3D stadium renderer (Three.js): stadium model + per-seat LEDs
+├── assets/
+│   └── jordan-hare/      # stadium.glb, leds.json, cameras.json, demo show (generated)
+├── tools/          # Offline Unity → web export pipeline (see tools/README.md)
 └── vendor/         # Vendored third-party libraries
-    ├── three.min.js
+    ├── three.min.js      # three.js r128
     ├── OrbitControls.js
+    ├── loaders/          # GLTFLoader (r128)
+    ├── libs/             # meshopt_decoder (for the compressed stadium.glb)
     ├── postprocessing/   # EffectComposer, RenderPass, ShaderPass, UnrealBloomPass
     └── shaders/          # CopyShader, LuminosityHighPassShader
 ```
 
 ## Usage
 
-Open the app in your browser and use the top navigation to move between **Venues**, **Show Designer**, **Patterns**, **Timeline**, **Preview**, and **Export**. Start by selecting or importing a venue, then build patterns, sequence them on the timeline, and preview the show in 3D before exporting.
+Open the app in your browser and use the top navigation to move between **Venues**, **Show Designer**, **Patterns**, **Timeline**, **Preview**, and **Export**. Start in the Show Designer to assign patterns to zones (or paint seats), then build patterns, sequence them on the timeline, and preview the show in 3D before exporting.
 
 ## Technology
 
@@ -74,5 +83,5 @@ No license has been specified for this project yet. All rights reserved unless a
 
 ## Acknowledgments
 
-- Stadium proportions and LED section layout referenced from the Jordan-Hare model's LED prefab data.
+- The stadium model, seat LED layout, camera views, music-to-light behaviour and demo show come from the arena-lighting Unity project (Spring 2025 / Fall 2026 senior design teams). `tools/README.md` describes how they were exported.
 - Built with [Three.js](https://threejs.org/).

@@ -310,6 +310,11 @@
   .stadium-svg{width:80%; max-width:420px;}
   .schematic-source{display:none;}
   .stadium3d-canvas{position:absolute; inset:0; width:100%; height:100%; display:block; outline:none; z-index:0;}
+  .stadium3d-loading{
+    position:absolute; inset:0; z-index:1; display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-mono); font-size:12px; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--on-surface-variant); background:var(--bg); pointer-events:none;
+  }
   .schematic-fallback{
     text-align:center; color:var(--on-surface-variant); font-size:12px; padding:20px;
   }
@@ -530,6 +535,23 @@
     background:var(--surface-high); color:var(--on-surface-variant); font-size:12px; font-weight:600;
   }
   .cam-btn.active{border-color:var(--primary); color:var(--primary); background:rgba(0,240,255,0.08);}
+  .zone-inspector select{
+    width:100%; background:var(--surface-high); border:1px solid var(--outline-variant); color:var(--on-surface);
+    padding:9px 10px; border-radius:var(--radius); font-size:13px;
+  }
+  .paint-field{padding-top:16px; border-top:1px solid var(--outline-variant);}
+  .paint-group-list{display:flex; flex-direction:column; gap:6px; margin:10px 0;}
+  .paint-group{
+    display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:var(--radius);
+    border:1px solid var(--outline-variant); background:var(--surface-high); color:var(--on-surface-variant);
+    font-size:12px; font-weight:600; text-align:left;
+  }
+  .paint-group.active{border-color:var(--primary); color:var(--primary); background:rgba(0,240,255,0.08);}
+  .paint-group .paint-count{margin-left:auto; font-family:var(--font-mono); font-size:10px;}
+  .paint-group-edit{display:flex; align-items:center; gap:8px;}
+  .paint-group-edit select{flex:1;}
+  .paint-actions{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;}
+  .canvas-panel.painting canvas{cursor:crosshair;}
 
   /* ===== Export ===== */
   .export-layout{display:grid; grid-template-columns:1fr 300px; gap:var(--gutter); align-items:start;}
@@ -684,89 +706,6 @@
             <rect class="zone-shape" id="zoneshape-jordan-hare-tiger-suites-press-level" data-zone-slug="tiger-suites-press-level" x="140" y="1" width="120" height="12" rx="2"/>
           </svg>
 
-          <svg class="stadium-svg schematic" id="schematic-neville" viewBox="0 0 400 300" role="img" aria-label="Schematic top-down view of Neville Arena with each seating zone individually highlighted" style="display:none;">
-            <!-- Court -->
-            <rect x="120" y="115" width="160" height="70" fill="#3d2a14" stroke="#6b4a24" stroke-width="1.5"/>
-            <line x1="200" y1="115" x2="200" y2="185" stroke="#6b4a24" stroke-width="1"/>
-            <circle cx="200" cy="150" r="12" fill="none" stroke="#6b4a24" stroke-width="1"/>
-            <text x="200" y="153" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#a9804a" letter-spacing="1">COURT_ZERO</text>
-
-            <!-- Baseline ends -->
-            <rect class="zone-shape" id="zoneshape-neville-student-section" data-zone-slug="student-section" x="65" y="95" width="40" height="110" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-neville-lower-bowl-east-baseline" data-zone-slug="lower-bowl-east-baseline" x="295" y="95" width="40" height="110" rx="2"/>
-
-            <!-- Sidelines -->
-            <rect class="zone-shape" id="zoneshape-neville-lower-bowl-north" data-zone-slug="lower-bowl-north" x="110" y="65" width="180" height="25" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-neville-lower-bowl-south" data-zone-slug="lower-bowl-south" x="110" y="210" width="180" height="25" rx="2"/>
-
-            <!-- Upper ring -->
-            <rect class="zone-shape" id="zoneshape-neville-upper-ring-north" data-zone-slug="upper-ring-north" x="70" y="35" width="260" height="15" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-neville-upper-ring-south" data-zone-slug="upper-ring-south" x="70" y="250" width="260" height="15" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-neville-upper-ring-west" data-zone-slug="upper-ring-west" x="30" y="50" width="25" height="200" rx="2"/>
-
-            <!-- Club level -->
-            <rect class="zone-shape" id="zoneshape-neville-tiger-club-press-level" data-zone-slug="tiger-club-press-level" x="340" y="50" width="25" height="200" rx="2"/>
-          </svg>
-
-          <svg class="stadium-svg schematic" id="schematic-alabama" viewBox="0 0 400 300" role="img" aria-label="Schematic top-down view of Bryant-Denny Stadium with each seating zone individually highlighted" style="display:none;">
-            <rect x="150" y="70" width="100" height="160" fill="#1b3a1f" stroke="#9e1b32" stroke-width="1.5"/>
-            <rect x="150" y="70" width="100" height="25" fill="#16321a" stroke="#9e1b32" stroke-width="1"/>
-            <rect x="150" y="205" width="100" height="25" fill="#16321a" stroke="#9e1b32" stroke-width="1"/>
-            <text x="200" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#c68a97" letter-spacing="1">DENNY_FIELD</text>
-            <rect class="zone-shape" id="zoneshape-alabama-student-section" data-zone-slug="student-section" x="90" y="30" width="108" height="35" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-alabama-lower-bowl-north" data-zone-slug="lower-bowl-north" x="202" y="30" width="108" height="35" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-alabama-lower-bowl-south" data-zone-slug="lower-bowl-south" x="90" y="235" width="220" height="35" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-alabama-lower-bowl-west-sideline" data-zone-slug="lower-bowl-west-sideline" x="90" y="68" width="55" height="164" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-alabama-lower-bowl-east-sideline" data-zone-slug="lower-bowl-east-sideline" x="255" y="68" width="55" height="164" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-alabama-north-end-zone" data-zone-slug="north-end-zone" x="150" y="70" width="100" height="25" rx="1"/>
-            <rect class="zone-shape" id="zoneshape-alabama-south-end-zone" data-zone-slug="south-end-zone" x="150" y="205" width="100" height="25" rx="1"/>
-            <rect class="zone-shape" id="zoneshape-alabama-upper-deck-north" data-zone-slug="upper-deck-north" x="60" y="16" width="280" height="12" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-alabama-upper-deck-south" data-zone-slug="upper-deck-south" x="60" y="272" width="280" height="12" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-alabama-upper-deck-west" data-zone-slug="upper-deck-west" x="30" y="30" width="28" height="242" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-alabama-upper-deck-east" data-zone-slug="upper-deck-east" x="342" y="30" width="28" height="242" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-alabama-champions-suites-press-level" data-zone-slug="champions-suites-press-level" x="140" y="1" width="120" height="12" rx="2"/>
-          </svg>
-
-          <svg class="stadium-svg schematic" id="schematic-georgia" viewBox="0 0 400 300" role="img" aria-label="Schematic top-down view of Sanford Stadium with each seating zone individually highlighted" style="display:none;">
-            <rect x="147" y="67" width="106" height="166" fill="none" stroke="#3f6b45" stroke-width="4"/>
-            <rect x="150" y="70" width="100" height="160" fill="#1b3a1f" stroke="#b3a369" stroke-width="1.5"/>
-            <rect x="150" y="70" width="100" height="25" fill="#16321a" stroke="#b3a369" stroke-width="1"/>
-            <rect x="150" y="205" width="100" height="25" fill="#16321a" stroke="#b3a369" stroke-width="1"/>
-            <text x="200" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#d6cc9e" letter-spacing="1">SANFORD_FIELD</text>
-            <rect class="zone-shape" id="zoneshape-georgia-student-section" data-zone-slug="student-section" x="90" y="30" width="108" height="35" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-georgia-lower-bowl-north" data-zone-slug="lower-bowl-north" x="202" y="30" width="108" height="35" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-georgia-lower-bowl-south" data-zone-slug="lower-bowl-south" x="90" y="235" width="220" height="35" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-georgia-lower-bowl-west-sideline" data-zone-slug="lower-bowl-west-sideline" x="90" y="68" width="55" height="164" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-georgia-lower-bowl-east-sideline" data-zone-slug="lower-bowl-east-sideline" x="255" y="68" width="55" height="164" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-georgia-north-end-zone" data-zone-slug="north-end-zone" x="150" y="70" width="100" height="25" rx="1"/>
-            <rect class="zone-shape" id="zoneshape-georgia-south-end-zone" data-zone-slug="south-end-zone" x="150" y="205" width="100" height="25" rx="1"/>
-            <rect class="zone-shape" id="zoneshape-georgia-upper-deck-north" data-zone-slug="upper-deck-north" x="60" y="16" width="280" height="12" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-georgia-upper-deck-south" data-zone-slug="upper-deck-south" x="60" y="272" width="280" height="12" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-georgia-upper-deck-west" data-zone-slug="upper-deck-west" x="30" y="30" width="28" height="242" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-georgia-upper-deck-east" data-zone-slug="upper-deck-east" x="342" y="30" width="28" height="242" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-georgia-bulldog-club-suites-press-level" data-zone-slug="bulldog-club-suites-press-level" x="140" y="1" width="120" height="12" rx="2"/>
-          </svg>
-
-          <svg class="stadium-svg schematic" id="schematic-lsu" viewBox="0 0 400 300" role="img" aria-label="Schematic top-down view of Tiger Stadium (Death Valley) with each seating zone individually highlighted" style="display:none;">
-            <rect x="0" y="0" width="400" height="300" fill="#08060c"/>
-            <rect x="150" y="70" width="100" height="160" fill="#16281a" stroke="#461d7c" stroke-width="1.5"/>
-            <rect x="150" y="70" width="100" height="25" fill="#122016" stroke="#461d7c" stroke-width="1"/>
-            <rect x="150" y="205" width="100" height="25" fill="#122016" stroke="#461d7c" stroke-width="1"/>
-            <text x="200" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#a98fc9" letter-spacing="1">DEATH_VALLEY</text>
-            <rect class="zone-shape" id="zoneshape-lsu-student-section" data-zone-slug="student-section" x="90" y="30" width="108" height="35" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-lsu-lower-bowl-north" data-zone-slug="lower-bowl-north" x="202" y="30" width="108" height="35" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-lsu-lower-bowl-south" data-zone-slug="lower-bowl-south" x="90" y="235" width="220" height="35" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-lsu-lower-bowl-west-sideline" data-zone-slug="lower-bowl-west-sideline" x="90" y="68" width="55" height="164" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-lsu-lower-bowl-east-sideline" data-zone-slug="lower-bowl-east-sideline" x="255" y="68" width="55" height="164" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-lsu-north-end-zone" data-zone-slug="north-end-zone" x="150" y="70" width="100" height="25" rx="1"/>
-            <rect class="zone-shape" id="zoneshape-lsu-south-end-zone" data-zone-slug="south-end-zone" x="150" y="205" width="100" height="25" rx="1"/>
-            <rect class="zone-shape" id="zoneshape-lsu-upper-deck-north" data-zone-slug="upper-deck-north" x="60" y="16" width="280" height="12" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-lsu-upper-deck-south" data-zone-slug="upper-deck-south" x="60" y="272" width="280" height="12" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-lsu-upper-deck-west" data-zone-slug="upper-deck-west" x="30" y="30" width="28" height="242" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-lsu-upper-deck-east" data-zone-slug="upper-deck-east" x="342" y="30" width="28" height="242" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-lsu-tiger-den-suites-press-level" data-zone-slug="tiger-den-suites-press-level" x="140" y="1" width="120" height="12" rx="2"/>
-          </svg>
-
           <div id="schematic-fallback" class="schematic-fallback" style="display:none;">
             <p>No custom schematic is built for this venue yet.</p>
             <p>Zone highlighting will be available once a layout is added.</p>
@@ -814,6 +753,25 @@
               <span class="slider-value" id="density-value">100%</span>
             </div>
             <input type="range" id="density" min="0" max="100" value="100" aria-describedby="density-value">
+          </div>
+          <div class="field paint-field">
+            <label>Seat Paint</label>
+            <button type="button" class="btn" id="paint-toggle" aria-pressed="false">Paint Tool: Off</button>
+            <div class="paint-group-list" id="paint-group-list" role="listbox" aria-label="Paint groups"><!-- populated by JS --></div>
+            <div class="paint-group-edit">
+              <input type="color" class="color-input-swatch" id="paint-color" value="#e86100" aria-label="Group color">
+              <select id="paint-effect" aria-label="Group effect">
+                <option value="static">Static</option>
+                <option value="pulse">Pulse</option>
+                <option value="twinkle">Twinkle</option>
+                <option value="random">Random</option>
+              </select>
+            </div>
+            <div class="paint-actions">
+              <button type="button" class="btn" id="paint-add-group">+ Group</button>
+              <button type="button" class="btn" id="paint-clear">Clear Paint</button>
+            </div>
+            <p class="music-sync-hint">With the paint tool on: click a seat to paint it, Shift-click for its whole row, Alt-click for its section, Ctrl/Cmd-click to erase. Painted seats override zone patterns in both the Designer and Preview.</p>
           </div>
         </div>
       </div>
@@ -936,12 +894,15 @@
         <div class="panel zone-inspector" aria-label="Preview settings">
           <h3>Preview Settings</h3>
           <div class="field">
-            <label>Camera View</label>
+            <label>Camera Mode</label>
             <div class="camera-btn-group" id="camera-group">
-              <button class="cam-btn active" data-cam="press">Press Box</button>
-              <button class="cam-btn" data-cam="field">Field Level</button>
-              <button class="cam-btn" data-cam="student">Student Section</button>
+              <button class="cam-btn active" data-cam-mode="orbit">Orbit</button>
+              <button class="cam-btn" data-cam-mode="aerial">Aerial</button>
+              <button class="cam-btn" data-cam-mode="free">Free Fly</button>
             </div>
+            <p class="music-sync-hint" id="free-fly-hint" style="display:none;">WASD to move, Q/E down/up, Shift for speed, drag to look.</p>
+            <label for="camera-preset" style="margin-top:12px;">Camera View</label>
+            <select id="camera-preset" aria-label="Fixed camera view"><option value="">Loading views…</option></select>
             <button type="button" class="btn" id="auto-orbit-toggle" style="margin-top:8px;" aria-pressed="false">Auto-Orbit: Off</button>
           </div>
           <div class="field slider-field">
@@ -974,8 +935,30 @@
                 <label for="music-sensitivity-slider">Beat Sensitivity <span id="music-sensitivity-value">Medium</span></label>
                 <input type="range" id="music-sensitivity-slider" min="1" max="9" value="5">
               </div>
+              <div class="music-slider-row">
+                <label for="music-led-mode">Seat-Level Music Mode</label>
+                <select id="music-led-mode">
+                  <option value="off">Off</option>
+                  <option value="linear">Linear — seats cycle through 8 bands</option>
+                  <option value="random">Random — each seat picks a band</option>
+                  <option value="amplitude">Amplitude — whole stadium breathes</option>
+                </select>
+              </div>
             </div>
             <p class="music-sync-hint">Brightness sync modulates how bright each zone gets in the moment. Color sync flashes each active zone through the venue's own colors based on which part of the music is loudest right now — bass, mid, or treble. Either can be used alone or together; Timeline still decides which zones are active and what pattern each one runs. Beat Sensitivity controls how big a jump in the kick-drum range counts as a "hit" — lower it if hits aren't triggering, raise it if quiet moments are triggering falsely.</p>
+            <p class="music-sync-hint">Seat-level music mode (from the Unity sim's AudioPeer) splits the song into 8 frequency bands and dims or brightens every individual seat from them, on top of whatever the show is doing.</p>
+          </div>
+          <div class="field music-sync-field">
+            <label>Demo Show</label>
+            <label class="music-sync-toggle-label">
+              <input type="checkbox" id="demo-show-toggle">
+              <span>Play Spring '25 demo show</span>
+            </label>
+            <label class="music-sync-toggle-label">
+              <input type="checkbox" id="demo-show-loop" checked>
+              <span>Loop at the end</span>
+            </label>
+            <p class="music-sync-hint">The seat-by-seat light show the Spring '25 team built in Unity (93 frames, 2.3 frames/sec). It takes over every seat while on and follows the Play/Stop transport, so imported music stays in sync.</p>
           </div>
         </div>
       </div>
@@ -1022,6 +1005,8 @@
 
 <script src="vendor/three.min.js"></script>
 <script src="vendor/OrbitControls.js"></script>
+<script src="vendor/libs/meshopt_decoder.js"></script>
+<script src="vendor/loaders/GLTFLoader.js"></script>
 <script src="vendor/shaders/CopyShader.js"></script>
 <script src="vendor/shaders/LuminosityHighPassShader.js"></script>
 <script src="vendor/postprocessing/EffectComposer.js"></script>
@@ -1035,87 +1020,21 @@
     {
       id:'jordan-hare', name:'Jordan-Hare Stadium', loc:'Auburn, AL',
       capacity:'87,451', current:true,
+      model:{glb:'assets/jordan-hare/stadium.glb', leds:'assets/jordan-hare/leds.json', cameras:'assets/jordan-hare/cameras.json'},
+      demoShow:{header:'assets/jordan-hare/show-first-demo.json', frames:'assets/jordan-hare/show-first-demo.bin'},
       zoneData:[
-        {name:'Student Section', nodes:'12,458', on:true, pattern:'Tiger Wave', intensity:85, speed:24, density:100},
-        {name:'Lower Bowl - North', nodes:'9,800', on:true, pattern:'Orange Pulse', intensity:70, speed:18, density:80},
-        {name:'Lower Bowl - South', nodes:'9,650', on:true, pattern:'Orange Pulse', intensity:70, speed:18, density:80},
-        {name:'Lower Bowl - East (Sideline)', nodes:'11,200', on:true, pattern:'Tiger Wave', intensity:80, speed:22, density:90},
-        {name:'Lower Bowl - West (Sideline)', nodes:'11,050', on:true, pattern:'Tiger Wave', intensity:80, speed:22, density:90},
-        {name:'Upper Deck - North', nodes:'7,400', on:false, pattern:'Solid Blue', intensity:60, speed:10, density:100},
-        {name:'Upper Deck - South', nodes:'7,250', on:false, pattern:'Solid Blue', intensity:60, speed:10, density:100},
-        {name:'Upper Deck - East', nodes:'6,900', on:true, pattern:'Strobe', intensity:90, speed:40, density:60},
-        {name:'Upper Deck - West', nodes:'6,800', on:true, pattern:'Strobe', intensity:90, speed:40, density:60},
-        {name:'North End Zone', nodes:'3,200', on:true, pattern:'Orange Pulse', intensity:75, speed:20, density:85},
-        {name:'South End Zone', nodes:'3,150', on:true, pattern:'Orange Pulse', intensity:75, speed:20, density:85},
-        {name:'Tiger Suites (Press Level)', nodes:'1,143', on:false, pattern:'Solid Blue', intensity:40, speed:5, density:100}
-      ]
-    },
-    {
-      id:'neville', name:'Neville Arena', loc:'Auburn, AL',
-      capacity:'9,121', current:false,
-      zoneData:[
-        {name:'Student Section', nodes:'1,200', on:true, pattern:'Tiger Wave', intensity:85, speed:24, density:100},
-        {name:'Lower Bowl - East Baseline', nodes:'1,100', on:true, pattern:'Orange Pulse', intensity:70, speed:18, density:80},
-        {name:'Lower Bowl - North', nodes:'1,450', on:true, pattern:'Strobe', intensity:90, speed:40, density:60},
-        {name:'Lower Bowl - South', nodes:'1,450', on:true, pattern:'Tiger Wave', intensity:80, speed:22, density:90},
-        {name:'Upper Ring - North', nodes:'950', on:false, pattern:'Solid Blue', intensity:55, speed:5, density:100},
-        {name:'Upper Ring - South', nodes:'950', on:false, pattern:'Solid Blue', intensity:55, speed:5, density:100},
-        {name:'Upper Ring - West', nodes:'900', on:true, pattern:'Orange Pulse', intensity:65, speed:16, density:75},
-        {name:'Tiger Club (Press Level)', nodes:'400', on:false, pattern:'Solid Blue', intensity:40, speed:5, density:100}
-      ]
-    },
-    {
-      id:'alabama', name:'Bryant-Denny Stadium', loc:'Tuscaloosa, AL',
-      capacity:'100,077', current:false,
-      zoneData:[
-        {name:'Student Section', nodes:'13,500', on:true, pattern:'Tiger Wave', intensity:88, speed:26, density:100},
-        {name:'Lower Bowl - North', nodes:'10,500', on:true, pattern:'Orange Pulse', intensity:70, speed:18, density:80},
-        {name:'Lower Bowl - South', nodes:'10,500', on:true, pattern:'Orange Pulse', intensity:70, speed:18, density:80},
-        {name:'Lower Bowl - East (Sideline)', nodes:'12,800', on:true, pattern:'Tiger Wave', intensity:82, speed:22, density:90},
-        {name:'Lower Bowl - West (Sideline)', nodes:'12,800', on:true, pattern:'Tiger Wave', intensity:82, speed:22, density:90},
-        {name:'Upper Deck - North', nodes:'8,600', on:false, pattern:'Solid Blue', intensity:60, speed:10, density:100},
-        {name:'Upper Deck - South', nodes:'8,600', on:false, pattern:'Solid Blue', intensity:60, speed:10, density:100},
-        {name:'Upper Deck - East', nodes:'8,200', on:true, pattern:'Strobe', intensity:92, speed:40, density:60},
-        {name:'Upper Deck - West', nodes:'8,200', on:true, pattern:'Strobe', intensity:92, speed:40, density:60},
-        {name:'North End Zone', nodes:'3,200', on:true, pattern:'Orange Pulse', intensity:76, speed:20, density:85},
-        {name:'South End Zone', nodes:'3,200', on:true, pattern:'Orange Pulse', intensity:76, speed:20, density:85},
-        {name:'Champions Suites (Press Level)', nodes:'1,977', on:false, pattern:'Solid Blue', intensity:42, speed:5, density:100}
-      ]
-    },
-    {
-      id:'georgia', name:'Sanford Stadium', loc:'Athens, GA',
-      capacity:'93,033', current:false,
-      zoneData:[
-        {name:'Student Section', nodes:'12,000', on:true, pattern:'Tiger Wave', intensity:86, speed:25, density:100},
-        {name:'Lower Bowl - North', nodes:'9,800', on:true, pattern:'Orange Pulse', intensity:69, speed:17, density:80},
-        {name:'Lower Bowl - South', nodes:'9,800', on:true, pattern:'Orange Pulse', intensity:69, speed:17, density:80},
-        {name:'Lower Bowl - East (Sideline)', nodes:'11,500', on:true, pattern:'Tiger Wave', intensity:81, speed:21, density:90},
-        {name:'Lower Bowl - West (Sideline)', nodes:'11,500', on:true, pattern:'Tiger Wave', intensity:81, speed:21, density:90},
-        {name:'Upper Deck - North', nodes:'8,000', on:false, pattern:'Solid Blue', intensity:58, speed:9, density:100},
-        {name:'Upper Deck - South', nodes:'8,000', on:false, pattern:'Solid Blue', intensity:58, speed:9, density:100},
-        {name:'Upper Deck - East', nodes:'7,600', on:true, pattern:'Strobe', intensity:90, speed:38, density:60},
-        {name:'Upper Deck - West', nodes:'7,600', on:true, pattern:'Strobe', intensity:90, speed:38, density:60},
-        {name:'North End Zone', nodes:'2,900', on:true, pattern:'Orange Pulse', intensity:74, speed:19, density:85},
-        {name:'South End Zone', nodes:'2,900', on:true, pattern:'Orange Pulse', intensity:74, speed:19, density:85},
-        {name:'Bulldog Club Suites (Press Level)', nodes:'1,433', on:false, pattern:'Solid Blue', intensity:40, speed:5, density:100}
-      ]
-    },
-    {
-      id:'lsu', name:'Tiger Stadium', loc:'Baton Rouge, LA',
-      capacity:'102,321', current:false,
-      zoneData:[
-        {name:'Student Section', nodes:'13,200', on:true, pattern:'Tiger Wave', intensity:90, speed:27, density:100},
-        {name:'Lower Bowl - North', nodes:'10,800', on:true, pattern:'Orange Pulse', intensity:71, speed:18, density:80},
-        {name:'Lower Bowl - South', nodes:'10,800', on:true, pattern:'Orange Pulse', intensity:71, speed:18, density:80},
-        {name:'Lower Bowl - East (Sideline)', nodes:'13,000', on:true, pattern:'Tiger Wave', intensity:84, speed:23, density:90},
-        {name:'Lower Bowl - West (Sideline)', nodes:'13,000', on:true, pattern:'Tiger Wave', intensity:84, speed:23, density:90},
-        {name:'Upper Deck - North', nodes:'8,800', on:false, pattern:'Solid Blue', intensity:62, speed:10, density:100},
-        {name:'Upper Deck - South', nodes:'8,800', on:false, pattern:'Solid Blue', intensity:62, speed:10, density:100},
-        {name:'Upper Deck - East', nodes:'8,400', on:true, pattern:'Strobe', intensity:94, speed:42, density:60},
-        {name:'Upper Deck - West', nodes:'8,400', on:true, pattern:'Strobe', intensity:94, speed:42, density:60},
-        {name:'North End Zone', nodes:'3,300', on:true, pattern:'Orange Pulse', intensity:77, speed:21, density:85},
-        {name:'South End Zone', nodes:'3,300', on:true, pattern:'Orange Pulse', intensity:77, speed:21, density:85},
-        {name:'Tiger Den Suites (Press Level)', nodes:'521', on:false, pattern:'Solid Blue', intensity:38, speed:5, density:100}
+        {name:'Student Section', nodes:'1,241', on:true, pattern:'Tiger Wave', intensity:85, speed:24, density:100},
+        {name:'Lower Bowl - North', nodes:'2,079', on:true, pattern:'Orange Pulse', intensity:70, speed:18, density:80},
+        {name:'Lower Bowl - South', nodes:'838', on:true, pattern:'Orange Pulse', intensity:70, speed:18, density:80},
+        {name:'Lower Bowl - East (Sideline)', nodes:'1,655', on:true, pattern:'Tiger Wave', intensity:80, speed:22, density:90},
+        {name:'Lower Bowl - West (Sideline)', nodes:'1,655', on:true, pattern:'Tiger Wave', intensity:80, speed:22, density:90},
+        {name:'Upper Deck - North', nodes:'1,762', on:false, pattern:'Solid Blue', intensity:60, speed:10, density:100},
+        {name:'Upper Deck - South', nodes:'1,762', on:false, pattern:'Solid Blue', intensity:60, speed:10, density:100},
+        {name:'Upper Deck - East', nodes:'4,838', on:true, pattern:'Strobe', intensity:90, speed:40, density:60},
+        {name:'Upper Deck - West', nodes:'3,938', on:true, pattern:'Strobe', intensity:90, speed:40, density:60},
+        {name:'North End Zone', nodes:'2,055', on:true, pattern:'Orange Pulse', intensity:75, speed:20, density:85},
+        {name:'South End Zone', nodes:'2,055', on:true, pattern:'Orange Pulse', intensity:75, speed:20, density:85},
+        {name:'Tiger Suites (Press Level)', nodes:'900', on:false, pattern:'Solid Blue', intensity:40, speed:5, density:100}
       ]
     }
   ];
@@ -1180,7 +1099,7 @@
     currentZoneIndexBySlug = {};
     v.zoneData.forEach(function(z, i){ currentZoneIndexBySlug[zoneSlug(z.name)] = i; });
     if(designerStadium) designerStadium.loadVenue(v, VENUE_PALETTES[id]);
-    if(previewStadium) previewStadium.loadVenue(v, VENUE_PALETTES[id]);
+    if(previewStadium) previewStadium.loadVenue(v, VENUE_PALETTES[id]).then(onPreviewStadiumLoaded);
     renderVenues(document.getElementById('venue-search').value);
     renderLayers();
     renderInspector();
@@ -1396,11 +1315,7 @@
   // Each school's primary/secondary colors. Auburn is the "home" palette
   // that everything reverts to when an Auburn venue is loaded.
   var VENUE_PALETTES = {
-    'jordan-hare': {primary:'#e86100', secondary:'#2e6fff'},
-    'neville':     {primary:'#e86100', secondary:'#2e6fff'},
-    'alabama':     {primary:'#9e1b32', secondary:'#828a8c'}, // Crimson + grey
-    'georgia':     {primary:'#ba0c2f', secondary:'#000000'}, // Red + Black
-    'lsu':         {primary:'#461d7c', secondary:'#fdd023'}  // Purple + Gold
+    'jordan-hare': {primary:'#e86100', secondary:'#2e6fff'}
   };
 
   // Each zone's schematic rect (matches the SVG coordinates in the venue's
@@ -2668,7 +2583,7 @@
     setTransportIcon(document.getElementById('preview-play'), isPlaying);
     updatePreviewStartHint();
     if(isPlaying){
-      if((musicSyncEnabled || musicColorSyncEnabled) && musicAudioEl){
+      if(musicWanted() && musicAudioEl){
         try { musicAudioEl.currentTime = playheadSeconds; musicAudioEl.play(); } catch(e){}
       }
       var last = performance.now();
@@ -2957,6 +2872,7 @@
     musicChantHistory.length = 0;
     musicPulseLevel = 0;
     musicBandMax = [1, 1, 1];
+    resetAudioPeer();
     if(musicAudioEl) musicAudioEl.volume = (document.getElementById('music-volume-slider').value || 80) / 100;
   }
 
@@ -2984,13 +2900,163 @@
   });
   document.getElementById('music-sync-toggle').addEventListener('change', function(e){
     musicSyncEnabled = e.target.checked;
-    if(!musicSyncEnabled && !musicColorSyncEnabled && musicAudioEl){ try { musicAudioEl.pause(); } catch(err){} }
+    if(!musicWanted() && musicAudioEl){ try { musicAudioEl.pause(); } catch(err){} }
     updatePreviewStadium(playheadSeconds);
   });
   document.getElementById('music-color-sync-toggle').addEventListener('change', function(e){
     musicColorSyncEnabled = e.target.checked;
-    if(!musicSyncEnabled && !musicColorSyncEnabled && musicAudioEl){ try { musicAudioEl.pause(); } catch(err){} }
+    if(!musicWanted() && musicAudioEl){ try { musicAudioEl.pause(); } catch(err){} }
     updatePreviewStadium(playheadSeconds);
+  });
+
+  // ---- Seat-level music mode: port of the Unity sim's AudioPeer + MusicSynchronizer ----
+  // AudioPeer splits a 512-bin spectrum into 8 octave bands (2, 4, 8 … 256+2 bins),
+  // keeps a falling "buffer" per band, and normalizes each band by its own running max.
+  // MusicSynchronizer then sets every seat's brightness from those bands.
+  var musicLedMode = 'off';          // 'off' | 'linear' | 'random' | 'amplitude'
+  var peerSpectrum = null;           // Float32Array dB from the analyser
+  var peerFreqBand = new Float32Array(8), peerBandBuffer = new Float32Array(8);
+  var peerBufferDecrease = new Float32Array(8), peerBandHighest = new Float32Array(8);
+  var peerAudioBand = new Float32Array(8), peerAudioBandBuffer = new Float32Array(8);
+  var peerAmplitudeHighest = 0, peerAmplitude = 0, peerAmplitudeBuffer = 0;
+  var musicLedGain = null, musicLedFrame = 0;
+
+  function resetAudioPeer(){
+    [peerFreqBand, peerBandBuffer, peerBufferDecrease, peerBandHighest, peerAudioBand, peerAudioBandBuffer].forEach(function(a){ a.fill(0); });
+    peerAmplitudeHighest = peerAmplitude = peerAmplitudeBuffer = 0;
+  }
+
+  function musicWanted(){
+    return musicSyncEnabled || musicColorSyncEnabled || musicLedMode !== 'off' || demoShowOn;
+  }
+
+  function musicIsPlaying(){
+    return !!(isPlaying && musicAudioEl && !musicAudioEl.paused && musicAnalyser);
+  }
+
+  function computeAudioPeerBands(){
+    if(!peerSpectrum) peerSpectrum = new Float32Array(musicAnalyser.frequencyBinCount);
+    musicAnalyser.getFloatFrequencyData(peerSpectrum);
+    var count = 0;
+    for(var i = 0; i < 8; i++){
+      var sampleCount = Math.pow(2, i + 1) + (i === 7 ? 2 : 0);
+      var avg = 0;
+      for(var j = 0; j < sampleCount && count < peerSpectrum.length; j++){
+        var db = peerSpectrum[count];
+        avg += (isFinite(db) ? Math.pow(10, db / 20) : 0) * (count + 1);
+        count++;
+      }
+      avg /= count; // AudioPeer divides by the cumulative bin count, not this band's — kept for fidelity
+      peerFreqBand[i] = avg * 10;
+      if(peerFreqBand[i] > peerBandBuffer[i]){
+        peerBandBuffer[i] = peerFreqBand[i];
+        peerBufferDecrease[i] = 0.005;
+      } else {
+        peerBandBuffer[i] = Math.max(0, peerBandBuffer[i] - peerBufferDecrease[i]);
+        peerBufferDecrease[i] *= 1.2;
+      }
+      if(peerFreqBand[i] > peerBandHighest[i]) peerBandHighest[i] = peerFreqBand[i];
+      var hi = peerBandHighest[i] || 1;
+      peerAudioBand[i] = peerFreqBand[i] / hi;
+      peerAudioBandBuffer[i] = peerBandBuffer[i] / hi;
+    }
+    var sum = 0, sumBuffer = 0;
+    for(var b = 0; b < 8; b++){ sum += peerAudioBand[b]; sumBuffer += peerAudioBandBuffer[b]; }
+    if(sum > peerAmplitudeHighest) peerAmplitudeHighest = sum;
+    peerAmplitude = sum / (peerAmplitudeHighest || 1);
+    peerAmplitudeBuffer = sumBuffer / (peerAmplitudeHighest || 1);
+  }
+
+  function applyMusicLedGain(stadium){
+    if(!stadium) return;
+    var data = stadium.getLedData();
+    if(musicLedMode === 'off' || !data || !musicIsPlaying()){ stadium.setLedGain(null); return; }
+    computeAudioPeerBands();
+    if(!musicLedGain || musicLedGain.length !== data.count) musicLedGain = new Float32Array(data.count);
+    musicLedFrame++;
+    var FLOOR = 0.08; // fully dark seats read as missing LEDs rather than as quiet music
+    for(var i = 0; i < data.count; i++){
+      var v = musicLedMode === 'linear' ? peerAudioBand[i % 8]
+            : musicLedMode === 'random' ? peerAudioBand[Math.floor(pseudoRandom(i * 7 + musicLedFrame * 7919) * 8)]
+            : peerAmplitudeBuffer;
+      musicLedGain[i] = FLOOR + (1 - FLOOR) * Math.max(0, Math.min(1, v));
+    }
+    stadium.setLedGain(musicLedGain);
+  }
+
+  document.getElementById('music-led-mode').addEventListener('change', function(e){
+    musicLedMode = e.target.value;
+    resetAudioPeer();
+    if(!musicWanted() && musicAudioEl){ try { musicAudioEl.pause(); } catch(err){} }
+    else if(isPlaying && musicAudioEl && musicAudioEl.paused){
+      try { musicAudioEl.currentTime = playheadSeconds; musicAudioEl.play(); } catch(err){}
+    }
+  });
+
+  // ---- Spring '25 demo show (converted from the Unity project's Resources/first_demo) ----
+  // show-first-demo.bin holds one byte per seat per unique frame (the seat's group id,
+  // 255 = no group); the .json header maps show frames to unique frames and lists each
+  // frame's group colors/effects. Playback follows the Preview transport clock.
+  var demoShowOn = false;
+  var demoShow = null;          // {header, frames: Uint8Array}
+  var demoShowLoading = null;
+  var demoColors = null, demoMask = null;
+  var DEMO_OFF_RGB = [0, 0, 0];
+
+  function loadDemoShow(){
+    if(demoShowLoading) return demoShowLoading;
+    var v = venues.find(function(x){ return x.id === currentVenueId; });
+    if(!v || !v.demoShow) return Promise.reject(new Error('no demo show for this venue'));
+    demoShowLoading = Promise.all([
+      fetch(v.demoShow.header).then(function(r){ return r.json(); }),
+      fetch(v.demoShow.frames).then(function(r){ return r.arrayBuffer(); })
+    ]).then(function(r){
+      demoShow = { header: r[0], frames: new Uint8Array(r[1]) };
+      return demoShow;
+    });
+    return demoShowLoading;
+  }
+
+  function applyDemoShowFrame(stadium, showT){
+    var h = demoShow.header, n = h.ledCount;
+    var data = stadium.getLedData();
+    if(!data || data.count !== n) return false;
+    if(!demoColors){ demoColors = new Float32Array(n * 3); demoMask = new Uint8Array(n).fill(1); }
+    var loop = document.getElementById('demo-show-loop').checked;
+    var f = Math.floor(showT * h.fps);
+    f = loop ? f % h.frames.length : Math.min(f, h.frames.length - 1);
+    var base = h.frames[f] * n;
+    var groups = h.groups[f];
+    for(var i = 0; i < n; i++){
+      var gid = demoShow.frames[base + i];
+      var g = gid === 255 ? null : groups[gid];
+      var o = i * 3;
+      if(!g){ demoColors[o] = DEMO_OFF_RGB[0]; demoColors[o + 1] = DEMO_OFF_RGB[1]; demoColors[o + 2] = DEMO_OFF_RGB[2]; continue; }
+      // same effects as seat paint; Unity's "static" group effect is per-frame random color
+      g.effect = g.effect || (g.twinkle ? 'twinkle' : g.static ? 'random' : g.pulse ? 'pulse' : 'static');
+      paintedSeatRgb(g, i, showT, scratchRgb);
+      demoColors[o] = scratchRgb[0]; demoColors[o + 1] = scratchRgb[1]; demoColors[o + 2] = scratchRgb[2];
+    }
+    stadium.setLedOverride(demoColors, demoMask);
+    return true;
+  }
+
+  document.getElementById('demo-show-toggle').addEventListener('change', function(e){
+    var box = e.target;
+    if(!box.checked){
+      demoShowOn = false;
+      if(!musicWanted() && musicAudioEl){ try { musicAudioEl.pause(); } catch(err){} }
+      return;
+    }
+    loadDemoShow().then(function(){
+      demoShowOn = box.checked;
+      if(demoShowOn) showToast("Spring '25 demo show loaded — press Play");
+    }).catch(function(err){
+      box.checked = false;
+      demoShowLoading = null;
+      showToast('Could not load the demo show');
+      console.error(err);
+    });
   });
 
   function buildPreviewSchematic(){
@@ -3103,12 +3169,36 @@
     });
   }
 
+  function setPreviewCameraModeUI(mode){
+    document.querySelectorAll('#camera-group .cam-btn').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-cam-mode') === mode);
+    });
+    document.getElementById('free-fly-hint').style.display = mode === 'free' ? '' : 'none';
+  }
   document.getElementById('camera-group').addEventListener('click', function(e){
     var btn = e.target.closest('.cam-btn');
-    if(!btn) return;
-    document.querySelectorAll('.cam-btn').forEach(function(b){ b.classList.toggle('active', b === btn); });
-    if(previewStadium) previewStadium.setCameraPreset(btn.getAttribute('data-cam'));
+    if(!btn || !previewStadium) return;
+    var mode = btn.getAttribute('data-cam-mode');
+    previewStadium.setCameraMode(mode);
+    setPreviewCameraModeUI(mode);
   });
+  document.getElementById('camera-preset').addEventListener('change', function(e){
+    if(!previewStadium || !e.target.value) return;
+    previewStadium.setCameraPreset(e.target.value); // switches back to Orbit mode
+    setPreviewCameraModeUI('orbit');
+  });
+  function onPreviewStadiumLoaded(){
+    populateCameraPresets();
+    updatePreviewStadium(playheadSeconds);
+  }
+  // Filled from the venue's cameras.json once the stadium has loaded.
+  function populateCameraPresets(){
+    var sel = document.getElementById('camera-preset');
+    var names = previewStadium ? previewStadium.getCameraPresets() : [];
+    sel.innerHTML = '<option value="">Choose a view…</option>' + names.map(function(n){
+      return '<option value="' + n + '">' + n + '</option>';
+    }).join('');
+  }
   document.getElementById('auto-orbit-toggle').addEventListener('click', function(){
     autoOrbitOn = !autoOrbitOn;
     this.textContent = 'Auto-Orbit: ' + (autoOrbitOn ? 'On' : 'Off');
@@ -3146,6 +3236,11 @@
       timeline: (timelineCuesByVenue[currentVenueId] || []).map(function(c){
         var pat = findPattern(c.pattern);
         return {track:c.track, pattern: pat ? pat.name : c.pattern, start:c.start, duration:c.duration};
+      }),
+      seatPaint: paintGroups.map(function(g, gi){
+        var seats = [];
+        if(ledPaintGroup) for(var i = 0; i < ledPaintGroup.length; i++) if(ledPaintGroup[i] === gi) seats.push(i);
+        return {name:g.name, color:g.color, effect:g.effect, seats:seats};
       }),
       generatedAt: new Date().toISOString()
     };
@@ -3206,6 +3301,156 @@
     document.getElementById('export-project-sub').textContent = v.name + ' — ' + document.getElementById('project-name').textContent.split('_').join(' ');
   }
 
+  // ===================== SEAT PAINT =====================
+  // Port of the Unity project's GlobalController groups: individual seats (or whole rows /
+  // sections) are assigned to a paint group, and each group's color + effect overrides the
+  // zone patterns for those seats. Like Unity, a seat belongs to at most one group.
+  var PAINT_TWINKLE_COLORS = ['#001733', '#bf4f00', '#ffffff']; // GlobalController twinkle picks
+  var PAINT_MAX_GROUPS = 9;
+  var paintGroups = [{ name:'Group 1', color:'#e86100', effect:'static' }];
+  var selectedPaintGroup = 0;
+  var paintToolOn = false;
+  var ledPaintGroup = null;   // Int8Array per LED: paint group index, -1 = unpainted
+  var paintedCount = 0;
+  var paintColors = null, paintMask = null;
+  var hexRgbCache = {};
+
+  function hexRgb(hex){
+    var c = hexRgbCache[hex];
+    if(!c){
+      var n = parseInt(hex.slice(1), 16);
+      c = hexRgbCache[hex] = [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255];
+    }
+    return c;
+  }
+
+  function ensurePaintBuffers(){
+    var data = designerStadium && designerStadium.getLedData();
+    if(!data) return null;
+    if(!ledPaintGroup || ledPaintGroup.length !== data.count){
+      ledPaintGroup = new Int8Array(data.count).fill(-1);
+      paintColors = new Float32Array(data.count * 3);
+      paintMask = new Uint8Array(data.count);
+      paintedCount = 0;
+    }
+    return data;
+  }
+
+  // The color a painted seat shows at time t. Pulse is a smooth 0.55–1.0 sine (Unity's
+  // AnimationCurve version clamped after one rise); twinkle and random re-roll on a clock
+  // rather than every frame so they read as effects instead of noise.
+  function paintedSeatRgb(g, i, t, out){
+    var rgb = hexRgb(g.color), f = 1;
+    if(g.effect === 'pulse'){
+      f = 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(t * Math.PI * 1.2));
+    } else if(g.effect === 'twinkle'){
+      rgb = hexRgb(PAINT_TWINKLE_COLORS[Math.floor(pseudoRandom(i * 131 + Math.floor(t * 2.3) * 7919) * 3)]);
+    } else if(g.effect === 'random'){
+      var tick = Math.floor(t * 8);
+      out[0] = pseudoRandom(i * 3 + tick * 104729);
+      out[1] = pseudoRandom(i * 3 + 1 + tick * 104729);
+      out[2] = pseudoRandom(i * 3 + 2 + tick * 104729);
+      return;
+    }
+    out[0] = rgb[0] * f; out[1] = rgb[1] * f; out[2] = rgb[2] * f;
+  }
+
+  var scratchRgb = [0, 0, 0];
+  // Fills the shared override buffers for this frame and hands them to a stadium instance.
+  function applyPaintFrame(stadium, t){
+    if(!stadium) return;
+    if(!ledPaintGroup || paintedCount === 0){ stadium.setLedOverride(null, null); return; }
+    for(var i = 0; i < ledPaintGroup.length; i++){
+      var gi = ledPaintGroup[i];
+      if(gi < 0){ paintMask[i] = 0; continue; }
+      paintMask[i] = 1;
+      paintedSeatRgb(paintGroups[gi], i, t, scratchRgb);
+      paintColors[i * 3] = scratchRgb[0]; paintColors[i * 3 + 1] = scratchRgb[1]; paintColors[i * 3 + 2] = scratchRgb[2];
+    }
+    stadium.setLedOverride(paintColors, paintMask);
+  }
+
+  function renderPaintPanel(){
+    var counts = paintGroups.map(function(){ return 0; });
+    if(ledPaintGroup) for(var i = 0; i < ledPaintGroup.length; i++) if(ledPaintGroup[i] >= 0) counts[ledPaintGroup[i]]++;
+    document.getElementById('paint-group-list').innerHTML = paintGroups.map(function(g, gi){
+      return '<button type="button" role="option" class="paint-group' + (gi === selectedPaintGroup ? ' active' : '') + '" data-group="' + gi + '" aria-selected="' + (gi === selectedPaintGroup) + '">' +
+        '<span class="color-swatch" style="background:' + g.color + '" aria-hidden="true"></span>' +
+        '<span>' + g.name + ' · ' + g.effect + '</span>' +
+        '<span class="paint-count">' + counts[gi].toLocaleString() + ' seats</span></button>';
+    }).join('');
+    var g = paintGroups[selectedPaintGroup];
+    document.getElementById('paint-color').value = g.color;
+    document.getElementById('paint-effect').value = g.effect;
+    document.getElementById('paint-add-group').disabled = paintGroups.length >= PAINT_MAX_GROUPS;
+  }
+
+  function paintSeats(pick, mode){
+    var data = ensurePaintBuffers();
+    if(!data || !pick) return;
+    var value = mode === 'erase' ? -1 : selectedPaintGroup;
+    for(var i = 0; i < data.count; i++){
+      var hit = mode === 'row' ? data.rowId[i] === pick.rowId
+              : mode === 'section' ? data.section[i] === pick.section
+              : i === pick.index;
+      if(!hit) continue;
+      if(ledPaintGroup[i] < 0 && value >= 0) paintedCount++;
+      else if(ledPaintGroup[i] >= 0 && value < 0) paintedCount--;
+      ledPaintGroup[i] = value;
+    }
+    renderPaintPanel();
+  }
+
+  document.getElementById('paint-toggle').addEventListener('click', function(){
+    paintToolOn = !paintToolOn;
+    this.textContent = 'Paint Tool: ' + (paintToolOn ? 'On' : 'Off');
+    this.setAttribute('aria-pressed', String(paintToolOn));
+    this.classList.toggle('btn-current', paintToolOn);
+    document.querySelector('#designer-view .canvas-panel').classList.toggle('painting', paintToolOn);
+  });
+  document.getElementById('paint-group-list').addEventListener('click', function(e){
+    var b = e.target.closest('.paint-group');
+    if(!b) return;
+    selectedPaintGroup = parseInt(b.getAttribute('data-group'), 10);
+    renderPaintPanel();
+  });
+  document.getElementById('paint-color').addEventListener('input', function(e){
+    paintGroups[selectedPaintGroup].color = e.target.value;
+    renderPaintPanel();
+  });
+  document.getElementById('paint-effect').addEventListener('change', function(e){
+    paintGroups[selectedPaintGroup].effect = e.target.value;
+    renderPaintPanel();
+  });
+  document.getElementById('paint-add-group').addEventListener('click', function(){
+    if(paintGroups.length >= PAINT_MAX_GROUPS) return;
+    var palette = VENUE_PALETTES[currentVenueId] || VENUE_PALETTES['jordan-hare'];
+    paintGroups.push({ name:'Group ' + (paintGroups.length + 1), color: paintGroups.length % 2 ? palette.secondary : palette.primary, effect:'static' });
+    selectedPaintGroup = paintGroups.length - 1;
+    renderPaintPanel();
+  });
+  document.getElementById('paint-clear').addEventListener('click', function(){
+    if(ledPaintGroup) ledPaintGroup.fill(-1);
+    paintedCount = 0;
+    renderPaintPanel();
+    showToast('Seat paint cleared');
+  });
+
+  // A click (not an orbit drag) on the Designer canvas paints while the tool is on.
+  (function(){
+    var canvas = document.getElementById('stadium3d-canvas-designer');
+    var down = null;
+    canvas.addEventListener('pointerdown', function(e){ down = { x: e.clientX, y: e.clientY }; });
+    canvas.addEventListener('pointerup', function(e){
+      if(!paintToolOn || !down || !designerStadium) return;
+      var moved = Math.abs(e.clientX - down.x) + Math.abs(e.clientY - down.y);
+      down = null;
+      if(moved > 4) return;
+      var mode = (e.ctrlKey || e.metaKey) ? 'erase' : e.shiftKey ? 'row' : e.altKey ? 'section' : 'seat';
+      paintSeats(designerStadium.pickLed(e.clientX, e.clientY), mode);
+    });
+  })();
+
   // ===================== 3D STADIUM =====================
   if(window.Stadium3D){
     designerStadium = window.Stadium3D.createStadium3D(document.getElementById('stadium3d-canvas-designer'), {
@@ -3226,11 +3471,21 @@
       v.zoneData.forEach(function(z, i){
         designerStadium.setZoneFrame(i, findPatternByName(z.pattern), t, z.on);
       });
+      applyPaintFrame(designerStadium, t);
+    };
+    // Zone patterns in Preview are fed by the timeline (updatePreviewStadium); per frame we
+    // only layer on the seat-level overrides — the demo show if it's on, else seat paint —
+    // and the seat-level music gain.
+    previewStadium.onFrame = function(t){
+      if(!(demoShowOn && demoShow && applyDemoShowFrame(previewStadium, playheadSeconds))){
+        applyPaintFrame(previewStadium, t);
+      }
+      applyMusicLedGain(previewStadium);
     };
     var initialVenue = venues.find(function(x){ return x.id === currentVenueId; });
     initialVenue.zoneData.forEach(function(z, i){ currentZoneIndexBySlug[zoneSlug(z.name)] = i; });
     designerStadium.loadVenue(initialVenue, VENUE_PALETTES[currentVenueId]);
-    previewStadium.loadVenue(initialVenue, VENUE_PALETTES[currentVenueId]);
+    previewStadium.loadVenue(initialVenue, VENUE_PALETTES[currentVenueId]).then(onPreviewStadiumLoaded);
     window.addEventListener('resize', function(){
       designerStadium.onResize();
       previewStadium.onResize();
@@ -3241,6 +3496,7 @@
   renderVenues('');
   renderLayers();
   renderInspector();
+  renderPaintPanel();
   renderPatternGrid('');
   renderPatternInspector();
   renderTimeline();
