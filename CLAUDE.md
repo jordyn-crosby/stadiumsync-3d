@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-StadiumSync 3D is a static, single-page web app for designing stadium LED light shows: a venue database, a zone-based pattern designer with per-seat painting, a timeline/cue sequencer, a real-time 3D stadium preview, and a project export view. The 3D stadium (Jordan-Hare, the only venue) and its 24,778 per-seat LEDs are ported from the team's Unity simulation (`../arenalighting-fall2026/stadium copy`). There is no build step, no package manager, and no test suite — everything is plain HTML/CSS/JS served as static files.
+StadiumSync 3D is a static, single-page web app for designing stadium LED light shows for one venue (Jordan-Hare — there is no venue picker): a zone-based pattern designer with per-seat painting, a timeline/cue sequencer, a real-time 3D stadium preview, and a project export view. The 3D stadium (Jordan-Hare, the only venue) and its 24,778 per-seat LEDs are ported from the team's Unity simulation (`../arenalighting-fall2026/stadium copy`). There is no build step, no package manager, and no test suite — everything is plain HTML/CSS/JS served as static files.
 
 ## Running the app
 
@@ -30,7 +30,7 @@ Then visit `http://localhost:8000`. Opening `index.html` directly via `file://` 
 
 All app state lives as plain module-scoped `var` declarations inside the `index.html` IIFE (venues, current selection, pattern library, timeline tracks/cues, music-sync state, etc.) — there is no state library, no `localStorage` persistence, and no backend. Reloading the page resets everything to the hardcoded seed data (`venues` array, `patternLibrary` array, etc. defined near the top of the script).
 
-Views are swapped by toggling visibility of top-level sections and re-running per-view `render*()` functions (e.g. `renderVenues`, `renderLayers`, `renderInspector`, `renderPatternGrid`, `renderTimeline`, `renderCueInspector`, `renderExportView`) rather than any virtual-DOM diffing — each one rebuilds its section's `innerHTML` from current state.
+Views are swapped by toggling visibility of top-level sections and re-running per-view `render*()` functions (e.g. `renderLayers`, `renderInspector`, `renderPatternGrid`, `renderTimeline`, `renderCueInspector`, `renderExportView`) rather than any virtual-DOM diffing — each one rebuilds its section's `innerHTML` from current state.
 
 ### The shared LED math contract
 
@@ -46,7 +46,7 @@ When changing pattern rendering logic, change it in these two functions only —
 - All 24,778 LEDs are **one `InstancedMesh`** (unlit spheres, per-instance color; the all-white vertex-color attribute is required in r128 — see the comment in `buildLedMesh`). Venue zones are matched to `leds.json` zones **by name**, so `zoneData[].name` must match `tools/zone_map.json`.
 - Each frame, LED color = (seat override if masked, else the zone pattern color written by `setZoneFrame`) × per-LED gain, with unlit LEDs of the `highlightZone` zone brightened. LED colors are kept ≤ 1 (clipping shifts hue, e.g. blue → cyan); bloom threshold is set so lit LEDs glow but the stadium texture doesn't.
 - API: `loadVenue`, `setZoneFrame`, `highlightZone`, `setLedOverride(colors, mask)`, `setLedGain(gain)`, `getLedData()`, `pickLed(clientX, clientY)` (manual ray/sphere test → `{index, rowId, section, zone}`), `getCameraPresets`, `setCameraPreset`, `setCameraMode('orbit'|'aerial'|'free')`, `setAutoOrbit`, `setTimeOfDay`, `setFogDensity`, `onResize`, an `onFrame` hook setter, and `dispose`.
-- An instance skips its frame entirely (including `onFrame`) while its canvas is hidden.
+- `index.html` creates the Designer and Preview instances lazily, the first time each view is opened (`ensureDesignerStadium` / `ensurePreviewStadium`), and `setActiveStadiumView` calls `setActive(true|false)` on view switches — an inactive instance cancels its `requestAnimationFrame` loop entirely. Any code touching `designerStadium`/`previewStadium` must null-check them. Don't add always-on animation loops for hidden UI; the only per-frame work should belong to the visible view.
 
 ### Music sync
 

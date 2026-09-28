@@ -458,13 +458,30 @@
       if(composer) composer.setSize(w, h);
     }
 
+    // The render loop only runs while the instance is active (its view is on screen);
+    // setActive(false) cancels the next frame outright, so a paused instance costs nothing.
     var rafId = null;
+    var active = true;
+    function setActive(on){
+      on = !!on;
+      if(on === active) return;
+      active = on;
+      if(active){
+        clock.getDelta(); // don't treat the paused time as one huge frame
+        lastT = clock.getElapsedTime();
+        rafId = window.requestAnimationFrame(tick);
+        onResize(); // the canvas may have changed size while its view was hidden
+      } else if(rafId){
+        window.cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+    }
     function tick(){
-      rafId = window.requestAnimationFrame(tick);
+      rafId = active ? window.requestAnimationFrame(tick) : null;
       var t = clock.getElapsedTime();
       var dt = Math.min(0.1, t - lastT);
       lastT = t;
-      if(!isVisible()) return; // the other view's canvas is hidden — don't spend GPU on it
+      if(!isVisible()) return; // canvas hidden (e.g. mid view switch) — nothing to draw
       if(onFrameHook) onFrameHook(t);
       composeLedColors();
       if(cameraMode === 'aerial') updateAerial(dt);
@@ -480,6 +497,7 @@
       if(composer) composer.render();
       else renderer.render(scene, camera);
     }
+    onResize();
     tick();
 
     return {
@@ -498,10 +516,11 @@
       setTimeOfDay: setTimeOfDay,
       setFogDensity: setFogDensity,
       onResize: onResize,
+      setActive: setActive,
       set onFrame(fn){ onFrameHook = fn; },
       get onFrame(){ return onFrameHook; },
       dispose: function(){
-        if(rafId) window.cancelAnimationFrame(rafId);
+        setActive(false);
         window.removeEventListener('keydown', onKeyDown);
         window.removeEventListener('keyup', onKeyUp);
         window.removeEventListener('blur', onBlur);

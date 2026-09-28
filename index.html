@@ -134,7 +134,7 @@
   }
   .view-head p{color:var(--on-surface-variant); font-size:15px; max-width:70ch; margin:0;}
 
-  /* ===== Venue Selector ===== */
+  /* ===== Shared controls ===== */
   .toolbar-row{
     display:flex; gap:16px; align-items:center; margin-bottom:var(--space-lg);
   }
@@ -148,60 +148,17 @@
   }
   .search-field input::placeholder{color:var(--outline);}
   .search-field svg{position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--outline);}
-
-  .venue-grid{
-    display:grid; grid-template-columns:repeat(auto-fill,minmax(420px,1fr));
-    gap:var(--gutter);
-  }
-  .venue-card{
-    background:var(--surface-container);
-    border:1px solid var(--outline-variant);
-    border-radius:var(--radius-lg);
-    overflow:hidden;
-    display:flex; flex-direction:column;
-    transition:border-color .15s ease;
-    cursor:pointer;
-  }
-  .venue-card:hover{border-color:rgba(232,119,34,0.4);}
-  .venue-card.is-current{border-color:var(--primary); }
-  .venue-thumb{
-    height:170px; background:#070f1c;
-    display:flex; align-items:center; justify-content:center;
-    position:relative;
-  }
-  .venue-thumb svg{width:100%; height:100%;}
-  .venue-badge{
-    position:absolute; top:10px; right:10px;
-    font-family:var(--font-ui); font-size:12px; font-weight:600; 
-    padding:4px 9px; border-radius:var(--radius-full);
-    background:var(--accent-soft); color:var(--on-surface);
-    border:1px solid var(--accent-line);
-  }
-  .venue-body{padding:16px; display:flex; flex-direction:column; gap:12px; flex:1;}
-  .venue-name{font-size:22px; font-weight:600; color:var(--on-surface); font-family:var(--font-display);}
-  .venue-loc{font-size:14px; color:var(--on-surface-variant); margin-top:2px;}
-  .venue-stats{display:flex; gap:28px;}
-  .venue-stat .label{
-    font-family:var(--font-ui); font-size:13px; color:var(--on-surface-variant); display:block; margin-bottom:2px;
-  }
-  .venue-stat .value{font-family:var(--font-display); font-size:22px; font-weight:600; color:var(--on-surface);}
-  .venue-actions{margin-top:auto;}
   .btn{
     width:100%; padding:9px 12px; border-radius:var(--radius);
-    font-size:14px; font-weight:600; 
+    font-size:14px; font-weight:600;
     border:1px solid var(--outline-variant); background:var(--surface-high); color:var(--on-surface);
   }
   .btn:hover{border-color:var(--outline); color:var(--on-surface);}
   .btn.btn-current{border-color:var(--accent-line); color:var(--on-surface); background:var(--accent-soft); cursor:default;}
-  .venue-card.import{
-    align-items:center; justify-content:center; text-align:center; gap:10px;
-    border-style:dashed; background:transparent; padding:32px 16px; min-height:100%;
-  }
   .import-icon{
     width:44px; height:44px; border-radius:50%; background:var(--surface-high);
     display:flex; align-items:center; justify-content:center; color:var(--on-surface-variant); font-size:22px;
   }
-  .import-formats{font-family:var(--font-mono); font-size:10px; color:var(--outline);}
 
   .sr-only{
     position:absolute; width:1px; height:1px; padding:0; margin:-1px;
@@ -546,25 +503,20 @@
       <div class="brand-text">
         <div class="brand-name">StadiumSync</div>
         <div class="project-name" id="project-name">Halftime show</div>
+        <div class="project-name">Jordan-Hare Stadium</div>
       </div>
     </div>
 <ul class="nav-list">
       <li class="nav-item">
-        <button class="nav-link" data-view="venue-view" title="Venue" aria-current="page">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="12" rx="9.5" ry="7"/><rect x="8" y="9.5" width="8" height="5" rx="1"/></svg>
-          <span class="nav-label">Venue</span>
+        <button class="nav-link" data-view="designer-view" title="Designer" aria-current="page">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l8.5 4.5L12 12.5 3.5 8 12 3.5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/><path d="M3.5 16.5L12 21l8.5-4.5"/></svg>
+          <span class="nav-label">Designer</span>
         </button>
       </li>
       <li class="nav-item">
         <button class="nav-link" data-view="pattern-view" title="Patterns">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="1.3"/><circle cx="12" cy="6" r="1.3"/><circle cx="18" cy="6" r="1.3"/><circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18" cy="12" r="1.3"/><circle cx="6" cy="18" r="1.3" fill="currentColor"/><circle cx="12" cy="18" r="1.3"/><circle cx="18" cy="18" r="1.3" fill="currentColor"/></svg>
           <span class="nav-label">Patterns</span>
-        </button>
-      </li>
-      <li class="nav-item">
-        <button class="nav-link" data-view="designer-view" title="Designer">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l8.5 4.5L12 12.5 3.5 8 12 3.5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/><path d="M3.5 16.5L12 21l8.5-4.5"/></svg>
-          <span class="nav-label">Designer</span>
         </button>
       </li>
       <li class="nav-item">
@@ -595,20 +547,8 @@
   </nav>
 
   <main id="main-content">
-    <!-- ===================== VENUE SELECTOR ===================== -->
-    <section id="venue-view" class="view active" aria-labelledby="venue-heading">
-      <div class="view-head">
-        <h2 id="venue-heading">Venue</h2>
-        <p>The stadium this show is designed for. Every seat has its own LED.</p>
-      </div>
-
-      <div class="venue-grid" id="venue-grid" role="list" aria-label="Venue projects">
-        <!-- populated by JS -->
-      </div>
-    </section>
-
     <!-- ===================== SHOW DESIGNER ===================== -->
-    <section id="designer-view" class="view" aria-labelledby="designer-heading">
+    <section id="designer-view" class="view active" aria-labelledby="designer-heading">
       <div class="view-head">
         <h2 id="designer-heading">Designer</h2>
         <p>Pick a zone, give it a pattern, and paint individual seats. <span id="designer-venue-name" hidden>Jordan-Hare Stadium</span></p>
@@ -977,70 +917,6 @@
   var currentZoneIndexBySlug = {};
   var autoOrbitOn = false;
 
-  // Rings of dots = rows of seat LEDs, in the venue's two colors (same motif as the brand mark).
-  function venueStadiumThumb(){
-    var dots = function(rx, ry, color, gap){
-      return '<ellipse cx="100" cy="65" rx="' + rx + '" ry="' + ry + '" fill="none" stroke="' + color + '" stroke-width="3" stroke-linecap="round" stroke-dasharray="0.01 ' + gap + '"/>';
-    };
-    return '<svg viewBox="0 0 200 130" role="img" aria-label="Top-down sketch of the stadium bowl">' +
-      dots(90, 57, '#e87722', 6) + dots(80, 50, '#e87722', 6) + dots(70, 43, '#3f6fd8', 5.5) + dots(61, 37, '#3f6fd8', 5.5) +
-      '<rect x="70" y="47" width="60" height="36" rx="2" fill="#1d4a2a"/><path d="M100 47v36" stroke="#2f6b3e"/></svg>';
-  }
-
-  function renderVenues(){
-    var grid = document.getElementById('venue-grid');
-    grid.innerHTML = '';
-    venues.forEach(function(v){
-      var isCurrent = v.id === currentVenueId;
-      var seats = v.zoneData.reduce(function(n, z){ return n + parseInt(String(z.nodes).replace(/[^0-9]/g, ''), 10); }, 0);
-      var card = document.createElement('div');
-      card.className = 'venue-card' + (isCurrent ? ' is-current' : '');
-      card.setAttribute('role','listitem');
-      card.innerHTML =
-        '<div class="venue-thumb">' + venueStadiumThumb() + (isCurrent ? '<span class="venue-badge">Loaded</span>' : '') + '</div>' +
-        '<div class="venue-body">' +
-          '<div><div class="venue-name">' + v.name + '</div><div class="venue-loc">' + v.loc + '</div></div>' +
-          '<div class="venue-stats">' +
-            '<div class="venue-stat"><span class="label">Capacity</span><span class="value">' + v.capacity + '</span></div>' +
-            '<div class="venue-stat"><span class="label">Seats with LEDs</span><span class="value">' + seats.toLocaleString() + '</span></div>' +
-            '<div class="venue-stat"><span class="label">Zones</span><span class="value">' + v.zoneData.length + '</span></div>' +
-          '</div>' +
-          '<div class="venue-actions"><button type="button" class="btn" data-open-view="designer-view">Open in Designer</button></div>' +
-        '</div>';
-      grid.appendChild(card);
-    });
-  }
-
-  function loadVenue(id){
-    var v = venues.find(function(x){ return x.id === id; });
-    if(!v) return;
-    currentVenueId = id;
-    document.getElementById('designer-venue-name').textContent = v.name;
-    document.getElementById('preview-venue-name').textContent = v.name;
-    selectedLayerIndex = 0;
-    selectedCue = null;
-    playheadSeconds = 0;
-    testZoneNames = [];
-    applyVenueColorTheme(id);
-    currentZoneIndexBySlug = {};
-    v.zoneData.forEach(function(z, i){ currentZoneIndexBySlug[zoneSlug(z.name)] = i; });
-    if(designerStadium) designerStadium.loadVenue(v, VENUE_PALETTES[id]);
-    if(previewStadium) previewStadium.loadVenue(v, VENUE_PALETTES[id]).then(onPreviewStadiumLoaded);
-    renderVenues('');
-    renderLayers();
-    renderInspector();
-    if(typeof renderTimeline === 'function') renderTimeline();
-    if(typeof renderExportView === 'function') renderExportView();
-    if(typeof renderPatternGrid === 'function') renderPatternGrid(document.getElementById('pattern-search') ? document.getElementById('pattern-search').value : '');
-    if(typeof renderPatternInspector === 'function') renderPatternInspector();
-    if(typeof buildPreviewSchematic === 'function'){
-      buildPreviewSchematic();
-      updatePreviewStadium(playheadSeconds);
-      if(typeof updatePreviewStartHint === 'function') updatePreviewStartHint();
-    }
-    showToast(v.name + ' loaded');
-  }
-
   function renderLayers(){
     var v = venues.find(function(x){ return x.id === currentVenueId; });
     var list = document.getElementById('layer-list');
@@ -1094,24 +970,8 @@
     }
   }
 
-  var designerDots = [];
-  var designerRafId = null;
-  var designerStartTime = null;
-
   function clearDesignerDotOverlay(){
     document.querySelectorAll('#designer-view .zone-dot-overlay').forEach(function(g){ g.remove(); });
-    designerDots = [];
-    if(designerRafId){ window.cancelAnimationFrame(designerRafId); designerRafId = null; }
-  }
-
-  function designerFrame(pat, timestamp){
-    if(designerStartTime === null) designerStartTime = timestamp;
-    var t = (timestamp - designerStartTime) / 1000;
-    designerDots.forEach(function(d){
-      d.el.style.fill = getDotColor(pat, d.col, d.row, d.cols, d.rows);
-      d.el.style.opacity = computeDotBrightness(pat, d.col, t, d.cols, d.row, d.rows);
-    });
-    designerRafId = window.requestAnimationFrame(function(ts){ designerFrame(pat, ts); });
   }
 
   function applyZoneHighlightStyle(zone){
@@ -1144,10 +1004,9 @@
     // was being silently overridden by the base .zone-shape{fill:...} rule
     // and never actually showed on screen. Inline style wins over both.
     target.style.stroke = pat.color;
-    target.style.fill = 'rgba(255,255,255,0.02)'; // dots carry the real signal, not a flat fill
-    designerDots = buildZoneDotOverlay(target, pat);
-    designerStartTime = null;
-    designerRafId = window.requestAnimationFrame(function(ts){ designerFrame(pat, ts); });
+    target.style.fill = 'rgba(255,255,255,0.02)';
+    // The 2D schematic is kept only as a hidden source for zone shapes; the 3D stadium is
+    // what's on screen, so no dot overlay is animated here (it used to run every frame, unseen).
   }
 
   function showToast(msg){
@@ -1157,17 +1016,6 @@
     clearTimeout(t._timer);
     t._timer = setTimeout(function(){ t.classList.remove('show'); }, 2200);
   }
-
-  // Delegated click handling — bound once, survives every re-render
-  document.getElementById('venue-grid').addEventListener('click', function(e){
-    var btn = e.target.closest('[data-load]');
-    if(btn) loadVenue(btn.getAttribute('data-load'));
-  });
-  document.getElementById('venue-grid').addEventListener('keydown', function(e){
-    if(e.key !== 'Enter' && e.key !== ' ') return;
-    var btn = e.target.closest('[data-load]');
-    if(btn){ e.preventDefault(); loadVenue(btn.getAttribute('data-load')); }
-  });
 
   document.getElementById('layer-list').addEventListener('click', function(e){
     var toggleBtn = e.target.closest('[data-toggle-index]');
@@ -1194,15 +1042,8 @@
       btn.setAttribute('aria-current','page');
       document.querySelectorAll('section.view').forEach(function(s){ s.classList.remove('active'); });
       document.getElementById(btn.getAttribute('data-view')).classList.add('active');
-      var view = btn.getAttribute('data-view');
-      if(view === 'designer-view' && designerStadium) designerStadium.onResize();
-      if(view === 'preview-view' && previewStadium) previewStadium.onResize();
+      setActiveStadiumView(btn.getAttribute('data-view'));
     });
-  });
-
-  document.getElementById('venue-grid').addEventListener('click', function(e){
-    var open = e.target.closest('[data-open-view]');
-    if(open) document.querySelector('.nav-link[data-view="' + open.getAttribute('data-open-view') + '"]').click();
   });
 
   // Collapsible sidebar. The choice is a per-browser convenience, so storage failures are ignored.
@@ -3405,19 +3246,24 @@
   })();
 
   // ===================== 3D STADIUM =====================
-  if(window.Stadium3D){
-    designerStadium = window.Stadium3D.createStadium3D(document.getElementById('stadium3d-canvas-designer'), {
+  // Each 3D view is created the first time its screen is opened and only renders while that
+  // screen is showing (setActiveStadiumView), so the app never animates a stadium nobody sees.
+  // Both instances share the parsed stadium assets, so opening the second one is cheap.
+  var initialVenue = venues.find(function(x){ return x.id === currentVenueId; });
+  initialVenue.zoneData.forEach(function(z, i){ currentZoneIndexBySlug[zoneSlug(z.name)] = i; });
+
+  function createStadiumFor(canvasId){
+    return window.Stadium3D.createStadium3D(document.getElementById(canvasId), {
       computeDotBrightness: computeDotBrightness,
       getDotColor: getDotColor
     });
-    previewStadium = window.Stadium3D.createStadium3D(document.getElementById('stadium3d-canvas-preview'), {
-      computeDotBrightness: computeDotBrightness,
-      getDotColor: getDotColor
-    });
-    // Every zone in the Show Designer view animates its own assigned
-    // pattern continuously, the same way the real LEDs would be live all
-    // the time; the selected layer additionally gets a brighter deck via
-    // highlightZone() (see applyZoneHighlightStyle).
+  }
+
+  function ensureDesignerStadium(){
+    if(designerStadium || !window.Stadium3D) return designerStadium;
+    designerStadium = createStadiumFor('stadium3d-canvas-designer');
+    // Every zone animates its assigned pattern continuously, the way the real LEDs would;
+    // the selected layer is also brightened via highlightZone() (see applyZoneHighlightStyle).
     designerStadium.onFrame = function(t){
       var v = venues.find(function(x){ return x.id === currentVenueId; });
       if(!v) return;
@@ -3426,6 +3272,14 @@
       });
       applyPaintFrame(designerStadium, t);
     };
+    designerStadium.highlightZone(selectedLayerIndex);
+    designerStadium.loadVenue(initialVenue);
+    return designerStadium;
+  }
+
+  function ensurePreviewStadium(){
+    if(previewStadium || !window.Stadium3D) return previewStadium;
+    previewStadium = createStadiumFor('stadium3d-canvas-preview');
     // Zone patterns in Preview are fed by the timeline (updatePreviewStadium); per frame we
     // only layer on the seat-level overrides — the demo show if it's on, else seat paint —
     // and the seat-level music gain.
@@ -3435,18 +3289,28 @@
       }
       applyMusicLedGain(previewStadium);
     };
-    var initialVenue = venues.find(function(x){ return x.id === currentVenueId; });
-    initialVenue.zoneData.forEach(function(z, i){ currentZoneIndexBySlug[zoneSlug(z.name)] = i; });
-    designerStadium.loadVenue(initialVenue, VENUE_PALETTES[currentVenueId]);
-    previewStadium.loadVenue(initialVenue, VENUE_PALETTES[currentVenueId]).then(onPreviewStadiumLoaded);
-    window.addEventListener('resize', function(){
-      designerStadium.onResize();
-      previewStadium.onResize();
-    });
+    // pick up anything set on the Preview panel before the stadium existed
+    previewStadium.setTimeOfDay(parseInt(document.getElementById('time-of-day').value, 10));
+    previewStadium.setFogDensity(parseInt(document.getElementById('fog-density').value, 10));
+    previewStadium.setAutoOrbit(autoOrbitOn);
+    previewStadium.loadVenue(initialVenue).then(onPreviewStadiumLoaded);
+    return previewStadium;
   }
 
+  function setActiveStadiumView(view){
+    if(view === 'designer-view') ensureDesignerStadium();
+    if(view === 'preview-view') ensurePreviewStadium();
+    if(designerStadium) designerStadium.setActive(view === 'designer-view');
+    if(previewStadium) previewStadium.setActive(view === 'preview-view');
+  }
+
+  window.addEventListener('resize', function(){
+    if(designerStadium) designerStadium.onResize();
+    if(previewStadium) previewStadium.onResize();
+  });
+
   // init
-  renderVenues('');
+  setActiveStadiumView('designer-view');
   renderLayers();
   renderInspector();
   renderPaintPanel();

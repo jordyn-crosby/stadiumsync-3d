@@ -4,7 +4,6 @@ StadiumSync is a browser-based studio for designing stadium LED light shows. It 
 
 ## Features
 
-- **Venue**: Jordan-Hare Stadium, with capacity, seat LEDs and zones.
 - **Designer**: organize LED layers and zones for the venue, inspect individual zones, and **paint individual seats**. Click paints a seat, Shift-click a row, Alt-click a section; paint groups can be static, pulse, twinkle or random.
 - **Patterns** — build and preview reusable LED patterns with configurable parameters.
 - **Timeline** — sequence patterns into cues across a show timeline.
@@ -61,7 +60,7 @@ Then open [http://localhost:8000](http://localhost:8000) in your browser.
 
 ## Usage
 
-Open the app in your browser and use the sidebar (collapsible to an icon rail) to move between **Venue**, **Patterns**, **Designer**, **Timeline**, **Preview**, and **Export**. Start in the Designer to assign patterns to zones (or paint seats), then build patterns, sequence them on the timeline, and preview the show in 3D before exporting.
+Open the app in your browser and use the sidebar (collapsible to an icon rail) to move between **Designer**, **Patterns**, **Timeline**, **Preview**, and **Export**. The app opens in the Designer, where you assign patterns to zones (or paint seats); then build patterns, sequence them on the timeline, and preview the show in 3D before exporting.
 
 ## Technology
 
