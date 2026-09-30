@@ -1,0 +1,187 @@
+{
+ "presets": [
+  {
+   "name": "Default",
+   "position": [
+    -15.0,
+    25.0,
+    -7.0
+   ],
+   "target": [
+    -0.858,
+    10.858,
+    -7.0
+   ]
+  },
+  {
+   "name": "Section 1 Low",
+   "position": [
+    8.82,
+    2.88,
+    5.64
+   ],
+   "target": [
+    27.432,
+    -0.512,
+    12.127
+   ]
+  },
+  {
+   "name": "Section 3 Low",
+   "position": [
+    8.73,
+    3.0,
+    1.66
+   ],
+   "target": [
+    28.167,
+    -0.441,
+    4.878
+   ]
+  },
+  {
+   "name": "Section 5 Low",
+   "position": [
+    8.97,
+    3.0,
+    -3.96
+   ],
+   "target": [
+    28.656,
+    -0.47,
+    -3.306
+   ]
+  },
+  {
+   "name": "Section 7 Low",
+   "position": [
+    8.97,
+    3.0,
+    -10.02
+   ],
+   "target": [
+    28.666,
+    -0.473,
+    -10.02
+   ]
+  },
+  {
+   "name": "Section 9 Low",
+   "position": [
+    9.0,
+    3.0,
+    -15.7
+   ],
+   "target": [
+    28.549,
+    -0.473,
+    -18.1
+   ]
+  },
+  {
+   "name": "Section 11 Low",
+   "position": [
+    8.58,
+    3.0,
+    -19.45
+   ],
+   "target": [
+    26.968,
+    -0.473,
+    -26.508
+   ]
+  },
+  {
+   "name": "Section 13 Low",
+   "position": [
+    8.58,
+    3.0,
+    -19.45
+   ],
+   "target": [
+    18.724,
+    -0.473,
+    -36.333
+   ]
+  },
+  {
+   "name": "Section 16 Low",
+   "position": [
+    4.15,
+    3.0,
+    -19.45
+   ],
+   "target": [
+    4.494,
+    -0.473,
+    -39.143
+   ]
+  },
+  {
+   "name": "Section 19 Low",
+   "position": [
+    -5.11,
+    3.0,
+    -19.45
+   ],
+   "target": [
+    -4.766,
+    -0.473,
+    -39.143
+   ]
+  },
+  {
+   "name": "Section 22 Low",
+   "position": [
+    -8.53,
+    3.0,
+    -18.48
+   ],
+   "target": [
+    -18.055,
+    -0.473,
+    -35.72
+   ]
+  },
+  {
+   "name": "Section 25 Low",
+   "position": [
+    -8.08,
+    3.0,
+    -18.48
+   ],
+   "target": [
+    -26.935,
+    -0.473,
+    -24.176
+   ]
+  },
+  {
+   "name": "Corner Bird View",
+   "position": [
+    29.859,
+    66.583,
+    -45.01
+   ],
+   "target": [
+    21.686,
+    50.865,
+    -35.728
+   ]
+  }
+ ],
+ "aerial": {
+  "target": [
+   0,
+   0,
+   -6.82
+  ],
+  "distance": 56,
+  "pitchDeg": 45,
+  "yawDegPerSec": 3
+ },
+ "free": {
+  "speed": 20,
+  "fastSpeed": 100
+ }
+}
