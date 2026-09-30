@@ -3424,8 +3424,9 @@
   var initialVenue = venues.find(function(x){ return x.id === currentVenueId; });
   initialVenue.zoneData.forEach(function(z, i){ currentZoneIndexBySlug[zoneSlug(z.name)] = i; });
 
-  function createStadiumFor(canvasId){
+  function createStadiumFor(canvasId, maxFps){
     return window.Stadium3D.createStadium3D(document.getElementById(canvasId), {
+      maxFps: maxFps,
       computeDotBrightness: computeDotBrightness,
       getDotColor: getDotColor
     });
@@ -3433,7 +3434,7 @@
 
   function ensureDesignerStadium(){
     if(designerStadium || !window.Stadium3D) return designerStadium;
-    designerStadium = createStadiumFor('stadium3d-canvas-designer');
+    designerStadium = createStadiumFor('stadium3d-canvas-designer', 30); // editing doesn't need more; Show runs uncapped
     // Every zone animates its assigned pattern continuously, the way the real LEDs would;
     // the selected layer is also brightened via highlightZone() (see applyZoneHighlightStyle).
     designerStadium.onFrame = function(t){

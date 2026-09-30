@@ -139,6 +139,8 @@
     var onFrameHook = null;
     var clock = new THREE.Clock();
     var lastT = 0;
+    // Optional frame-rate cap (opts.maxFps). Displays can run at 120 Hz+; an editing view doesn't need that.
+    var minFrameGap = opts.maxFps ? 1 / opts.maxFps : 0;
 
     var loadingEl = document.createElement('div');
     loadingEl.className = 'stadium3d-loading';
@@ -479,6 +481,7 @@
     function tick(){
       rafId = active ? window.requestAnimationFrame(tick) : null;
       var t = clock.getElapsedTime();
+      if(minFrameGap && t - lastT < minFrameGap - 0.004) return; // too soon; skip the draw, keep lastT so dt accumulates
       var dt = Math.min(0.1, t - lastT);
       lastT = t;
       if(!isVisible()) return; // canvas hidden (e.g. mid view switch) — nothing to draw
