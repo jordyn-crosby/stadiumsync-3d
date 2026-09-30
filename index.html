@@ -3,42 +3,43 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>StadiumSync</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<title>Jordan-Hare Stadium | Light Show Simulation</title>
 <style>
   :root{
-    /* "Night game": Auburn navy chrome so the only saturated light on screen is the LEDs.
-       Auburn orange is the single accent and means "selected" or "act here". */
-    --ink:#0a1424;
-    --accent:#e87722;
-    --accent-soft:rgba(232,119,34,0.14);
-    --accent-line:rgba(232,119,34,0.45);
+    /* Auburn's web palette (auburn.edu): light grey-white surfaces, Auburn navy for text and buttons,
+       Auburn orange as the accent for selection and "act here". The 3D view and LED previews stay dark
+       so the LEDs are the only saturated light on screen. */
+    --auburn-blue:#0b2341;
+    --accent:#e86100;
+    --accent-text:#cc4e0b;
+    --accent-soft:rgba(232,97,0,0.10);
+    --accent-line:rgba(232,97,0,0.55);
 
-    --primary:var(--accent);
-    --primary-dim:#c9661c;
-    --on-primary:#1c0e03;
-    --secondary:var(--accent);
-    --on-secondary:#1c0e03;
-    --tertiary:#8fd3a8;
-    --auburn-blue:#0c2340;
+    --primary:var(--auburn-blue);
+    --primary-dim:#16365f;
+    --on-primary:#ffffff;
+    --secondary:var(--auburn-blue);
+    --on-secondary:#ffffff;
+    --tertiary:#1f7a45;
 
-    --bg:var(--ink);
-    --surface:#0d192c;
-    --surface-low:#0d192c;
-    --surface-container:#111d31;
-    --surface-high:#18263d;
-    --surface-highest:#1f2f49;
+    --ink:#0b2341;
+    --bg:#e7e9ec;
+    --surface:#ffffff;
+    --surface-low:#ffffff;
+    --surface-container:#ffffff;
+    --surface-high:#f3f4f6;
+    --surface-highest:#e7e9ec;
 
-    --on-surface:#e9edf3;
-    --on-surface-variant:#8c9ab0;
-    --outline:#5e6d85;
-    --outline-variant:#24344e;
+    --on-surface:#0b2341;
+    --on-surface-variant:#54657a;
+    --outline:#a1a1a1;
+    --outline-variant:#d5d9de;
 
-    --font-ui:'Barlow', system-ui, sans-serif;
-    --font-mono:'Barlow Semi Condensed', 'Barlow', system-ui, sans-serif;
-    --font-display:'Barlow Semi Condensed', 'Barlow', system-ui, sans-serif;
+    /* auburn.edu's typeface is Sweet Sans Pro (licensed, served from Auburn's Adobe Fonts kit). It is listed first so it
+       is used wherever it is installed; otherwise this falls back to system fonts, so the demo works offline. */
+    --font-ui:'sweet-sans-pro', system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    --font-mono:var(--font-ui);
+    --font-display:var(--font-ui);
 
     --radius-sm:3px;
     --radius:6px;
@@ -46,7 +47,7 @@
     --radius-lg:10px;
     --radius-full:9999px;
 
-    --sidebar-width:232px;
+    --sidebar-width:244px;
     --sidebar-collapsed:64px;
     --toolbar-height:0px;
     --gutter:20px;
@@ -84,21 +85,22 @@
 
   nav.sidebar{
     width:var(--sidebar-width); flex-shrink:0;
-    position:sticky; top:0; height:100vh;
+    position:sticky; top:12px; height:calc(100vh - 24px); margin:12px 0 12px 12px;
     background:var(--surface);
-    border-right:1px solid var(--outline-variant);
+    border:1px solid var(--outline-variant); border-top:3px solid var(--accent); border-radius:var(--radius-lg);
+    box-shadow:0 4px 18px rgba(11,35,65,0.14);
     display:flex; flex-direction:column;
     transition:width .18s ease;
     overflow:hidden;
   }
   .sidebar-head{
-    display:flex; align-items:center; gap:12px;
-    padding:20px 18px 18px; border-bottom:1px solid var(--outline-variant);
+    display:flex; align-items:flex-start; gap:12px;
+    padding:18px 18px 16px; border-bottom:1px solid var(--outline-variant);
   }
   .brand-mark{width:28px; height:28px; flex-shrink:0; color:var(--accent);}
   .brand-text{min-width:0;}
-  .brand-name{font-family:var(--font-display); font-size:18px; font-weight:700; line-height:1.1; color:var(--on-surface);}
-  .project-name{font-size:13px; color:var(--on-surface-variant); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .brand-name{font-family:var(--font-display); font-size:17px; font-weight:700; line-height:1.2; color:var(--on-surface);}
+  .brand-affil{font-size:12px; line-height:1.35; color:var(--on-surface-variant); margin-top:6px;}
 
   .nav-list{list-style:none; margin:0; padding:12px 10px; flex:1;}
   .nav-item{margin-bottom:2px;}
@@ -199,7 +201,7 @@
     width:28px; height:16px; border-radius:var(--radius-full);
     background:var(--outline-variant); position:relative; flex-shrink:0; border:none; padding:0;
   }
-  .layer-toggle.on{background:#5b7fb8;}
+  .layer-toggle.on{background:var(--primary);}
   .layer-toggle::after{
     content:""; position:absolute; top:2px; left:2px; width:12px; height:12px;
     border-radius:50%; background:var(--surface); transition:left .15s ease;
@@ -296,7 +298,7 @@
     border-radius:var(--radius-lg); overflow:hidden; text-align:left;
     display:flex; flex-direction:column; color:var(--on-surface);
   }
-  .pattern-card:hover{border-color:rgba(232,119,34,0.4);}
+  .pattern-card:hover{border-color:rgba(232,97,0,0.4);}
   .pattern-card.selected{border-color:var(--accent); box-shadow:none;}
   .pattern-swatch{height:70px; position:relative; overflow:hidden;}
   .pattern-card-body{padding:12px; display:flex; flex-direction:column; gap:6px;}
@@ -366,7 +368,7 @@
     border:1px solid var(--outline-variant); color:var(--on-surface); font-size:14px;
     line-height:1; display:flex; align-items:center; justify-content:center; padding:0;
   }
-  .zoom-btn:hover{border-color:var(--primary); color:var(--primary);}
+  .zoom-btn:hover{border-color:var(--accent); color:var(--accent-text);}
   .zoom-readout{font-family:var(--font-ui); font-size:13px; color:var(--on-surface-variant); min-width:28px; text-align:center;}
   .timeline-wrap{
     background:var(--surface-container); border:1px solid var(--outline-variant); border-radius:var(--radius-lg);
@@ -387,13 +389,13 @@
     position:sticky; left:0; z-index:1;
   }
   .track-lane{flex:1; position:relative; height:52px; cursor:copy;}
-  .track-lane:hover{background:rgba(232,119,34,0.04);}
-  .playhead{position:absolute; top:0; bottom:0; width:2px; background:var(--primary); z-index:3; pointer-events:none;}
+  .track-lane:hover{background:rgba(232,97,0,0.04);}
+  .playhead{position:absolute; top:0; bottom:0; width:2px; background:var(--accent); z-index:3; pointer-events:none;}
   .cue-block{
     position:absolute; top:8px; height:36px; border-radius:var(--radius);
     cursor:pointer; overflow:hidden; border:1px solid rgba(0,0,0,0.35); background:#050a0a;
   }
-  .cue-block.selected{outline:2px solid var(--primary); outline-offset:1px;}
+  .cue-block.selected{outline:2px solid var(--accent); outline-offset:1px;}
   .cue-dot-grid{
     position:absolute; inset:2px; display:grid;
     grid-template-columns:repeat(var(--cue-cols, 10), 1fr);
@@ -420,13 +422,98 @@
     position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
     z-index:3; display:flex; align-items:center; gap:10px;
     font-family:var(--font-ui); font-size:15px; font-weight:600;
-    color:var(--on-surface); background:rgba(10,20,36,0.8); border:1px solid var(--accent-line);
+    color:var(--on-surface); background:rgba(255,255,255,0.92); border:1px solid var(--accent-line);
     padding:14px 22px; border-radius:var(--radius-full); cursor:pointer; white-space:nowrap;}
   .preview-start-hint:hover{ background:var(--accent-soft); border-color:var(--accent); }
   @keyframes preview-hint-pulse{ 0%,100%{opacity:0.75;} 50%{opacity:1;} }
   @media (prefers-reduced-motion: reduce){
     .preview-start-hint{ animation:none; }
   }
+  /* ===== Preview stage: the 3D view fills the screen and the chrome floats over it ===== */
+  .sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
+  .stage-btn{
+    display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:var(--radius-full);
+    background:rgba(255,255,255,0.92); color:var(--on-surface); border:1px solid var(--outline-variant);
+    font-size:14px; font-weight:600; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  }
+  .stage-btn:hover{border-color:var(--outline);}
+  .stage-btn[aria-pressed="true"]{border-color:var(--accent); background:#fff; color:var(--accent-text);}
+  .stage-btn svg{width:18px; height:18px; flex-shrink:0;}
+  .stage-toolbar{display:none;}
+  .float-panel-head{display:none;}
+
+  #preview-view.active{
+    position:relative; height:100vh; height:100dvh; max-width:none; padding:0; overflow:hidden; background:#070f1c;
+  }
+  #preview-view .view-head{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); margin:0;}
+  #preview-view .preview-layout{position:absolute; inset:0; display:block;}
+  #preview-view .preview-stage{position:absolute; inset:0; min-height:0; border-radius:0;}
+
+  #preview-view .stage-toolbar{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:8px;
+    position:absolute; top:12px; left:12px; right:12px; z-index:15; pointer-events:none;
+  }
+  #preview-view .stage-toolbar > *{pointer-events:auto;}
+  .stage-toolbar-right{display:flex; gap:8px; margin-left:auto;}
+  #stage-menu-btn{visibility:hidden;}
+  .app-shell.nav-hidden #stage-menu-btn{visibility:visible;}
+
+  #preview-view .timeline-transport{
+    position:absolute; left:50%; bottom:16px; transform:translateX(-50%); z-index:15; margin:0; padding:8px 16px;
+    background:rgba(255,255,255,0.92); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    border-radius:var(--radius-full); transition:opacity .25s ease;
+  }
+  #preview-view .timeline-transport .timecode{font-size:20px; min-width:84px;}
+
+  #preview-view .zone-inspector{
+    position:absolute; top:60px; right:12px; bottom:12px; width:300px; max-width:calc(100vw - 96px); z-index:12;
+    border:1px solid var(--outline-variant); border-radius:var(--radius-lg); box-shadow:0 12px 40px rgba(0,0,0,0.45);
+    background:rgba(255,255,255,0.96); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    transition:transform .2s ease, opacity .2s ease, visibility 0s;
+  }
+  .app-shell.settings-hidden #preview-view .zone-inspector{
+    transform:translateX(calc(100% + 24px)); opacity:0; visibility:hidden;
+    transition:transform .2s ease, opacity .2s ease, visibility 0s .2s;
+  }
+  #preview-view .float-panel-head{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;
+    font-family:var(--font-display); font-size:18px; font-weight:600;
+  }
+  .float-close{
+    width:32px; height:32px; border-radius:50%; border:1px solid var(--outline-variant);
+    background:var(--surface-high); color:var(--on-surface); font-size:18px; line-height:1;
+  }
+  .float-close:hover{border-color:var(--outline);}
+
+  /* The navigation sidebar floats over the stage while Preview is open. */
+  .sidebar-hide{display:none;}
+  .app-shell.preview-active nav.sidebar{
+    position:fixed; top:12px; left:12px; bottom:12px; height:auto; margin:0; z-index:30;
+    box-shadow:0 12px 40px rgba(0,0,0,0.45);
+    background:rgba(255,255,255,0.96); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    transition:width .18s ease, transform .2s ease, opacity .2s ease, visibility 0s;
+  }
+  .app-shell.preview-active.nav-hidden nav.sidebar{
+    transform:translateX(calc(-100% - 24px)); opacity:0; visibility:hidden;
+    transition:width .18s ease, transform .2s ease, opacity .2s ease, visibility 0s .2s;
+  }
+  .app-shell.preview-active #sidebar-toggle{display:none;}
+  .app-shell.preview-active .sidebar-hide{display:flex;}
+  /* keep the floating toolbar clear of the open sidebar */
+  .app-shell.preview-active:not(.nav-hidden) #preview-view .stage-toolbar{left:calc(var(--sidebar-width) + 24px);}
+  .app-shell.preview-active.sidebar-collapsed:not(.nav-hidden) #preview-view .stage-toolbar{left:calc(var(--sidebar-collapsed) + 24px);}
+
+  /* Full screen: only the stage, plus the transport and exit button when the pointer moves. */
+  .app-shell.immersive nav.sidebar,
+  .app-shell.immersive #preview-view .zone-inspector,
+  .app-shell.immersive #stage-menu-btn,
+  .app-shell.immersive #stage-settings-btn{display:none;}
+  .app-shell.immersive #preview-view .stage-toolbar,
+  .app-shell.immersive #preview-view .timeline-transport{opacity:0; pointer-events:none; transition:opacity .25s ease;}
+  .app-shell.immersive.ui-awake #preview-view .stage-toolbar,
+  .app-shell.immersive.ui-awake #preview-view .timeline-transport{opacity:1; pointer-events:auto;}
+  .app-shell.immersive.ui-awake #preview-view .stage-toolbar{pointer-events:none;}
+  .app-shell.immersive:not(.ui-awake){cursor:none;}
   .camera-btn-group{display:flex; flex-direction:column; gap:6px;}
   .music-sync-field{margin-top:16px; padding-top:16px; border-top:1px solid var(--outline-variant);}
   .music-file-input{display:none;}
@@ -501,9 +588,9 @@
         <rect x="9" y="11" width="10" height="6" rx="1.2" fill="currentColor" opacity="0.9"/>
       </svg>
       <div class="brand-text">
-        <div class="brand-name">StadiumSync</div>
-        <div class="project-name" id="project-name">Halftime show</div>
-        <div class="project-name">Jordan-Hare Stadium</div>
+        <div class="brand-name">Jordan-Hare Stadium | Light Show Simulation</div>
+        <div class="brand-affil">Samuel Ginn College of Engineering<br>Department of Computer Science and Software Engineering</div>
+        <span id="project-name" hidden>Halftime show</span>
       </div>
     </div>
 <ul class="nav-list">
@@ -539,6 +626,10 @@
       </li>
     </ul>
     <div class="sidebar-foot">
+      <button type="button" class="sidebar-toggle sidebar-hide" id="sidebar-hide" title="Hide menu">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        <span class="nav-label">Hide menu</span>
+      </button>
       <button type="button" class="sidebar-toggle" id="sidebar-toggle" aria-controls="sidebar" aria-expanded="true" title="Collapse sidebar">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9 4.5v15"/><path d="M15 10l-2 2 2 2"/></svg>
         <span class="nav-label">Collapse</span>
@@ -735,6 +826,23 @@
         <p>Play the timeline on the stadium, with music if you have it. <span id="preview-venue-name" hidden>Jordan-Hare Stadium</span></p>
       </div>
 
+      <div class="stage-toolbar">
+        <button type="button" class="stage-btn" id="stage-menu-btn" title="Show menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          Menu
+        </button>
+        <div class="stage-toolbar-right">
+          <button type="button" class="stage-btn" id="stage-settings-btn" aria-pressed="true" title="Show or hide settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+            Settings
+          </button>
+          <button type="button" class="stage-btn" id="stage-fullscreen-btn" title="Full screen (F)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+            <span id="stage-fullscreen-label">Full screen</span>
+          </button>
+        </div>
+      </div>
+
       <div class="timeline-transport">
         <button class="transport-btn" id="preview-rewind" aria-label="Hold to rewind">
           <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><polygon points="12,5 3,12 12,19"/><polygon points="21,5 12,12 21,19"/></svg>
@@ -775,7 +883,8 @@
           </button>
         </div>
 
-        <div class="panel zone-inspector" aria-label="Preview settings">
+        <div class="panel zone-inspector" id="preview-settings" aria-label="Preview settings">
+          <div class="float-panel-head"><span>Settings</span><button type="button" class="float-close" id="preview-settings-close" aria-label="Hide settings" title="Hide settings">&times;</button></div>
           <h3>Camera</h3>
           <div class="field">
             <label>Mode</label>
@@ -997,7 +1106,7 @@
     }
 
     var pat = findPatternByName(zone.pattern);
-    if(!pat){ target.style.stroke = 'var(--primary)'; return; }
+    if(!pat){ target.style.stroke = 'var(--accent)'; return; }
 
     // Inline style, not setAttribute: SVG presentation attributes lose to
     // stylesheet rules in the CSS cascade, so setAttribute('fill', ...) here
@@ -2296,7 +2405,7 @@
     globalHead.style.bottom = '0';
     globalHead.style.left = (140 + playheadSeconds * PX_PER_SEC) + 'px';
     globalHead.style.width = '2px';
-    globalHead.style.background = 'var(--primary)';
+    globalHead.style.background = 'var(--accent)';
     globalHead.style.pointerEvents = 'none';
     globalHead.style.zIndex = '3';
     document.getElementById('timeline-wrap').style.position = 'relative';
@@ -3297,7 +3406,73 @@
     return previewStadium;
   }
 
+  // Preview stage: the menu and settings float over the 3D view and can be hidden; Full screen
+  // hides everything but the transport (which fades back in when the pointer moves).
+  var stageUI = (function(){
+    var shell = document.getElementById('app-shell');
+    var settingsBtn = document.getElementById('stage-settings-btn');
+    var fsBtn = document.getElementById('stage-fullscreen-btn');
+    var fsLabel = document.getElementById('stage-fullscreen-label');
+    var wakeTimer = null;
+    function resizeSoon(){ requestAnimationFrame(function(){ window.dispatchEvent(new Event('resize')); }); }
+    function setNavHidden(hidden){ shell.classList.toggle('nav-hidden', hidden); }
+    function setSettingsHidden(hidden){
+      shell.classList.toggle('settings-hidden', hidden);
+      settingsBtn.setAttribute('aria-pressed', String(!hidden));
+    }
+    function isImmersive(){ return shell.classList.contains('immersive'); }
+    function wake(){
+      shell.classList.add('ui-awake');
+      clearTimeout(wakeTimer);
+      wakeTimer = setTimeout(function(){ shell.classList.remove('ui-awake'); }, 2500);
+    }
+    function setImmersive(on){
+      if(on === isImmersive()) return;
+      shell.classList.toggle('immersive', on);
+      fsLabel.textContent = on ? 'Exit full screen' : 'Full screen';
+      fsBtn.title = on ? 'Exit full screen (F or Esc)' : 'Full screen (F)';
+      clearTimeout(wakeTimer);
+      if(on) wake(); else shell.classList.remove('ui-awake');
+      resizeSoon();
+    }
+    function enterFullscreen(){
+      setImmersive(true);
+      var el = document.documentElement;
+      if(el.requestFullscreen){ el.requestFullscreen().catch(function(){}); }
+    }
+    function exitFullscreen(){
+      setImmersive(false);
+      if(document.fullscreenElement && document.exitFullscreen){ document.exitFullscreen().catch(function(){}); }
+    }
+    function toggleFullscreen(){ if(isImmersive()) exitFullscreen(); else enterFullscreen(); }
+
+    document.getElementById('stage-menu-btn').addEventListener('click', function(){ setNavHidden(false); });
+    document.getElementById('sidebar-hide').addEventListener('click', function(){ setNavHidden(true); });
+    settingsBtn.addEventListener('click', function(){ setSettingsHidden(!shell.classList.contains('settings-hidden')); });
+    document.getElementById('preview-settings-close').addEventListener('click', function(){ setSettingsHidden(true); });
+    fsBtn.addEventListener('click', toggleFullscreen);
+    document.getElementById('preview-view').addEventListener('pointermove', function(){ if(isImmersive()) wake(); });
+    // Esc (or the browser's own exit) leaves native full screen; mirror that in the layout.
+    document.addEventListener('fullscreenchange', function(){ if(!document.fullscreenElement) setImmersive(false); });
+    document.addEventListener('keydown', function(e){
+      if(!shell.classList.contains('preview-active') || e.ctrlKey || e.metaKey || e.altKey) return;
+      var tag = (e.target && e.target.tagName) || '';
+      if(tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+      if(e.key === 'f' || e.key === 'F'){ toggleFullscreen(); }
+      else if(e.key === 'Escape' && isImmersive()){ exitFullscreen(); }
+      if(isImmersive()) wake();
+    });
+    return {
+      setPreviewActive: function(on){
+        shell.classList.toggle('preview-active', on);
+        if(!on) exitFullscreen();
+        resizeSoon();
+      }
+    };
+  })();
+
   function setActiveStadiumView(view){
+    stageUI.setPreviewActive(view === 'preview-view');
     if(view === 'designer-view') ensureDesignerStadium();
     if(view === 'preview-view') ensurePreviewStadium();
     if(designerStadium) designerStadium.setActive(view === 'designer-view');
