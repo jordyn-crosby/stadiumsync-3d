@@ -1,0 +1,42 @@
+{
+  "_comment": [
+    "Assigns each of the 84 Unity sections to one of Jordan-Hare's 12 zones (the Designer layers).",
+    "theta is the angle (degrees) of a section's centroid around the field centre in web (three.js)",
+    "coordinates: 0 = +x (east sideline), 90 = +z (north end), +/-180 = west, -90 = south.",
+    "Rules are tried in order; the first whose deck matches and whose [thetaMin, thetaMax] contains",
+    "theta wins. A rule without thetaMin/thetaMax matches any angle. Edit and re-run",
+    "tools/build_web_assets.py to regroup."
+  ],
+  "compass": { "east": "+x", "north": "+z" },
+  "rules": [
+    { "zone": "Student Section",              "deck": "Lower Deck", "thetaMin": -120, "thetaMax": -60 },
+    { "zone": "Lower Bowl - South",           "deck": "Lower Deck", "thetaMin": -140, "thetaMax": -40 },
+    { "zone": "Lower Bowl - North",           "deck": "Lower Deck", "thetaMin": 40,   "thetaMax": 140 },
+    { "zone": "Lower Bowl - East (Sideline)", "deck": "Lower Deck", "thetaMin": -40,  "thetaMax": 40 },
+    { "zone": "Lower Bowl - West (Sideline)", "deck": "Lower Deck" },
+
+    { "zone": "North End Zone",               "deck": "Upper Deck", "thetaMin": 60,   "thetaMax": 120 },
+    { "zone": "South End Zone",               "deck": "Upper Deck", "thetaMin": -120, "thetaMax": -60 },
+    { "zone": "Upper Deck - North",           "deck": "Upper Deck", "thetaMin": 25,   "thetaMax": 155 },
+    { "zone": "Upper Deck - South",           "deck": "Upper Deck", "thetaMin": -155, "thetaMax": -25 },
+    { "zone": "Upper Deck - East",            "deck": "Upper Deck", "thetaMin": -25,  "thetaMax": 25 },
+    { "zone": "Tiger Suites (Press Level)",   "deck": "Upper Deck" },
+
+    { "zone": "Upper Deck - East",            "deck": "Top Deck",   "thetaMin": -90,  "thetaMax": 90 },
+    { "zone": "Upper Deck - West",            "deck": "Top Deck" }
+  ],
+  "zoneOrder": [
+    "Student Section",
+    "Lower Bowl - North",
+    "Lower Bowl - South",
+    "Lower Bowl - East (Sideline)",
+    "Lower Bowl - West (Sideline)",
+    "Upper Deck - North",
+    "Upper Deck - South",
+    "Upper Deck - East",
+    "Upper Deck - West",
+    "North End Zone",
+    "South End Zone",
+    "Tiger Suites (Press Level)"
+  ]
+}

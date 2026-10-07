@@ -3,45 +3,54 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>StadiumSync // Studio 3D</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<title>Jordan-Hare Stadium | Light Show Simulation</title>
 <style>
   :root{
-    /* Verified DESIGN.md tokens */
-    --primary:#00f0ff;
-    --primary-dim:#00dbe9;
-    --on-primary:#00363d;
-    --secondary:#e86100; /* Auburn Orange - reserved for Auburn-specific content */
-    --on-secondary:#4d1600;
-    --tertiary:#99ff00;
+    /* Auburn's web palette (auburn.edu): light grey-white surfaces, Auburn navy for text and buttons,
+       Auburn orange as the accent for selection and "act here". The 3D view and LED previews stay dark
+       so the LEDs are the only saturated light on screen. */
     --auburn-blue:#0b2341;
+    --accent:#e86100;
+    --accent-text:#cc4e0b;
+    --accent-soft:rgba(232,97,0,0.10);
+    --accent-line:rgba(232,97,0,0.55);
 
-    --bg:#0d1515;
-    --surface:#131313;
-    --surface-low:#1c1b1b;
-    --surface-container:#201f1f;
-    --surface-high:#2a2a2a;
-    --surface-highest:#353534;
+    --primary:var(--auburn-blue);
+    --primary-dim:#16365f;
+    --on-primary:#ffffff;
+    --secondary:var(--auburn-blue);
+    --on-secondary:#ffffff;
+    --tertiary:#1f7a45;
 
-    --on-surface:#00f0ff;
-    --on-surface-variant:#7fd6de;
-    --outline:#5c5a5a;
-    --outline-variant:#3b3a3a;
+    --ink:#0b2341;
+    --bg:#e7e9ec;
+    --surface:#ffffff;
+    --surface-low:#ffffff;
+    --surface-container:#ffffff;
+    --surface-high:#f3f4f6;
+    --surface-highest:#e7e9ec;
 
-    --font-ui:'Inter', sans-serif;
-    --font-mono:'JetBrains Mono', monospace;
+    --on-surface:#0b2341;
+    --on-surface-variant:#54657a;
+    --outline:#a1a1a1;
+    --outline-variant:#d5d9de;
 
-    --radius-sm:0.125rem;
-    --radius:0.25rem;
-    --radius-md:0.375rem;
-    --radius-lg:0.5rem;
+    /* auburn.edu's typeface is Sweet Sans Pro (licensed, served from Auburn's Adobe Fonts kit). It is listed first so it
+       is used wherever it is installed; otherwise this falls back to system fonts, so the demo works offline. */
+    --font-ui:'sweet-sans-pro', system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    --font-mono:var(--font-ui);
+    --font-display:var(--font-ui);
+
+    --radius-sm:3px;
+    --radius:6px;
+    --radius-md:6px;
+    --radius-lg:10px;
     --radius-full:9999px;
 
-    --sidebar-width:280px;
-    --toolbar-height:64px;
-    --gutter:24px;
+    --sidebar-width:244px;
+    --sidebar-collapsed:64px;
+    --toolbar-height:0px;
+    --gutter:20px;
     --space-sm:16px;
     --space-lg:32px;
   }
@@ -52,10 +61,9 @@
     background:var(--bg);
     color:var(--on-surface);
     font-family:var(--font-ui);
-    font-size:14px;
+    font-size:15px;
     line-height:1.5;
-    min-height:100vh;
-  }
+    min-height:100vh; font-variant-numeric:tabular-nums; accent-color:var(--accent);}
   h1,h2,h3{margin:0;}
   button{font-family:inherit;cursor:pointer;}
   input{font-family:inherit;}
@@ -72,106 +80,63 @@
     outline-offset:2px;
   }
 
-  /* ===== Header ===== */
-  header.app-header{
-    height:var(--toolbar-height);
-    display:flex; align-items:center; justify-content:space-between;
-    padding:0 var(--space-sm);
-    background:rgba(19,19,19,0.9);
-    backdrop-filter:blur(12px);
-    border-bottom:1px solid var(--outline-variant);
-    position:sticky; top:0; z-index:20;
-  }
-  .brand{display:flex; align-items:center; gap:12px;}
-  .brand-mark{
-    width:32px;height:32px;border-radius:var(--radius-md);
-    background:linear-gradient(135deg,var(--primary),var(--primary-dim));
-    display:flex;align-items:center;justify-content:center;
-    color:var(--surface); font-weight:700; font-size:14px;
-  }
-  .brand h1{
-    font-size:16px; font-weight:700; letter-spacing:0.08em;
-    color:var(--primary); text-transform:uppercase;
-  }
-  .header-right{display:flex; align-items:center; gap:16px;}
-  .status-badge{
-    display:inline-flex; align-items:center; gap:6px;
-    font-family:var(--font-mono); font-size:11px; font-weight:700;
-    letter-spacing:0.08em; text-transform:uppercase;
-    padding:6px 12px; border-radius:var(--radius-full);
-    background:rgba(0,240,255,0.08); color:var(--primary);
-    border:1px solid rgba(0,240,255,0.25);
-  }
-  .status-badge .dot{
-    width:6px;height:6px;border-radius:50%;background:var(--primary);
-  }
-
   /* ===== Shell layout ===== */
-  .app-shell{display:flex; min-height:calc(100vh - var(--toolbar-height));}
+  .app-shell{display:flex; min-height:100vh;}
 
   nav.sidebar{
     width:var(--sidebar-width); flex-shrink:0;
-    background:var(--surface-low);
-    border-right:1px solid var(--outline-variant);
+    position:sticky; top:12px; height:calc(100vh - 24px); margin:12px 0 12px 12px;
+    background:var(--surface);
+    border:1px solid var(--outline-variant); border-top:3px solid var(--accent); border-radius:var(--radius-lg);
+    box-shadow:0 4px 18px rgba(11,35,65,0.14);
     display:flex; flex-direction:column;
-    padding:var(--space-sm) 0;
+    transition:width .18s ease;
+    overflow:hidden;
   }
-  .project-id{
-    padding:0 var(--space-sm) var(--space-sm);
-    border-bottom:1px solid var(--outline-variant);
-    margin-bottom:8px;
+  .sidebar-head{
+    display:flex; align-items:flex-start; gap:12px;
+    padding:18px 18px 16px; border-bottom:1px solid var(--outline-variant);
   }
-  .project-id .name{
-    font-family:var(--font-mono); font-weight:700; font-size:13px;
-    color:var(--on-surface); text-transform:uppercase; letter-spacing:0.03em;
-  }
-  .project-id .sub{
-    font-family:var(--font-mono); font-size:10px;
-    color:var(--on-surface-variant); letter-spacing:0.05em; margin-top:2px;
-  }
+    .brand-text{min-width:0;}
+  .brand-name{font-family:var(--font-display); font-size:17px; font-weight:700; line-height:1.2; color:var(--on-surface);}
+  .brand-affil{font-size:14px; line-height:1.3; color:var(--on-surface-variant); margin-top:2px;}
 
-  .nav-list{list-style:none; margin:0; padding:8px;}
+  .nav-list{list-style:none; margin:0; padding:12px 10px; flex:1;}
   .nav-item{margin-bottom:2px;}
-  .nav-link{
+  .nav-item-lead{margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--outline-variant);}
+  .nav-link, .sidebar-toggle{
     display:flex; align-items:center; gap:12px;
-    width:100%; text-align:left;
-    background:none; border:none; border-left:3px solid transparent;
+    width:100%; text-align:left; white-space:nowrap;
+    background:none; border:none; border-radius:var(--radius);
     color:var(--on-surface-variant);
-    font-family:var(--font-mono); font-size:12px; letter-spacing:0.05em; text-transform:uppercase;
-    padding:11px 13px; border-radius:0 var(--radius) var(--radius) 0;
+    font-size:15px; font-weight:500;
+    padding:9px 12px;
   }
-  .nav-link:hover:not([disabled]){background:var(--surface-container); color:var(--on-surface);}
-  .nav-link[aria-current="page"]{
-    background:rgba(232,97,0,0.12);
-    border-left-color:var(--secondary);
-    color:var(--secondary);
-    font-weight:700;
-  }
-  .nav-link[disabled]{opacity:0.55; cursor:not-allowed; justify-content:space-between;}
-  .soon-tag{
-    font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:0.06em;
-    text-transform:uppercase; padding:2px 7px; border-radius:var(--radius-full);
-    background:var(--surface-high); color:var(--outline); margin-left:auto;
-  }
-  .nav-icon{width:16px; height:16px; flex-shrink:0;}
+  .nav-link:hover, .sidebar-toggle:hover{background:var(--surface-high); color:var(--on-surface);}
+  .nav-link[aria-current="page"]{background:var(--accent-soft); color:var(--on-surface);}
+  .nav-link[aria-current="page"] .nav-icon{color:var(--accent);}
+  .nav-icon{width:20px; height:20px; flex-shrink:0;}
+  .sidebar-foot{padding:10px; border-top:1px solid var(--outline-variant);}
+  .sidebar-toggle .nav-icon{transition:transform .18s ease;}
 
-  .nav-footer{margin-top:auto; padding:var(--space-sm); border-top:1px solid var(--outline-variant);}
-  .nav-footer p{
-    font-family:var(--font-mono); font-size:10px; color:var(--outline);
-    letter-spacing:0.04em; line-height:1.6;
-  }
+  .app-shell.sidebar-collapsed nav.sidebar{width:var(--sidebar-collapsed);}
+  .app-shell.sidebar-collapsed .brand-text,
+  .app-shell.sidebar-collapsed .nav-label{display:none;}
+  .app-shell.sidebar-collapsed .sidebar-head{display:none;}
+  .app-shell.sidebar-collapsed .sidebar-toggle .nav-icon{transform:scaleX(-1);}
 
   main{flex:1; min-width:0;}
-  section.view{display:none; padding:var(--space-lg);}
+  section.view{display:none; padding:28px var(--space-lg) var(--space-lg); max-width:1600px;}
   section.view.active{display:block;}
 
-  .view-head{margin-bottom:var(--space-lg);}
+  .view-head{margin-bottom:24px;}
   .view-head h2{
-    font-size:22px; font-weight:700; color:var(--on-surface); margin-bottom:6px;
+    font-family:var(--font-display); font-size:30px; font-weight:600; line-height:1.15;
+    color:var(--on-surface); margin-bottom:4px;
   }
-  .view-head p{color:var(--on-surface-variant); font-size:13px;}
+  .view-head p{color:var(--on-surface-variant); font-size:15px; max-width:70ch; margin:0;}
 
-  /* ===== Venue Selector ===== */
+  /* ===== Shared controls ===== */
   .toolbar-row{
     display:flex; gap:16px; align-items:center; margin-bottom:var(--space-lg);
   }
@@ -181,66 +146,21 @@
   .search-field input{
     width:100%; background:var(--surface-container); border:1px solid var(--outline-variant);
     border-radius:var(--radius); padding:10px 14px 10px 38px;
-    color:var(--on-surface); font-size:13px;
+    color:var(--on-surface); font-size:14px;
   }
   .search-field input::placeholder{color:var(--outline);}
   .search-field svg{position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--outline);}
-
-  .venue-grid{
-    display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
-    gap:var(--gutter);
-  }
-  .venue-card{
-    background:var(--surface-container);
-    border:1px solid var(--outline-variant);
-    border-radius:var(--radius-lg);
-    overflow:hidden;
-    display:flex; flex-direction:column;
-    transition:border-color .15s ease;
-    cursor:pointer;
-  }
-  .venue-card:hover{border-color:rgba(0,240,255,0.4);}
-  .venue-card.is-current{border-color:var(--primary); box-shadow:0 0 0 1px var(--primary);}
-  .venue-thumb{
-    height:130px; background:var(--surface-high);
-    display:flex; align-items:center; justify-content:center;
-    position:relative;
-  }
-  .venue-thumb svg{width:100%; height:100%;}
-  .venue-badge{
-    position:absolute; top:10px; right:10px;
-    font-family:var(--font-mono); font-size:10px; font-weight:700;
-    letter-spacing:0.06em; text-transform:uppercase;
-    padding:4px 9px; border-radius:var(--radius-full);
-    background:rgba(0,240,255,0.15); color:var(--primary);
-    border:1px solid rgba(0,240,255,0.3);
-  }
-  .venue-body{padding:16px; display:flex; flex-direction:column; gap:12px; flex:1;}
-  .venue-name{font-size:16px; font-weight:700; color:var(--on-surface);}
-  .venue-loc{font-size:12px; color:var(--on-surface-variant); margin-top:2px;}
-  .venue-stats{display:flex; gap:20px;}
-  .venue-stat .label{
-    font-family:var(--font-mono); font-size:9px; color:var(--outline);
-    text-transform:uppercase; letter-spacing:0.08em; display:block; margin-bottom:2px;
-  }
-  .venue-stat .value{font-family:var(--font-mono); font-size:13px; font-weight:700; color:var(--on-surface);}
-  .venue-actions{margin-top:auto;}
   .btn{
-    width:100%; padding:10px; border-radius:var(--radius);
-    font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase;
-    border:1px solid var(--outline-variant); background:transparent; color:var(--on-surface-variant);
+    width:100%; padding:9px 12px; border-radius:var(--radius);
+    font-size:14px; font-weight:600;
+    border:1px solid var(--outline-variant); background:var(--surface-high); color:var(--on-surface);
   }
-  .btn:hover{border-color:var(--primary); color:var(--primary);}
-  .btn.btn-current{border-color:var(--primary); color:var(--primary); background:rgba(0,240,255,0.08); cursor:default;}
-  .venue-card.import{
-    align-items:center; justify-content:center; text-align:center; gap:10px;
-    border-style:dashed; background:transparent; padding:32px 16px; min-height:100%;
-  }
+  .btn:hover{border-color:var(--outline); color:var(--on-surface);}
+  .btn.btn-current{border-color:var(--accent-line); color:var(--on-surface); background:var(--accent-soft); cursor:default;}
   .import-icon{
     width:44px; height:44px; border-radius:50%; background:var(--surface-high);
     display:flex; align-items:center; justify-content:center; color:var(--on-surface-variant); font-size:22px;
   }
-  .import-formats{font-family:var(--font-mono); font-size:10px; color:var(--outline);}
 
   .sr-only{
     position:absolute; width:1px; height:1px; padding:0; margin:-1px;
@@ -248,11 +168,10 @@
   }
   [role="status"].toast{
     position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
-    background:var(--surface-high); border:1px solid var(--primary);
+    background:var(--surface-high); border:1px solid var(--outline-variant);
     color:var(--on-surface); padding:10px 20px; border-radius:var(--radius);
-    font-size:13px; opacity:0; pointer-events:none; transition:opacity .2s ease;
-    font-family:var(--font-mono);
-  }
+    font-size:14px; opacity:0; pointer-events:none; transition:opacity .2s ease;
+    font-family:var(--font-ui); box-shadow:0 8px 24px rgba(0,0,0,0.35);}
   [role="status"].toast.show{opacity:1;}
 
   /* ===== Show Designer ===== */
@@ -266,10 +185,9 @@
     overflow:hidden;
     min-height:560px;
   }
-  .panel{background:var(--surface-container); padding:var(--space-sm); overflow-y:auto;}
+  .panel{background:var(--surface-container); padding:18px; overflow-y:auto;}
   .panel h3{
-    font-family:var(--font-mono); font-size:11px; font-weight:700;
-    letter-spacing:0.08em; text-transform:uppercase; color:var(--on-surface-variant);
+    font-family:var(--font-ui); font-size:16px; font-weight:600;  color:var(--on-surface);
     margin-bottom:14px;
   }
   .layer-row{
@@ -278,7 +196,7 @@
     border:1px solid transparent; margin-bottom:6px;
   }
   .layer-row:hover{background:var(--surface-high);}
-  .layer-row.selected{border-color:var(--secondary); background:rgba(232,97,0,0.1);}
+  .layer-row.selected{border-color:var(--accent-line); background:var(--accent-soft);}
   .layer-toggle{
     width:28px; height:16px; border-radius:var(--radius-full);
     background:var(--outline-variant); position:relative; flex-shrink:0; border:none; padding:0;
@@ -288,28 +206,33 @@
     content:""; position:absolute; top:2px; left:2px; width:12px; height:12px;
     border-radius:50%; background:var(--surface); transition:left .15s ease;
   }
-  .layer-toggle.on::after{left:14px; background:var(--on-primary);}
+  .layer-toggle.on::after{left:14px; background:#fff;}
   .layer-select{
     flex:1; min-width:0; text-align:left; background:none; border:none;
     color:var(--on-surface); padding:4px 0;
   }
-  .layer-name{font-size:13px; font-weight:600; display:block;}
-  .layer-nodes{font-family:var(--font-mono); font-size:10px; color:var(--on-surface-variant); display:block;}
+  .layer-name{font-size:14px; font-weight:500; display:block;}
+  .layer-nodes{font-family:var(--font-ui); font-size:12px; color:var(--on-surface-variant); display:block;}
 
   .canvas-panel{
     display:flex; flex-direction:column; align-items:center; justify-content:center;
-    position:relative; background:radial-gradient(ellipse at center, #16201f 0%, var(--surface-container) 75%);
+    position:relative; background:#070f1c;
   }
   .preview-flag{
     position:absolute; top:16px; left:16px; z-index:2;
     display:flex; align-items:center; gap:6px;
-    font-family:var(--font-mono); font-size:11px; font-weight:700; letter-spacing:0.05em;
-    color:var(--tertiary); text-transform:uppercase;
+    font-family:var(--font-mono); font-size:11px; font-weight:700;
+    color:var(--tertiary); 
   }
   .preview-flag .dot{width:6px;height:6px;border-radius:50%;background:var(--tertiary);}
   .stadium-svg{width:80%; max-width:420px;}
   .schematic-source{display:none;}
   .stadium3d-canvas{position:absolute; inset:0; width:100%; height:100%; display:block; outline:none; z-index:0;}
+  .stadium3d-loading{
+    position:absolute; inset:0; z-index:1; display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-ui); font-size:14px; 
+    color:var(--on-surface-variant); background:var(--bg); pointer-events:none;
+  }
   .schematic-fallback{
     text-align:center; color:var(--on-surface-variant); font-size:12px; padding:20px;
   }
@@ -324,16 +247,14 @@
 
   .zone-inspector .field{margin-bottom:20px;}
   .zone-inspector label{
-    display:block; font-family:var(--font-mono); font-size:10px; color:var(--outline);
-    text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;
-  }
-  .target-zone-name{font-size:16px; font-weight:700; color:var(--on-surface);}
+    display:block; font-family:var(--font-ui); font-size:13px; color:var(--on-surface-variant); margin-bottom:6px; font-weight:500;}
+  .target-zone-name{font-size:22px; font-weight:600; color:var(--on-surface); font-family:var(--font-display);}
   .pattern-row{display:flex; align-items:center; justify-content:space-between; gap:8px;}
-  .pattern-name{font-size:14px; font-weight:600; color:var(--on-surface);}
+  .pattern-name{font-size:15px; font-weight:500; color:var(--on-surface);}
   .pill{
-    font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:0.06em;
-    text-transform:uppercase; padding:3px 8px; border-radius:var(--radius-full);
-    background:rgba(153,255,0,0.12); color:var(--tertiary); border:1px solid rgba(153,255,0,0.3);
+    font-family:var(--font-ui); font-size:12px; font-weight:600;
+     padding:3px 8px; border-radius:var(--radius-full);
+    background:rgba(143,211,168,0.12); color:var(--tertiary); border:1px solid rgba(143,211,168,0.3);
   }
   .color-swatch-row{display:flex; align-items:center; gap:10px;}
   .color-swatch{width:22px; height:22px; border-radius:var(--radius-sm); border:1px solid var(--outline-variant); flex-shrink:0;}
@@ -341,17 +262,17 @@
     width:30px; height:30px; border-radius:var(--radius-sm); border:1px solid var(--outline-variant);
     flex-shrink:0; padding:2px; background:var(--surface-high); cursor:pointer;
   }
-  .color-hex{font-family:var(--font-mono); font-size:12px; color:var(--on-surface-variant);}
+  .color-hex{font-family:var(--font-ui); font-size:13px; color:var(--on-surface-variant);}
 
   .slider-field .slider-head{display:flex; justify-content:space-between; align-items:baseline;}
-  .slider-value{font-family:var(--font-mono); font-size:12px; color:var(--primary); font-weight:700;}
+  .slider-value{font-family:var(--font-ui); font-size:14px; color:var(--on-surface); font-weight:600;}
   input[type="range"]{
     width:100%; -webkit-appearance:none; appearance:none;
     height:3px; background:var(--outline-variant); border-radius:var(--radius-full); margin-top:8px;
   }
   input[type="range"]::-webkit-slider-thumb{
-    -webkit-appearance:none; width:14px; height:14px; border-radius:50%;
-    background:var(--primary); cursor:pointer; border:2px solid var(--surface);
+    -webkit-appearance:none; width:16px; height:16px; border-radius:50%;
+    background:var(--primary); cursor:pointer; border:2px solid var(--ink);
   }
   input[type="range"]::-moz-range-thumb{
     width:14px; height:14px; border-radius:50%; background:var(--primary); border:2px solid var(--surface); cursor:pointer;
@@ -359,8 +280,9 @@
 
   @media (max-width:900px){
     .designer-grid{grid-template-columns:1fr;}
-    nav.sidebar{position:fixed; left:0; top:var(--toolbar-height); bottom:0; transform:translateX(-100%); transition:transform .2s ease; z-index:30;}
-    nav.sidebar.open{transform:translateX(0);}
+    nav.sidebar{width:var(--sidebar-collapsed);}
+    .brand-text, .nav-label, .sidebar-foot{display:none;}
+    section.view{padding:20px 16px;}
   }
   @media (prefers-reduced-motion: reduce){
     *{transition:none !important;}
@@ -376,14 +298,14 @@
     border-radius:var(--radius-lg); overflow:hidden; text-align:left;
     display:flex; flex-direction:column; color:var(--on-surface);
   }
-  .pattern-card:hover{border-color:rgba(0,240,255,0.4);}
-  .pattern-card.selected{border-color:var(--secondary); box-shadow:0 0 0 1px var(--secondary);}
+  .pattern-card:hover{border-color:rgba(232,97,0,0.4);}
+  .pattern-card.selected{border-color:var(--accent); box-shadow:none;}
   .pattern-swatch{height:70px; position:relative; overflow:hidden;}
   .pattern-card-body{padding:12px; display:flex; flex-direction:column; gap:6px;}
-  .pattern-card-name{font-weight:700; font-size:13px;}
+  .pattern-card-name{font-weight:600; font-size:15px;}
   .pattern-tags{display:flex; gap:6px; flex-wrap:wrap;}
   .pattern-tag{
-    font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:0.05em;
+    font-family:var(--font-ui); font-size:12px;
     padding:2px 7px; border-radius:var(--radius-full); background:var(--surface-high); color:var(--on-surface-variant);
   }
   .pattern-card.new-pattern{
@@ -404,25 +326,24 @@
   .zone-led-block{ margin-bottom:10px; }
   .zone-led-block:last-child{ margin-bottom:0; }
   .zone-led-label{
-    font-family:var(--font-mono); font-size:9px; color:var(--on-surface-variant);
-    text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;
+    font-family:var(--font-ui); font-size:12px; color:var(--on-surface-variant); margin-bottom:4px;
   }
   .zone-led-matrix{ grid-template-rows:repeat(3, 1fr); height:34px; }
   .apply-venue-range-row{display:flex; gap:10px;}
   .apply-venue-range-field{flex:1; display:flex; flex-direction:column; gap:4px;}
-  .apply-venue-range-field label{font-size:11px; color:var(--on-surface-variant);}
-  .apply-venue-range-field input{width:100%; background:rgba(5,10,10,0.6); border:1px solid rgba(0,240,255,0.2); color:var(--primary); border-radius:4px; padding:6px 8px; font-family:inherit;}
+  .apply-venue-range-field label{font-size:13px; color:var(--on-surface-variant);}
+  .apply-venue-range-field input{width:100%; background:var(--surface-high); border:1px solid var(--outline-variant); color:var(--on-surface); border-radius:var(--radius); padding:8px 10px; font-family:inherit;}
   .zone-test-picker{
     max-height:150px; overflow-y:auto; border:1px solid var(--outline-variant); border-radius:var(--radius);
     background:var(--surface-high);
   }
-  .zone-check-row{ margin-top:0; border-radius:0; border:none; border-bottom:1px solid var(--outline-variant); }
+  .zone-check-row{ margin-top:0; border-radius:0; border:none; border-bottom:1px solid var(--outline-variant); background:transparent;}
   .zone-check-row:last-child{ border-bottom:none; }
   .pattern-schematic-wrap{ margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--outline-variant); }
   .pattern-schematic-svg{ width:100%; max-width:380px; display:block; margin:4px auto 0; }
   .svg-led-dot{ fill:rgba(255,255,255,0.05); }
   .led-dot{
-    border-radius:50%; background:#00f0ff; opacity:0.08;
+    border-radius:50%; background:#ffffff; opacity:0.08;
   }
   @media (prefers-reduced-motion: reduce){
     .led-dot{ transition:none !important; }
@@ -434,21 +355,21 @@
     background:var(--surface-container); border-radius:var(--radius-lg); border:1px solid var(--outline-variant);
   }
   .transport-btn{
-    width:32px; height:32px; border-radius:50%; background:var(--surface-high); border:1px solid var(--outline-variant);
+    width:36px; height:36px; border-radius:50%; background:var(--surface-high); border:1px solid var(--outline-variant);
     color:var(--on-surface); display:flex; align-items:center; justify-content:center;
   }
-  .transport-btn:hover{border-color:var(--primary); color:var(--primary);}
+  .transport-btn:hover{border-color:var(--outline); color:var(--on-surface);}
   #tl-play.playing{background:var(--primary); color:var(--on-primary);}
-  .timecode{font-family:var(--font-mono); font-size:16px; font-weight:700; color:var(--primary); min-width:88px;}
-  .timeline-hint{font-size:11px; color:var(--on-surface-variant); margin-left:auto;}
+  .timecode{font-family:var(--font-display); font-size:22px; font-weight:600; color:var(--on-surface); min-width:100px;}
+  .timeline-hint{font-size:13px; color:var(--on-surface-variant); margin-left:auto;}
   .timeline-zoom{display:flex; align-items:center; gap:6px; margin-left:16px;}
   .zoom-btn{
     width:22px; height:22px; border-radius:50%; background:var(--surface-high);
     border:1px solid var(--outline-variant); color:var(--on-surface); font-size:14px;
     line-height:1; display:flex; align-items:center; justify-content:center; padding:0;
   }
-  .zoom-btn:hover{border-color:var(--primary); color:var(--primary);}
-  .zoom-readout{font-family:var(--font-mono); font-size:11px; color:var(--on-surface-variant); min-width:28px; text-align:center;}
+  .zoom-btn:hover{border-color:var(--accent); color:var(--accent-text);}
+  .zoom-readout{font-family:var(--font-ui); font-size:13px; color:var(--on-surface-variant); min-width:28px; text-align:center;}
   .timeline-wrap{
     background:var(--surface-container); border:1px solid var(--outline-variant); border-radius:var(--radius-lg);
     overflow-x:auto; position:relative;
@@ -458,23 +379,23 @@
     background:var(--surface-container); z-index:2; min-width:960px;
   }
   .ruler-tick{
-    width:80px; flex-shrink:0; font-family:var(--font-mono); font-size:10px; color:var(--outline);
+    width:80px; flex-shrink:0; font-family:var(--font-ui); font-size:12px; color:var(--outline);
     padding-left:4px; border-left:1px solid var(--outline-variant); display:flex; align-items:center;
   }
   .track-row{display:flex; border-bottom:1px solid var(--outline-variant); min-width:960px;}
   .track-label{
-    width:140px; flex-shrink:0; padding:12px; font-size:12px; font-weight:600;
+    width:140px; flex-shrink:0; padding:12px; font-size:14px; font-weight:500;
     border-right:1px solid var(--outline-variant); background:var(--surface-low);
     position:sticky; left:0; z-index:1;
   }
   .track-lane{flex:1; position:relative; height:52px; cursor:copy;}
-  .track-lane:hover{background:rgba(0,240,255,0.04);}
-  .playhead{position:absolute; top:0; bottom:0; width:2px; background:var(--primary); z-index:3; pointer-events:none;}
+  .track-lane:hover{background:rgba(232,97,0,0.04);}
+  .playhead{position:absolute; top:0; bottom:0; width:2px; background:var(--accent); z-index:3; pointer-events:none;}
   .cue-block{
     position:absolute; top:8px; height:36px; border-radius:var(--radius);
     cursor:pointer; overflow:hidden; border:1px solid rgba(0,0,0,0.35); background:#050a0a;
   }
-  .cue-block.selected{outline:2px solid var(--primary); outline-offset:1px;}
+  .cue-block.selected{outline:2px solid var(--accent); outline-offset:1px;}
   .cue-dot-grid{
     position:absolute; inset:2px; display:grid;
     grid-template-columns:repeat(var(--cue-cols, 10), 1fr);
@@ -482,7 +403,7 @@
   }
   .cue-led-dot{ border-radius:50%; }
   .cue-block-label{
-    position:relative; z-index:2; font-family:var(--font-mono); font-size:9px; font-weight:700;
+    position:relative; z-index:2; font-family:var(--font-ui); font-size:11px; font-weight:600;
     color:#04212a; padding:2px 6px; margin:3px; display:inline-block; border-radius:2px;
     background:rgba(255,255,255,0.6); white-space:nowrap; pointer-events:none;
   }
@@ -491,7 +412,7 @@
   .preview-layout{display:grid; grid-template-columns:1fr 300px; gap:var(--gutter); align-items:start;}
   .preview-stage{position:relative; padding:0; overflow:hidden; min-height:420px; display:flex; align-items:center; justify-content:center;}
   #preview-svg{width:100%; height:100%; position:absolute; top:0; left:0;}
-  .preview-timecode{position:absolute; top:16px; right:16px; z-index:2;}
+  .preview-timecode{position:absolute; top:16px; right:16px; z-index:2; display:none;}
   .preview-schematic-host{
     position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
     width:70%; max-width:340px; z-index:1;
@@ -500,56 +421,156 @@
   .preview-start-hint{
     position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
     z-index:3; display:flex; align-items:center; gap:10px;
-    font-family:var(--font-mono); font-size:13px; font-weight:700; letter-spacing:0.04em;
-    color:var(--primary); background:rgba(5,10,10,0.7); border:1px solid rgba(0,240,255,0.3);
-    padding:14px 22px; border-radius:var(--radius-full); cursor:pointer;
-    animation:preview-hint-pulse 2s ease-in-out infinite;
-  }
-  .preview-start-hint:hover{ background:rgba(0,240,255,0.12); border-color:var(--primary); }
+    font-family:var(--font-ui); font-size:15px; font-weight:600;
+    color:var(--on-surface); background:rgba(255,255,255,0.92); border:1px solid var(--accent-line);
+    padding:14px 22px; border-radius:var(--radius-full); cursor:pointer; white-space:nowrap;}
+  .preview-start-hint:hover{ background:var(--accent-soft); border-color:var(--accent); }
   @keyframes preview-hint-pulse{ 0%,100%{opacity:0.75;} 50%{opacity:1;} }
   @media (prefers-reduced-motion: reduce){
     .preview-start-hint{ animation:none; }
   }
+  /* ===== Preview stage: the 3D view fills the screen and the chrome floats over it ===== */
+  .sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
+  .stage-btn{
+    display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:var(--radius-full);
+    background:rgba(255,255,255,0.92); color:var(--on-surface); border:1px solid var(--outline-variant);
+    font-size:14px; font-weight:600; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  }
+  .stage-btn:hover{border-color:var(--outline);}
+  .stage-btn[aria-pressed="true"]{border-color:var(--accent); background:#fff; color:var(--accent-text);}
+  .stage-btn svg{width:18px; height:18px; flex-shrink:0;}
+  .stage-toolbar{display:none;}
+  .float-panel-head{display:none;}
+
+  #preview-view.active{
+    position:relative; height:100vh; height:100dvh; max-width:none; padding:0; overflow:hidden; background:#070f1c;
+  }
+  #preview-view .view-head{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); margin:0;}
+  #preview-view .preview-layout{position:absolute; inset:0; display:block;}
+  #preview-view .preview-stage{position:absolute; inset:0; min-height:0; border-radius:0;}
+
+  #preview-view .stage-toolbar{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:8px;
+    position:absolute; top:12px; left:12px; right:12px; z-index:15; pointer-events:none;
+  }
+  #preview-view .stage-toolbar > *{pointer-events:auto;}
+  .stage-toolbar-right{display:flex; gap:8px; margin-left:auto;}
+  #stage-menu-btn{visibility:hidden;}
+  .app-shell.nav-hidden #stage-menu-btn{visibility:visible;}
+
+  #preview-view .timeline-transport{
+    position:absolute; left:50%; bottom:16px; transform:translateX(-50%); z-index:15; margin:0; padding:8px 16px;
+    background:rgba(255,255,255,0.92); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    border-radius:var(--radius-full); transition:opacity .25s ease;
+  }
+  #preview-view .timeline-transport .timecode{font-size:20px; min-width:84px;}
+
+  #preview-view .zone-inspector{
+    position:absolute; top:60px; right:12px; bottom:12px; width:300px; max-width:calc(100vw - 96px); z-index:12;
+    border:1px solid var(--outline-variant); border-radius:var(--radius-lg); box-shadow:0 12px 40px rgba(0,0,0,0.45);
+    background:rgba(255,255,255,0.96); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    transition:transform .2s ease, opacity .2s ease, visibility 0s;
+  }
+  .app-shell.settings-hidden #preview-view .zone-inspector{
+    transform:translateX(calc(100% + 24px)); opacity:0; visibility:hidden;
+    transition:transform .2s ease, opacity .2s ease, visibility 0s .2s;
+  }
+  #preview-view .float-panel-head{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;
+    font-family:var(--font-display); font-size:18px; font-weight:600;
+  }
+  .float-close{
+    width:32px; height:32px; border-radius:50%; border:1px solid var(--outline-variant);
+    background:var(--surface-high); color:var(--on-surface); font-size:18px; line-height:1;
+  }
+  .float-close:hover{border-color:var(--outline);}
+
+  /* The navigation sidebar floats over the stage while the Show view is open. */
+  .sidebar-hide{display:none;}
+  .app-shell.preview-active nav.sidebar{
+    position:fixed; top:12px; left:12px; bottom:12px; height:auto; margin:0; z-index:30;
+    box-shadow:0 12px 40px rgba(0,0,0,0.45);
+    background:rgba(255,255,255,0.96); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    transition:width .18s ease, transform .2s ease, opacity .2s ease, visibility 0s;
+  }
+  .app-shell.preview-active.nav-hidden nav.sidebar{
+    transform:translateX(calc(-100% - 24px)); opacity:0; visibility:hidden;
+    transition:width .18s ease, transform .2s ease, opacity .2s ease, visibility 0s .2s;
+  }
+  .app-shell.preview-active #sidebar-toggle{display:none;}
+  .app-shell.preview-active .sidebar-hide{display:flex;}
+  /* keep the floating toolbar clear of the open sidebar */
+  .app-shell.preview-active:not(.nav-hidden) #preview-view .stage-toolbar{left:calc(var(--sidebar-width) + 24px);}
+  .app-shell.preview-active.sidebar-collapsed:not(.nav-hidden) #preview-view .stage-toolbar{left:calc(var(--sidebar-collapsed) + 24px);}
+
+  /* Full screen: only the stage, plus the transport and exit button when the pointer moves. */
+  .app-shell.immersive nav.sidebar,
+  .app-shell.immersive #preview-view .zone-inspector,
+  .app-shell.immersive #stage-menu-btn,
+  .app-shell.immersive #stage-settings-btn{display:none;}
+  .app-shell.immersive #preview-view .stage-toolbar,
+  .app-shell.immersive #preview-view .timeline-transport{opacity:0; pointer-events:none; transition:opacity .25s ease;}
+  .app-shell.immersive.ui-awake #preview-view .stage-toolbar,
+  .app-shell.immersive.ui-awake #preview-view .timeline-transport{opacity:1; pointer-events:auto;}
+  .app-shell.immersive.ui-awake #preview-view .stage-toolbar{pointer-events:none;}
+  .app-shell.immersive:not(.ui-awake){cursor:none;}
   .camera-btn-group{display:flex; flex-direction:column; gap:6px;}
   .music-sync-field{margin-top:16px; padding-top:16px; border-top:1px solid var(--outline-variant);}
   .music-file-input{display:none;}
   .music-import-btn{
     width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--outline-variant);
-    background:var(--surface-high); color:var(--on-surface); font-family:var(--font-mono); font-size:12px; cursor:pointer;
-  }
-  .music-import-btn:hover{border-color:var(--primary); color:var(--primary);}
+    background:var(--surface-high); color:var(--on-surface); font-family:var(--font-ui); font-size:14px; cursor:pointer; font-weight:600;}
+  .music-import-btn:hover{border-color:var(--outline); color:var(--on-surface);}
   .music-loaded-row{margin-top:10px; display:flex; flex-direction:column; gap:8px;}
   .music-slider-row{display:flex; flex-direction:column; gap:4px; margin-top:4px;}
-  .music-slider-row label{display:flex; justify-content:space-between; font-size:11px; color:var(--on-surface-variant);}
+  .music-slider-row label{display:flex; justify-content:space-between; font-size:13px; color:var(--on-surface-variant);}
   .music-slider-row input[type="range"]{width:100%; accent-color:var(--primary);}
-  .music-file-name{font-family:var(--font-mono); font-size:11px; color:var(--on-surface-variant); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .music-sync-toggle-label{display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer;}
-  .music-sync-hint{font-size:11px; color:var(--on-surface-variant); margin-top:10px; line-height:1.5;}
+  .music-file-name{font-family:var(--font-ui); font-size:13px; color:var(--on-surface-variant); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .music-sync-toggle-label{display:flex; align-items:center; gap:8px; font-size:14px; cursor:pointer;}
+  .music-sync-hint{font-size:13px; color:var(--on-surface-variant); margin-top:10px; line-height:1.5;}
   .cam-btn{
     text-align:left; padding:10px 12px; border-radius:var(--radius); border:1px solid var(--outline-variant);
-    background:var(--surface-high); color:var(--on-surface-variant); font-size:12px; font-weight:600;
+    background:var(--surface-high); color:var(--on-surface); font-size:14px; font-weight:500;
   }
-  .cam-btn.active{border-color:var(--primary); color:var(--primary); background:rgba(0,240,255,0.08);}
+  .cam-btn.active{border-color:var(--accent-line); color:var(--on-surface); background:var(--accent-soft);}
+  .zone-inspector select{
+    width:100%; background:var(--surface-high); border:1px solid var(--outline-variant); color:var(--on-surface);
+    padding:9px 10px; border-radius:var(--radius); font-size:14px;
+  }
+  .paint-field{padding-top:16px; border-top:1px solid var(--outline-variant);}
+  .paint-group-list{display:flex; flex-direction:column; gap:6px; margin:10px 0;}
+  .paint-group{
+    display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:var(--radius);
+    border:1px solid var(--outline-variant); background:var(--surface-high); color:var(--on-surface);
+    font-size:14px; font-weight:500; text-align:left;
+  }
+  .paint-group.active{border-color:var(--accent-line); color:var(--on-surface); background:var(--accent-soft);}
+  .paint-group .paint-effect{color:var(--on-surface-variant); font-weight:400; margin-left:4px;}
+  .paint-group .paint-count{margin-left:auto; font-family:var(--font-ui); font-size:12px; color:var(--on-surface-variant);}
+  .paint-group-edit{display:flex; align-items:center; gap:8px;}
+  .paint-group-edit select{flex:1;}
+  .paint-actions{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;}
+  .canvas-panel.painting canvas{cursor:crosshair;}
 
   /* ===== Export ===== */
   .export-layout{display:grid; grid-template-columns:1fr 300px; gap:var(--gutter); align-items:start;}
   .export-row{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
   .export-main select{
     width:100%; background:var(--surface-high); border:1px solid var(--outline-variant); color:var(--on-surface);
-    padding:9px 10px; border-radius:var(--radius); font-size:13px;
+    padding:9px 10px; border-radius:var(--radius); font-size:14px;
   }
   .check-row{
     display:flex; align-items:center; gap:10px; padding:12px; margin-top:10px;
     background:var(--surface-high); border:1px solid var(--outline-variant); border-radius:var(--radius);
-    font-size:13px; cursor:pointer;
+    font-size:14px; cursor:pointer;
   }
-  .generate-btn{margin-top:24px; background:var(--primary); color:var(--on-primary); border:none; font-weight:700;}
+  .generate-btn{margin-top:24px; background:var(--primary); color:var(--on-primary); border:none; font-weight:700; font-size:15px; padding:11px 12px;}
   .export-history-item{
-    padding:10px; border-radius:var(--radius); background:var(--surface-high); margin-bottom:8px; font-size:12px;
+    padding:10px; border-radius:var(--radius); background:var(--surface-high); margin-bottom:8px; font-size:13px;
   }
-  .export-history-item .file-name{font-family:var(--font-mono); font-weight:700; display:block;}
-  .export-history-item .file-meta{color:var(--on-surface-variant); font-size:11px;}
-  .empty-note{color:var(--outline); font-size:12px; font-style:italic;}
+  .export-history-item .file-name{font-family:var(--font-ui); font-weight:600; display:block;}
+  .export-history-item .file-meta{color:var(--on-surface-variant); font-size:12px;}
+  .empty-note{color:var(--on-surface-variant); font-size:14px; font-style:normal;}
 
   @media (max-width:900px){
     .pattern-layout, .preview-layout, .export-layout{grid-template-columns:1fr;}
@@ -559,101 +580,75 @@
 <body>
 <a href="#main-content" class="skip-link">Skip to main content</a>
 
-<header class="app-header" role="banner">
-  <div class="brand">
-    <div class="brand-mark" aria-hidden="true">S</div>
-    <h1>StadiumSync // Studio 3D</h1>
-  </div>
-  <div class="header-right">
-    <span class="status-badge" aria-label="Project status: autosaved">
-      <span class="dot" aria-hidden="true"></span>AUTOSAVED
-    </span>
-  </div>
-</header>
-
-<div class="app-shell">
-  <nav class="sidebar" aria-label="Primary">
-    <div class="project-id">
-      <div class="name" id="project-name">JORDAN-HARE_PREVIS</div>
-      <div class="sub">AUBURN_HALFTIME_V1</div>
+<div class="app-shell" id="app-shell">
+  <nav class="sidebar" id="sidebar" aria-label="Primary">
+    <div class="sidebar-head">
+      <div class="brand-text">
+        <div class="brand-name">Jordan-Hare Stadium</div>
+        <div class="brand-affil">Light show simulation</div>
+        <span id="project-name" hidden>Halftime show</span>
+      </div>
     </div>
-    <ul class="nav-list">
-      <li class="nav-item">
-        <button class="nav-link" data-view="venue-view" aria-current="page">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          Venue Database
+<ul class="nav-list">
+      <li class="nav-item nav-item-lead">
+        <button class="nav-link" data-view="preview-view" title="Show">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9.5v5l4.5-2.5z"/></svg>
+          <span class="nav-label">Show</span>
         </button>
       </li>
       <li class="nav-item">
-        <button class="nav-link" data-view="pattern-view">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-          Pattern Library
+        <button class="nav-link" data-view="designer-view" title="Designer" aria-current="page">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l8.5 4.5L12 12.5 3.5 8 12 3.5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/><path d="M3.5 16.5L12 21l8.5-4.5"/></svg>
+          <span class="nav-label">Designer</span>
         </button>
       </li>
       <li class="nav-item">
-        <button class="nav-link" data-view="designer-view">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
-          Layers &amp; Zones
+        <button class="nav-link" data-view="pattern-view" title="Patterns">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="1.3"/><circle cx="12" cy="6" r="1.3"/><circle cx="18" cy="6" r="1.3"/><circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18" cy="12" r="1.3"/><circle cx="6" cy="18" r="1.3" fill="currentColor"/><circle cx="12" cy="18" r="1.3"/><circle cx="18" cy="18" r="1.3" fill="currentColor"/></svg>
+          <span class="nav-label">Patterns</span>
         </button>
       </li>
       <li class="nav-item">
-        <button class="nav-link" data-view="timeline-view">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>
-          Timeline
+        <button class="nav-link" data-view="timeline-view" title="Timeline">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7h8"/><path d="M8.5 12h11"/><path d="M5.5 17h9"/><path d="M16.5 4v5"/></svg>
+          <span class="nav-label">Timeline</span>
         </button>
       </li>
       <li class="nav-item">
-        <button class="nav-link" data-view="preview-view">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
-          Preview
-        </button>
-      </li>
-      <li class="nav-item">
-        <button class="nav-link" data-view="export-view">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
-          Export
+        <button class="nav-link" data-view="export-view" title="Export">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M8 11l4 4 4-4"/><path d="M5 19.5h14"/></svg>
+          <span class="nav-label">Export</span>
         </button>
       </li>
     </ul>
+    <div class="sidebar-foot">
+      <button type="button" class="sidebar-toggle sidebar-hide" id="sidebar-hide" title="Hide menu">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        <span class="nav-label">Hide menu</span>
+      </button>
+      <button type="button" class="sidebar-toggle" id="sidebar-toggle" aria-controls="sidebar" aria-expanded="true" title="Collapse sidebar">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9 4.5v15"/><path d="M15 10l-2 2 2 2"/></svg>
+        <span class="nav-label">Collapse</span>
+      </button>
+    </div>
   </nav>
 
   <main id="main-content">
-    <!-- ===================== VENUE SELECTOR ===================== -->
-    <section id="venue-view" class="view active" aria-labelledby="venue-heading">
-      <div class="view-head">
-        <h2 id="venue-heading">Venue Database</h2>
-        <p>Select a 3D venue model to begin choreographing light sequences.</p>
-      </div>
-
-      <div class="toolbar-row">
-        <div class="search-field">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-          <label for="venue-search" class="sr-only">Search venues</label>
-          <input type="text" id="venue-search" placeholder="Search venues..." aria-label="Search venues by name or location">
-        </div>
-      </div>
-
-      <div class="venue-grid" id="venue-grid" role="list" aria-label="Venue projects">
-        <!-- populated by JS -->
-      </div>
-    </section>
-
     <!-- ===================== SHOW DESIGNER ===================== -->
-    <section id="designer-view" class="view" aria-labelledby="designer-heading">
+    <section id="designer-view" class="view active" aria-labelledby="designer-heading">
       <div class="view-head">
-        <h2 id="designer-heading">Show Designer — <span id="designer-venue-name">Jordan-Hare Stadium</span></h2>
-        <p>Map light patterns to seating zones for this venue.</p>
+        <h2 id="designer-heading">Designer</h2>
+        <p>Pick a zone, give it a pattern, and paint individual seats. <span id="designer-venue-name" hidden>Jordan-Hare Stadium</span></p>
       </div>
 
       <div class="designer-grid">
         <div class="panel" aria-label="Layers and zones">
-          <h3>Layers &amp; Zones</h3>
+          <h3>Zones</h3>
           <div id="layer-list"><!-- populated by JS --></div>
         </div>
 
         <div class="panel canvas-panel" aria-label="Stadium preview canvas">
-          <div class="preview-flag"><span class="dot" aria-hidden="true"></span>Preview Active</div>
-          <canvas id="stadium3d-canvas-designer" class="stadium3d-canvas" aria-label="3D preview of the current venue's stadium bowl"></canvas>
+                    <canvas id="stadium3d-canvas-designer" class="stadium3d-canvas" aria-label="3D preview of the current venue's stadium bowl"></canvas>
 
           <div class="schematic-source" aria-hidden="true">
           <svg class="stadium-svg schematic" id="schematic-jordan-hare" viewBox="0 0 400 300" role="img" aria-label="Schematic top-down view of Jordan-Hare Stadium with each seating zone individually highlighted">
@@ -684,89 +679,6 @@
             <rect class="zone-shape" id="zoneshape-jordan-hare-tiger-suites-press-level" data-zone-slug="tiger-suites-press-level" x="140" y="1" width="120" height="12" rx="2"/>
           </svg>
 
-          <svg class="stadium-svg schematic" id="schematic-neville" viewBox="0 0 400 300" role="img" aria-label="Schematic top-down view of Neville Arena with each seating zone individually highlighted" style="display:none;">
-            <!-- Court -->
-            <rect x="120" y="115" width="160" height="70" fill="#3d2a14" stroke="#6b4a24" stroke-width="1.5"/>
-            <line x1="200" y1="115" x2="200" y2="185" stroke="#6b4a24" stroke-width="1"/>
-            <circle cx="200" cy="150" r="12" fill="none" stroke="#6b4a24" stroke-width="1"/>
-            <text x="200" y="153" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#a9804a" letter-spacing="1">COURT_ZERO</text>
-
-            <!-- Baseline ends -->
-            <rect class="zone-shape" id="zoneshape-neville-student-section" data-zone-slug="student-section" x="65" y="95" width="40" height="110" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-neville-lower-bowl-east-baseline" data-zone-slug="lower-bowl-east-baseline" x="295" y="95" width="40" height="110" rx="2"/>
-
-            <!-- Sidelines -->
-            <rect class="zone-shape" id="zoneshape-neville-lower-bowl-north" data-zone-slug="lower-bowl-north" x="110" y="65" width="180" height="25" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-neville-lower-bowl-south" data-zone-slug="lower-bowl-south" x="110" y="210" width="180" height="25" rx="2"/>
-
-            <!-- Upper ring -->
-            <rect class="zone-shape" id="zoneshape-neville-upper-ring-north" data-zone-slug="upper-ring-north" x="70" y="35" width="260" height="15" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-neville-upper-ring-south" data-zone-slug="upper-ring-south" x="70" y="250" width="260" height="15" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-neville-upper-ring-west" data-zone-slug="upper-ring-west" x="30" y="50" width="25" height="200" rx="2"/>
-
-            <!-- Club level -->
-            <rect class="zone-shape" id="zoneshape-neville-tiger-club-press-level" data-zone-slug="tiger-club-press-level" x="340" y="50" width="25" height="200" rx="2"/>
-          </svg>
-
-          <svg class="stadium-svg schematic" id="schematic-alabama" viewBox="0 0 400 300" role="img" aria-label="Schematic top-down view of Bryant-Denny Stadium with each seating zone individually highlighted" style="display:none;">
-            <rect x="150" y="70" width="100" height="160" fill="#1b3a1f" stroke="#9e1b32" stroke-width="1.5"/>
-            <rect x="150" y="70" width="100" height="25" fill="#16321a" stroke="#9e1b32" stroke-width="1"/>
-            <rect x="150" y="205" width="100" height="25" fill="#16321a" stroke="#9e1b32" stroke-width="1"/>
-            <text x="200" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#c68a97" letter-spacing="1">DENNY_FIELD</text>
-            <rect class="zone-shape" id="zoneshape-alabama-student-section" data-zone-slug="student-section" x="90" y="30" width="108" height="35" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-alabama-lower-bowl-north" data-zone-slug="lower-bowl-north" x="202" y="30" width="108" height="35" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-alabama-lower-bowl-south" data-zone-slug="lower-bowl-south" x="90" y="235" width="220" height="35" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-alabama-lower-bowl-west-sideline" data-zone-slug="lower-bowl-west-sideline" x="90" y="68" width="55" height="164" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-alabama-lower-bowl-east-sideline" data-zone-slug="lower-bowl-east-sideline" x="255" y="68" width="55" height="164" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-alabama-north-end-zone" data-zone-slug="north-end-zone" x="150" y="70" width="100" height="25" rx="1"/>
-            <rect class="zone-shape" id="zoneshape-alabama-south-end-zone" data-zone-slug="south-end-zone" x="150" y="205" width="100" height="25" rx="1"/>
-            <rect class="zone-shape" id="zoneshape-alabama-upper-deck-north" data-zone-slug="upper-deck-north" x="60" y="16" width="280" height="12" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-alabama-upper-deck-south" data-zone-slug="upper-deck-south" x="60" y="272" width="280" height="12" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-alabama-upper-deck-west" data-zone-slug="upper-deck-west" x="30" y="30" width="28" height="242" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-alabama-upper-deck-east" data-zone-slug="upper-deck-east" x="342" y="30" width="28" height="242" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-alabama-champions-suites-press-level" data-zone-slug="champions-suites-press-level" x="140" y="1" width="120" height="12" rx="2"/>
-          </svg>
-
-          <svg class="stadium-svg schematic" id="schematic-georgia" viewBox="0 0 400 300" role="img" aria-label="Schematic top-down view of Sanford Stadium with each seating zone individually highlighted" style="display:none;">
-            <rect x="147" y="67" width="106" height="166" fill="none" stroke="#3f6b45" stroke-width="4"/>
-            <rect x="150" y="70" width="100" height="160" fill="#1b3a1f" stroke="#b3a369" stroke-width="1.5"/>
-            <rect x="150" y="70" width="100" height="25" fill="#16321a" stroke="#b3a369" stroke-width="1"/>
-            <rect x="150" y="205" width="100" height="25" fill="#16321a" stroke="#b3a369" stroke-width="1"/>
-            <text x="200" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#d6cc9e" letter-spacing="1">SANFORD_FIELD</text>
-            <rect class="zone-shape" id="zoneshape-georgia-student-section" data-zone-slug="student-section" x="90" y="30" width="108" height="35" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-georgia-lower-bowl-north" data-zone-slug="lower-bowl-north" x="202" y="30" width="108" height="35" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-georgia-lower-bowl-south" data-zone-slug="lower-bowl-south" x="90" y="235" width="220" height="35" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-georgia-lower-bowl-west-sideline" data-zone-slug="lower-bowl-west-sideline" x="90" y="68" width="55" height="164" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-georgia-lower-bowl-east-sideline" data-zone-slug="lower-bowl-east-sideline" x="255" y="68" width="55" height="164" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-georgia-north-end-zone" data-zone-slug="north-end-zone" x="150" y="70" width="100" height="25" rx="1"/>
-            <rect class="zone-shape" id="zoneshape-georgia-south-end-zone" data-zone-slug="south-end-zone" x="150" y="205" width="100" height="25" rx="1"/>
-            <rect class="zone-shape" id="zoneshape-georgia-upper-deck-north" data-zone-slug="upper-deck-north" x="60" y="16" width="280" height="12" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-georgia-upper-deck-south" data-zone-slug="upper-deck-south" x="60" y="272" width="280" height="12" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-georgia-upper-deck-west" data-zone-slug="upper-deck-west" x="30" y="30" width="28" height="242" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-georgia-upper-deck-east" data-zone-slug="upper-deck-east" x="342" y="30" width="28" height="242" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-georgia-bulldog-club-suites-press-level" data-zone-slug="bulldog-club-suites-press-level" x="140" y="1" width="120" height="12" rx="2"/>
-          </svg>
-
-          <svg class="stadium-svg schematic" id="schematic-lsu" viewBox="0 0 400 300" role="img" aria-label="Schematic top-down view of Tiger Stadium (Death Valley) with each seating zone individually highlighted" style="display:none;">
-            <rect x="0" y="0" width="400" height="300" fill="#08060c"/>
-            <rect x="150" y="70" width="100" height="160" fill="#16281a" stroke="#461d7c" stroke-width="1.5"/>
-            <rect x="150" y="70" width="100" height="25" fill="#122016" stroke="#461d7c" stroke-width="1"/>
-            <rect x="150" y="205" width="100" height="25" fill="#122016" stroke="#461d7c" stroke-width="1"/>
-            <text x="200" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#a98fc9" letter-spacing="1">DEATH_VALLEY</text>
-            <rect class="zone-shape" id="zoneshape-lsu-student-section" data-zone-slug="student-section" x="90" y="30" width="108" height="35" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-lsu-lower-bowl-north" data-zone-slug="lower-bowl-north" x="202" y="30" width="108" height="35" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-lsu-lower-bowl-south" data-zone-slug="lower-bowl-south" x="90" y="235" width="220" height="35" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-lsu-lower-bowl-west-sideline" data-zone-slug="lower-bowl-west-sideline" x="90" y="68" width="55" height="164" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-lsu-lower-bowl-east-sideline" data-zone-slug="lower-bowl-east-sideline" x="255" y="68" width="55" height="164" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-lsu-north-end-zone" data-zone-slug="north-end-zone" x="150" y="70" width="100" height="25" rx="1"/>
-            <rect class="zone-shape" id="zoneshape-lsu-south-end-zone" data-zone-slug="south-end-zone" x="150" y="205" width="100" height="25" rx="1"/>
-            <rect class="zone-shape" id="zoneshape-lsu-upper-deck-north" data-zone-slug="upper-deck-north" x="60" y="16" width="280" height="12" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-lsu-upper-deck-south" data-zone-slug="upper-deck-south" x="60" y="272" width="280" height="12" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-lsu-upper-deck-west" data-zone-slug="upper-deck-west" x="30" y="30" width="28" height="242" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-lsu-upper-deck-east" data-zone-slug="upper-deck-east" x="342" y="30" width="28" height="242" rx="2"/>
-            <rect class="zone-shape" id="zoneshape-lsu-tiger-den-suites-press-level" data-zone-slug="tiger-den-suites-press-level" x="140" y="1" width="120" height="12" rx="2"/>
-          </svg>
-
           <div id="schematic-fallback" class="schematic-fallback" style="display:none;">
             <p>No custom schematic is built for this venue yet.</p>
             <p>Zone highlighting will be available once a layout is added.</p>
@@ -775,23 +687,22 @@
         </div>
 
         <div class="panel zone-inspector" aria-label="Zone inspector">
-          <h3>Zone Inspector</h3>
+          <h3>Selected zone</h3>
           <div class="field">
-            <label for="target-zone">Target Zone</label>
             <div class="target-zone-name" id="target-zone">Student Section</div>
           </div>
           <div class="field">
-            <label>Active Pattern</label>
+            <label>Pattern</label>
             <div class="pattern-row">
               <span class="pattern-name" id="pattern-name">Tiger Wave</span>
-              <span class="pill">In Preview</span>
+              <span class="pill">Live</span>
             </div>
           </div>
           <div class="field">
-            <label for="base-color">Base Color</label>
+            <label for="base-color">Base color</label>
             <div class="color-swatch-row">
-              <span class="color-swatch" style="background:var(--auburn-blue)" aria-hidden="true"></span>
-              <span class="color-hex">Auburn Blue · #0B2341</span>
+              <span class="color-swatch" id="zone-color-swatch" aria-hidden="true"></span>
+              <span class="color-hex" id="zone-color-hex"></span>
             </div>
           </div>
           <div class="field slider-field">
@@ -803,7 +714,7 @@
           </div>
           <div class="field slider-field">
             <div class="slider-head">
-              <label for="wave-speed">Wave Speed</label>
+              <label for="wave-speed">Speed</label>
               <span class="slider-value" id="wave-speed-value">2.4x</span>
             </div>
             <input type="range" id="wave-speed" min="0" max="50" value="24" aria-describedby="wave-speed-value">
@@ -815,6 +726,25 @@
             </div>
             <input type="range" id="density" min="0" max="100" value="100" aria-describedby="density-value">
           </div>
+          <div class="field paint-field">
+            <label>Seat paint</label>
+            <button type="button" class="btn" id="paint-toggle" aria-pressed="false">Start painting</button>
+            <div class="paint-group-list" id="paint-group-list" role="listbox" aria-label="Paint groups"><!-- populated by JS --></div>
+            <div class="paint-group-edit">
+              <input type="color" class="color-input-swatch" id="paint-color" value="#e86100" aria-label="Group color">
+              <select id="paint-effect" aria-label="Group effect">
+                <option value="static">Static</option>
+                <option value="pulse">Pulse</option>
+                <option value="twinkle">Twinkle</option>
+                <option value="random">Random</option>
+              </select>
+            </div>
+            <div class="paint-actions">
+              <button type="button" class="btn" id="paint-add-group">Add group</button>
+              <button type="button" class="btn" id="paint-clear">Clear all</button>
+            </div>
+            <p class="music-sync-hint">Click a seat to paint it. Shift-click paints its row, Alt-click its section, and Ctrl- or Cmd-click erases. Painted seats override the zone pattern.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -822,8 +752,8 @@
     <!-- ===================== PATTERN LIBRARY ===================== -->
     <section id="pattern-view" class="view" aria-labelledby="pattern-heading">
       <div class="view-head">
-        <h2 id="pattern-heading">Pattern Library</h2>
-        <p>Manage and browse reusable light sequences for show choreography.</p>
+        <h2 id="pattern-heading">Patterns</h2>
+        <p>Reusable looks you can assign to zones or drop on the timeline.</p>
       </div>
 
       <div class="pattern-layout">
@@ -832,14 +762,14 @@
             <div class="search-field">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
               <label for="pattern-search" class="sr-only">Search patterns</label>
-              <input type="text" id="pattern-search" placeholder="Search patterns or tags (e.g. 'fast', 'ambient')...">
+              <input type="text" id="pattern-search" placeholder="Search patterns">
             </div>
           </div>
           <div class="pattern-grid" id="pattern-grid" role="list" aria-label="Saved patterns"></div>
         </div>
 
         <div class="panel zone-inspector" id="pattern-inspector" aria-label="Pattern parameters">
-          <h3>Pattern Parameters</h3>
+          <h3>Pattern settings</h3>
           <div id="pattern-inspector-body"></div>
         </div>
       </div>
@@ -848,8 +778,8 @@
     <!-- ===================== TIMELINE EDITOR ===================== -->
     <section id="timeline-view" class="view" aria-labelledby="timeline-heading">
       <div class="view-head">
-        <h2 id="timeline-heading">Timeline Editor — <span id="timeline-venue-name">Jordan-Hare Stadium</span></h2>
-        <p>Sequence patterns against the show's music cues.</p>
+        <h2 id="timeline-heading">Timeline</h2>
+        <p>Put patterns in order across the show. <span id="timeline-venue-name" hidden>Jordan-Hare Stadium</span></p>
       </div>
 
       <div class="timeline-transport">
@@ -866,7 +796,7 @@
           <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><rect x="5" y="5" width="14" height="14"/></svg>
         </button>
         <span class="timecode" id="tl-timecode">00:00:00</span>
-        <span class="timeline-hint">Click a track to add a cue. Hold rewind/forward to scrub.</span>
+        <span class="timeline-hint">Click a track to add a cue. Hold the arrows to scrub.</span>
         <div class="timeline-zoom">
           <button class="zoom-btn" id="tl-zoom-out" aria-label="Zoom out">−</button>
           <span class="zoom-readout" id="tl-zoom-readout">5.0x</span>
@@ -888,8 +818,25 @@
     <!-- ===================== PREVIEW ===================== -->
     <section id="preview-view" class="view" aria-labelledby="preview-heading">
       <div class="view-head">
-        <h2 id="preview-heading">Preview — <span id="preview-venue-name">Jordan-Hare Stadium</span></h2>
-        <p>Rehearsal review of the real programmed show. Not a live broadcast feed.</p>
+        <h2 id="preview-heading">Show</h2>
+        <p>Play the timeline on the stadium, with music if you have it. <span id="preview-venue-name" hidden>Jordan-Hare Stadium</span></p>
+      </div>
+
+      <div class="stage-toolbar">
+        <button type="button" class="stage-btn" id="stage-menu-btn" title="Show menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          Menu
+        </button>
+        <div class="stage-toolbar-right">
+          <button type="button" class="stage-btn" id="stage-settings-btn" aria-pressed="true" title="Show or hide settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+            Settings
+          </button>
+          <button type="button" class="stage-btn" id="stage-fullscreen-btn" title="Full screen (F)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+            <span id="stage-fullscreen-label">Full screen</span>
+          </button>
+        </div>
       </div>
 
       <div class="timeline-transport">
@@ -906,13 +853,12 @@
           <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><rect x="5" y="5" width="14" height="14"/></svg>
         </button>
         <span class="timecode" id="preview-timecode-2">00:00:00</span>
-        <span class="timeline-hint">Plays the actual programmed show from the Timeline — same clock, same cues.</span>
+        
       </div>
 
       <div class="preview-layout">
         <div class="panel preview-stage" aria-label="Stadium review canvas">
-          <div class="preview-flag"><span class="dot" aria-hidden="true"></span>Preview Mode</div>
-          <span class="timecode preview-timecode" id="preview-timecode">00:00:00</span>
+                    <span class="timecode preview-timecode" id="preview-timecode">00:00:00</span>
           <canvas id="stadium3d-canvas-preview" class="stadium3d-canvas" aria-label="3D rehearsal view of the programmed show"></canvas>
           <div class="schematic-source" aria-hidden="true">
           <svg id="preview-svg" viewBox="0 0 400 300" role="img" aria-label="Atmospheric backdrop for the stadium preview">
@@ -929,53 +875,78 @@
           </div>
           <button type="button" class="preview-start-hint" id="preview-start-hint">
             <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><polygon points="6,4 20,12 6,20"/></svg>
-            Press Play to Start
+            Play the show
           </button>
         </div>
 
-        <div class="panel zone-inspector" aria-label="Preview settings">
-          <h3>Preview Settings</h3>
+        <div class="panel zone-inspector" id="preview-settings" aria-label="Show settings">
+          <div class="float-panel-head"><span>Settings</span><button type="button" class="float-close" id="preview-settings-close" aria-label="Hide settings" title="Hide settings">&times;</button></div>
+          <h3>Camera</h3>
           <div class="field">
-            <label>Camera View</label>
+            <label>Mode</label>
             <div class="camera-btn-group" id="camera-group">
-              <button class="cam-btn active" data-cam="press">Press Box</button>
-              <button class="cam-btn" data-cam="field">Field Level</button>
-              <button class="cam-btn" data-cam="student">Student Section</button>
+              <button class="cam-btn active" data-cam-mode="orbit">Orbit</button>
+              <button class="cam-btn" data-cam-mode="aerial">Aerial</button>
+              <button class="cam-btn" data-cam-mode="free">Free fly</button>
             </div>
-            <button type="button" class="btn" id="auto-orbit-toggle" style="margin-top:8px;" aria-pressed="false">Auto-Orbit: Off</button>
+            <p class="music-sync-hint" id="free-fly-hint" style="display:none;">WASD to move, Q/E down/up, Shift for speed, drag to look.</p>
+            <label for="camera-preset" style="margin-top:14px;">Jump to a view</label>
+            <select id="camera-preset" aria-label="Fixed camera view"><option value="">Loading views…</option></select>
+            <button type="button" class="btn" id="auto-orbit-toggle" style="margin-top:8px;" aria-pressed="false">Auto-rotate: off</button>
           </div>
           <div class="field slider-field">
-            <div class="slider-head"><label for="time-of-day">Time of Day</label><span class="slider-value" id="tod-value">Night</span></div>
+            <div class="slider-head"><label for="time-of-day">Time of day</label><span class="slider-value" id="tod-value">Night</span></div>
             <input type="range" id="time-of-day" min="0" max="100" value="80">
           </div>
           <div class="field slider-field">
-            <div class="slider-head"><label for="fog-density">Fog Density</label><span class="slider-value" id="fog-value">45%</span></div>
+            <div class="slider-head"><label for="fog-density">Fog</label><span class="slider-value" id="fog-value">45%</span></div>
             <input type="range" id="fog-density" min="0" max="100" value="45">
           </div>
           <div class="field music-sync-field">
-            <label>Music Sync</label>
+            <label>Music</label>
             <input type="file" id="music-file-input" accept="audio/*" class="music-file-input">
-            <button type="button" class="music-import-btn" id="music-import-btn">Import Music</button>
+            <button type="button" class="music-import-btn" id="music-import-btn">Choose a song</button>
             <div class="music-loaded-row" id="music-loaded-row" style="display:none;">
               <span class="music-file-name" id="music-file-name"></span>
               <label class="music-sync-toggle-label">
                 <input type="checkbox" id="music-sync-toggle">
-                <span>Sync brightness to music</span>
+                <span>Flash on big hits</span>
               </label>
               <label class="music-sync-toggle-label">
                 <input type="checkbox" id="music-color-sync-toggle">
-                <span>Sync colors to music</span>
+                <span>Change colors with the music</span>
               </label>
               <div class="music-slider-row">
-                <label for="music-volume-slider">Music Volume <span id="music-volume-value">80%</span></label>
+                <label for="music-volume-slider">Volume <span id="music-volume-value">80%</span></label>
                 <input type="range" id="music-volume-slider" min="0" max="100" value="80">
               </div>
               <div class="music-slider-row">
-                <label for="music-sensitivity-slider">Beat Sensitivity <span id="music-sensitivity-value">Medium</span></label>
+                <label for="music-sensitivity-slider">Hit sensitivity <span id="music-sensitivity-value">Medium</span></label>
                 <input type="range" id="music-sensitivity-slider" min="1" max="9" value="5">
               </div>
+              <div class="music-slider-row">
+                <label for="music-led-mode">Seat brightness follows</label>
+                <select id="music-led-mode">
+                  <option value="off">Nothing</option>
+                  <option value="linear">Frequency bands, in seat order</option>
+                  <option value="random">Frequency bands, scattered</option>
+                  <option value="amplitude">Overall loudness</option>
+                </select>
+              </div>
             </div>
-            <p class="music-sync-hint">Brightness sync modulates how bright each zone gets in the moment. Color sync flashes each active zone through the venue's own colors based on which part of the music is loudest right now — bass, mid, or treble. Either can be used alone or together; Timeline still decides which zones are active and what pattern each one runs. Beat Sensitivity controls how big a jump in the kick-drum range counts as a "hit" — lower it if hits aren't triggering, raise it if quiet moments are triggering falsely.</p>
+            <p class="music-sync-hint">Flashes and color changes ride on top of the timeline. Lower hit sensitivity if quiet parts trigger flashes.</p>
+          </div>
+          <div class="field music-sync-field">
+            <label>Demo show</label>
+            <label class="music-sync-toggle-label">
+              <input type="checkbox" id="demo-show-toggle">
+              <span>Play the Spring 2025 show</span>
+            </label>
+            <label class="music-sync-toggle-label">
+              <input type="checkbox" id="demo-show-loop" checked>
+              <span>Loop at the end</span>
+            </label>
+            <p class="music-sync-hint">The seat-by-seat show last year's team built in Unity. It replaces the timeline while it's on.</p>
           </div>
         </div>
       </div>
@@ -984,34 +955,22 @@
     <!-- ===================== EXPORT ===================== -->
     <section id="export-view" class="view" aria-labelledby="export-heading">
       <div class="view-head">
-        <h2 id="export-heading">Export Project</h2>
+        <h2 id="export-heading">Export</h2>
         <p id="export-project-sub">Jordan-Hare Stadium — Auburn Halftime V1</p>
       </div>
 
       <div class="export-layout">
         <div class="panel export-main">
-          <h3>Video Render // Preview</h3>
-          <div class="export-row">
-            <div class="field">
-              <label for="exp-res">Resolution</label>
-              <select id="exp-res"><option>4K UHD (3840x2160)</option><option>1080p (1920x1080)</option><option>720p (1280x720)</option></select>
-            </div>
-            <div class="field">
-              <label for="exp-fps">Framerate</label>
-              <select id="exp-fps"><option>60 fps</option><option>30 fps</option><option>24 fps</option></select>
-            </div>
-          </div>
+          <h3>Files</h3>
+          <label class="check-row"><input type="checkbox" id="chk-pdf" checked> Printable show sheet with zones, patterns and cues</label>
+          <label class="check-row"><input type="checkbox" id="chk-json" checked> Show data file (.json) for the lighting system</label>
 
-          <h3 style="margin-top:24px;">Documentation &amp; Metadata</h3>
-          <label class="check-row"><input type="checkbox" id="chk-pdf" checked> Design Specification (printable) — zone maps, pattern schedules, and cue sheets</label>
-          <label class="check-row"><input type="checkbox" id="chk-json" checked> Show Metadata (.json) — structured project data</label>
-
-          <button class="btn generate-btn" id="generate-export">Generate Export</button>
+          <button class="btn generate-btn" id="generate-export">Download</button>
         </div>
 
         <div class="panel" aria-label="Recent exports">
-          <h3>Recent Exports</h3>
-          <div id="export-history"><p class="empty-note">No exports generated yet this session.</p></div>
+          <h3>Downloaded this session</h3>
+          <div id="export-history"><p class="empty-note">Nothing yet.</p></div>
         </div>
       </div>
     </section>
@@ -1022,6 +981,8 @@
 
 <script src="vendor/three.min.js"></script>
 <script src="vendor/OrbitControls.js"></script>
+<script src="vendor/libs/meshopt_decoder.js"></script>
+<script src="vendor/loaders/GLTFLoader.js"></script>
 <script src="vendor/shaders/CopyShader.js"></script>
 <script src="vendor/shaders/LuminosityHighPassShader.js"></script>
 <script src="vendor/postprocessing/EffectComposer.js"></script>
@@ -1035,6 +996,8 @@
     {
       id:'jordan-hare', name:'Jordan-Hare Stadium', loc:'Auburn, AL',
       capacity:'87,451', current:true,
+      model:{glb:'assets/jordan-hare/stadium.glb', leds:'assets/jordan-hare/leds.json', cameras:'assets/jordan-hare/cameras.json'},
+      demoShow:{header:'assets/jordan-hare/show-first-demo.json', frames:'assets/jordan-hare/show-first-demo.bin'},
       zoneData:[
         {name:'Student Section', nodes:'12,458', on:true, pattern:'Tiger Wave', intensity:85, speed:24, density:100},
         {name:'Lower Bowl - North', nodes:'9,800', on:true, pattern:'Orange Pulse', intensity:70, speed:18, density:80},
@@ -1126,75 +1089,6 @@
   var currentZoneIndexBySlug = {};
   var autoOrbitOn = false;
 
-  function venueStadiumThumb(){
-    return '<svg viewBox="0 0 200 130" role="img" aria-label="Schematic stadium bowl illustration"><ellipse cx="100" cy="65" rx="92" ry="58" fill="none" stroke="#3b4a4b" stroke-width="2"/><ellipse cx="100" cy="65" rx="68" ry="42" fill="none" stroke="#3b4a4b" stroke-width="1.5"/><rect x="66" y="45" width="68" height="40" rx="3" fill="#1b3a1f" stroke="#3f6b45"/></svg>';
-  }
-
-  function renderVenues(filter){
-    var grid = document.getElementById('venue-grid');
-    grid.innerHTML = '';
-    var q = (filter || '').trim().toLowerCase();
-    venues.filter(function(v){
-      return !q || v.name.toLowerCase().indexOf(q) !== -1 || v.loc.toLowerCase().indexOf(q) !== -1;
-    }).forEach(function(v){
-      var isCurrent = v.id === currentVenueId;
-      var card = document.createElement('div');
-      card.className = 'venue-card' + (isCurrent ? ' is-current' : '');
-      card.setAttribute('role','button');
-      card.setAttribute('tabindex','0');
-      card.setAttribute('data-load', v.id);
-      card.setAttribute('aria-label', (isCurrent ? 'Currently loaded: ' : 'Load ') + v.name);
-      card.innerHTML =
-        '<div class="venue-thumb">' + venueStadiumThumb() + (isCurrent ? '<span class="venue-badge">Current</span>' : '') + '</div>' +
-        '<div class="venue-body">' +
-          '<div><div class="venue-name">' + v.name + '</div><div class="venue-loc">' + v.loc + '</div></div>' +
-          '<div class="venue-stats">' +
-            '<div class="venue-stat"><span class="label">Capacity</span><span class="value">' + v.capacity + '</span></div>' +
-            '<div class="venue-stat"><span class="label">Zones</span><span class="value">' + v.zoneData.length + ' active</span></div>' +
-          '</div>' +
-          '<div class="venue-actions"><span class="btn ' + (isCurrent ? 'btn-current' : '') + '">' + (isCurrent ? 'Loaded' : 'Load Project') + '</span></div>' +
-        '</div>';
-      grid.appendChild(card);
-    });
-
-    var importCard = document.createElement('div');
-    importCard.className = 'venue-card import';
-    importCard.setAttribute('role','listitem');
-    importCard.innerHTML = '<div class="import-icon" aria-hidden="true">+</div><div>Import Model</div><div class="import-formats">Supported formats: .OBJ, .FBX, .GLTF</div>';
-    grid.appendChild(importCard);
-  }
-
-  function loadVenue(id){
-    var v = venues.find(function(x){ return x.id === id; });
-    if(!v) return;
-    currentVenueId = id;
-    document.getElementById('project-name').textContent = v.name.toUpperCase().replace(/ /g,'_');
-    document.getElementById('designer-venue-name').textContent = v.name;
-    document.getElementById('preview-venue-name').textContent = v.name;
-    selectedLayerIndex = 0;
-    selectedCue = null;
-    playheadSeconds = 0;
-    testZoneNames = [];
-    applyVenueColorTheme(id);
-    currentZoneIndexBySlug = {};
-    v.zoneData.forEach(function(z, i){ currentZoneIndexBySlug[zoneSlug(z.name)] = i; });
-    if(designerStadium) designerStadium.loadVenue(v, VENUE_PALETTES[id]);
-    if(previewStadium) previewStadium.loadVenue(v, VENUE_PALETTES[id]);
-    renderVenues(document.getElementById('venue-search').value);
-    renderLayers();
-    renderInspector();
-    if(typeof renderTimeline === 'function') renderTimeline();
-    if(typeof renderExportView === 'function') renderExportView();
-    if(typeof renderPatternGrid === 'function') renderPatternGrid(document.getElementById('pattern-search') ? document.getElementById('pattern-search').value : '');
-    if(typeof renderPatternInspector === 'function') renderPatternInspector();
-    if(typeof buildPreviewSchematic === 'function'){
-      buildPreviewSchematic();
-      updatePreviewStadium(playheadSeconds);
-      if(typeof updatePreviewStartHint === 'function') updatePreviewStartHint();
-    }
-    showToast(v.name + ' loaded');
-  }
-
   function renderLayers(){
     var v = venues.find(function(x){ return x.id === currentVenueId; });
     var list = document.getElementById('layer-list');
@@ -1206,7 +1100,7 @@
         '<button type="button" class="layer-toggle' + (z.on ? ' on' : '') + '" role="switch" aria-checked="' + z.on + '" aria-label="Toggle ' + z.name + ' visibility" data-toggle-index="' + i + '"></button>' +
         '<button type="button" class="layer-select" data-select-index="' + i + '">' +
           '<span class="layer-name">' + z.name + '</span>' +
-          '<span class="layer-nodes">NODES: ' + z.nodes + '</span>' +
+          '<span class="layer-nodes">' + z.nodes + ' seats</span>' +
         '</button>';
       list.appendChild(row);
     });
@@ -1217,6 +1111,10 @@
     var z = v.zoneData[selectedLayerIndex];
     document.getElementById('target-zone').textContent = z.name;
     document.getElementById('pattern-name').textContent = z.pattern;
+    var zonePat = findPatternByName(z.pattern);
+    var zoneColor = zonePat ? zonePat.color : '#000000';
+    document.getElementById('zone-color-swatch').style.background = zoneColor;
+    document.getElementById('zone-color-hex').textContent = zoneColor.toUpperCase();
     document.getElementById('intensity').value = z.intensity;
     document.getElementById('intensity-value').textContent = z.intensity + '%';
     document.getElementById('wave-speed').value = z.speed;
@@ -1244,24 +1142,8 @@
     }
   }
 
-  var designerDots = [];
-  var designerRafId = null;
-  var designerStartTime = null;
-
   function clearDesignerDotOverlay(){
     document.querySelectorAll('#designer-view .zone-dot-overlay').forEach(function(g){ g.remove(); });
-    designerDots = [];
-    if(designerRafId){ window.cancelAnimationFrame(designerRafId); designerRafId = null; }
-  }
-
-  function designerFrame(pat, timestamp){
-    if(designerStartTime === null) designerStartTime = timestamp;
-    var t = (timestamp - designerStartTime) / 1000;
-    designerDots.forEach(function(d){
-      d.el.style.fill = getDotColor(pat, d.col, d.row, d.cols, d.rows);
-      d.el.style.opacity = computeDotBrightness(pat, d.col, t, d.cols, d.row, d.rows);
-    });
-    designerRafId = window.requestAnimationFrame(function(ts){ designerFrame(pat, ts); });
   }
 
   function applyZoneHighlightStyle(zone){
@@ -1287,17 +1169,16 @@
     }
 
     var pat = findPatternByName(zone.pattern);
-    if(!pat){ target.style.stroke = 'var(--primary)'; return; }
+    if(!pat){ target.style.stroke = 'var(--accent)'; return; }
 
     // Inline style, not setAttribute: SVG presentation attributes lose to
     // stylesheet rules in the CSS cascade, so setAttribute('fill', ...) here
     // was being silently overridden by the base .zone-shape{fill:...} rule
     // and never actually showed on screen. Inline style wins over both.
     target.style.stroke = pat.color;
-    target.style.fill = 'rgba(255,255,255,0.02)'; // dots carry the real signal, not a flat fill
-    designerDots = buildZoneDotOverlay(target, pat);
-    designerStartTime = null;
-    designerRafId = window.requestAnimationFrame(function(ts){ designerFrame(pat, ts); });
+    target.style.fill = 'rgba(255,255,255,0.02)';
+    // The 2D schematic is kept only as a hidden source for zone shapes; the 3D stadium is
+    // what's on screen, so no dot overlay is animated here (it used to run every frame, unseen).
   }
 
   function showToast(msg){
@@ -1307,17 +1188,6 @@
     clearTimeout(t._timer);
     t._timer = setTimeout(function(){ t.classList.remove('show'); }, 2200);
   }
-
-  // Delegated click handling — bound once, survives every re-render
-  document.getElementById('venue-grid').addEventListener('click', function(e){
-    var btn = e.target.closest('[data-load]');
-    if(btn) loadVenue(btn.getAttribute('data-load'));
-  });
-  document.getElementById('venue-grid').addEventListener('keydown', function(e){
-    if(e.key !== 'Enter' && e.key !== ' ') return;
-    var btn = e.target.closest('[data-load]');
-    if(btn){ e.preventDefault(); loadVenue(btn.getAttribute('data-load')); }
-  });
 
   document.getElementById('layer-list').addEventListener('click', function(e){
     var toggleBtn = e.target.closest('[data-toggle-index]');
@@ -1344,16 +1214,32 @@
       btn.setAttribute('aria-current','page');
       document.querySelectorAll('section.view').forEach(function(s){ s.classList.remove('active'); });
       document.getElementById(btn.getAttribute('data-view')).classList.add('active');
-      var view = btn.getAttribute('data-view');
-      if(view === 'designer-view' && designerStadium) designerStadium.onResize();
-      if(view === 'preview-view' && previewStadium) previewStadium.onResize();
+      setActiveStadiumView(btn.getAttribute('data-view'));
     });
   });
 
-  // Search
-  document.getElementById('venue-search').addEventListener('input', function(e){
-    renderVenues(e.target.value);
-  });
+  // Collapsible sidebar. The choice is a per-browser convenience, so storage failures are ignored.
+  (function(){
+    var shell = document.getElementById('app-shell');
+    var toggle = document.getElementById('sidebar-toggle');
+    function setCollapsed(collapsed){
+      shell.classList.toggle('sidebar-collapsed', collapsed);
+      toggle.setAttribute('aria-expanded', String(!collapsed));
+      toggle.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+      toggle.querySelector('.nav-label').textContent = collapsed ? 'Expand' : 'Collapse';
+      try { localStorage.setItem('stadiumsync.sidebarCollapsed', collapsed ? '1' : '0'); } catch(err){}
+    }
+    var saved = null;
+    try { saved = localStorage.getItem('stadiumsync.sidebarCollapsed'); } catch(err){}
+    setCollapsed(saved === '1');
+    toggle.addEventListener('click', function(){
+      setCollapsed(!shell.classList.contains('sidebar-collapsed'));
+    });
+    // The 3D canvases size themselves from their container; resize once the width animation ends.
+    document.getElementById('sidebar').addEventListener('transitionend', function(e){
+      if(e.propertyName === 'width') window.dispatchEvent(new Event('resize'));
+    });
+  })();
 
   // Sliders -> live update + write back to model
   function bindSlider(id, labelId, format){
@@ -1395,11 +1281,7 @@
   // Each school's primary/secondary colors. Auburn is the "home" palette
   // that everything reverts to when an Auburn venue is loaded.
   var VENUE_PALETTES = {
-    'jordan-hare': {primary:'#e86100', secondary:'#2e6fff'},
-    'neville':     {primary:'#e86100', secondary:'#2e6fff'},
-    'alabama':     {primary:'#9e1b32', secondary:'#828a8c'}, // Crimson + grey
-    'georgia':     {primary:'#ba0c2f', secondary:'#000000'}, // Red + Black
-    'lsu':         {primary:'#461d7c', secondary:'#fdd023'}  // Purple + Gold
+    'jordan-hare': {primary:'#e86100', secondary:'#2e6fff'}
   };
 
   // Each zone's schematic rect (matches the SVG coordinates in the venue's
@@ -1702,7 +1584,7 @@
     addCard.type = 'button';
     addCard.className = 'pattern-card new-pattern';
     addCard.id = 'add-pattern-btn';
-    addCard.innerHTML = '<div class="import-icon" aria-hidden="true">+</div><div>Create New Pattern</div>';
+    addCard.innerHTML = '<div class="import-icon" aria-hidden="true">+</div><div>New pattern</div>';
     grid.appendChild(addCard);
   }
 
@@ -1712,17 +1594,17 @@
     if(!p){ body.innerHTML = '<p class="empty-note">Select a pattern to edit its parameters.</p>'; return; }
     body.innerHTML =
       '<div class="pattern-preview-stage" id="pattern-preview-stage"></div>' +
-      '<button class="btn" id="pattern-preview-toggle" style="margin-bottom:16px;">Preview Pattern</button>' +
+      '<button class="btn" id="pattern-preview-toggle" style="margin-bottom:16px;">Play pattern</button>' +
       '<div class="field">' +
-        '<label>Apply to Entire Venue</label>' +
+        '<label>Use for every zone</label>' +
         '<div class="apply-venue-range-row">' +
-          '<div class="apply-venue-range-field"><label for="apply-venue-start">Start at (sec)</label><input type="number" id="apply-venue-start" min="0" max="' + TIMELINE_DURATION + '" value="' + Math.round(playheadSeconds) + '"></div>' +
-          '<div class="apply-venue-range-field"><label for="apply-venue-duration">For (sec)</label><input type="number" id="apply-venue-duration" min="1" max="' + TIMELINE_DURATION + '" value="30"></div>' +
+          '<div class="apply-venue-range-field"><label for="apply-venue-start">Start (seconds)</label><input type="number" id="apply-venue-start" min="0" max="' + TIMELINE_DURATION + '" value="' + Math.round(playheadSeconds) + '"></div>' +
+          '<div class="apply-venue-range-field"><label for="apply-venue-duration">Length (seconds)</label><input type="number" id="apply-venue-duration" min="1" max="' + TIMELINE_DURATION + '" value="30"></div>' +
         '</div>' +
-        '<button class="btn" id="pattern-apply-venue-btn" style="margin-top:8px;">Apply to Entire Venue</button>' +
+        '<button class="btn" id="pattern-apply-venue-btn" style="margin-top:8px;">Add to timeline</button>' +
       '</div>' +
       '<div class="field">' +
-        '<label>Test In Zone(s)</label>' +
+        '<label>Try it on zones</label>' +
         '<div id="zone-test-picker" class="zone-test-picker"></div>' +
       '</div>' +
       '<div class="field"><label>Pattern</label><div class="target-zone-name">' + p.name + '</div></div>' +
@@ -1776,7 +1658,7 @@
       } else {
         startLedPreview(p);
       }
-      this.textContent = ledPlaying ? 'Stop Preview' : 'Preview Pattern';
+      this.textContent = ledPlaying ? 'Stop' : 'Play pattern';
     });
     document.getElementById('pattern-apply-venue-btn').addEventListener('click', function(){
       var tracks = timelineTracksByVenue[currentVenueId] || [];
@@ -2230,7 +2112,7 @@
 
   document.getElementById('pattern-grid').addEventListener('click', function(e){
     if(e.target.closest('#add-pattern-btn')){
-      var name = window.prompt('Name this new pattern:', 'New Pattern');
+      var name = window.prompt('Name this pattern', 'New pattern');
       if(!name) return;
       var id = 'custom-' + Date.now();
       patternLibrary.push({id:id, name:name, tags:['Custom'], color:'#00f0ff', intensity:70, spread:40, frequency:1.0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'pulse'});
@@ -2586,7 +2468,7 @@
     globalHead.style.bottom = '0';
     globalHead.style.left = (140 + playheadSeconds * PX_PER_SEC) + 'px';
     globalHead.style.width = '2px';
-    globalHead.style.background = 'var(--primary)';
+    globalHead.style.background = 'var(--accent)';
     globalHead.style.pointerEvents = 'none';
     globalHead.style.zIndex = '3';
     document.getElementById('timeline-wrap').style.position = 'relative';
@@ -2667,7 +2549,7 @@
     setTransportIcon(document.getElementById('preview-play'), isPlaying);
     updatePreviewStartHint();
     if(isPlaying){
-      if((musicSyncEnabled || musicColorSyncEnabled) && musicAudioEl){
+      if(musicWanted() && musicAudioEl){
         try { musicAudioEl.currentTime = playheadSeconds; musicAudioEl.play(); } catch(e){}
       }
       var last = performance.now();
@@ -2956,6 +2838,7 @@
     musicChantHistory.length = 0;
     musicPulseLevel = 0;
     musicBandMax = [1, 1, 1];
+    resetAudioPeer();
     if(musicAudioEl) musicAudioEl.volume = (document.getElementById('music-volume-slider').value || 80) / 100;
   }
 
@@ -2983,13 +2866,163 @@
   });
   document.getElementById('music-sync-toggle').addEventListener('change', function(e){
     musicSyncEnabled = e.target.checked;
-    if(!musicSyncEnabled && !musicColorSyncEnabled && musicAudioEl){ try { musicAudioEl.pause(); } catch(err){} }
+    if(!musicWanted() && musicAudioEl){ try { musicAudioEl.pause(); } catch(err){} }
     updatePreviewStadium(playheadSeconds);
   });
   document.getElementById('music-color-sync-toggle').addEventListener('change', function(e){
     musicColorSyncEnabled = e.target.checked;
-    if(!musicSyncEnabled && !musicColorSyncEnabled && musicAudioEl){ try { musicAudioEl.pause(); } catch(err){} }
+    if(!musicWanted() && musicAudioEl){ try { musicAudioEl.pause(); } catch(err){} }
     updatePreviewStadium(playheadSeconds);
+  });
+
+  // ---- Seat-level music mode: port of the Unity sim's AudioPeer + MusicSynchronizer ----
+  // AudioPeer splits a 512-bin spectrum into 8 octave bands (2, 4, 8 … 256+2 bins),
+  // keeps a falling "buffer" per band, and normalizes each band by its own running max.
+  // MusicSynchronizer then sets every seat's brightness from those bands.
+  var musicLedMode = 'off';          // 'off' | 'linear' | 'random' | 'amplitude'
+  var peerSpectrum = null;           // Float32Array dB from the analyser
+  var peerFreqBand = new Float32Array(8), peerBandBuffer = new Float32Array(8);
+  var peerBufferDecrease = new Float32Array(8), peerBandHighest = new Float32Array(8);
+  var peerAudioBand = new Float32Array(8), peerAudioBandBuffer = new Float32Array(8);
+  var peerAmplitudeHighest = 0, peerAmplitude = 0, peerAmplitudeBuffer = 0;
+  var musicLedGain = null, musicLedFrame = 0;
+
+  function resetAudioPeer(){
+    [peerFreqBand, peerBandBuffer, peerBufferDecrease, peerBandHighest, peerAudioBand, peerAudioBandBuffer].forEach(function(a){ a.fill(0); });
+    peerAmplitudeHighest = peerAmplitude = peerAmplitudeBuffer = 0;
+  }
+
+  function musicWanted(){
+    return musicSyncEnabled || musicColorSyncEnabled || musicLedMode !== 'off' || demoShowOn;
+  }
+
+  function musicIsPlaying(){
+    return !!(isPlaying && musicAudioEl && !musicAudioEl.paused && musicAnalyser);
+  }
+
+  function computeAudioPeerBands(){
+    if(!peerSpectrum) peerSpectrum = new Float32Array(musicAnalyser.frequencyBinCount);
+    musicAnalyser.getFloatFrequencyData(peerSpectrum);
+    var count = 0;
+    for(var i = 0; i < 8; i++){
+      var sampleCount = Math.pow(2, i + 1) + (i === 7 ? 2 : 0);
+      var avg = 0;
+      for(var j = 0; j < sampleCount && count < peerSpectrum.length; j++){
+        var db = peerSpectrum[count];
+        avg += (isFinite(db) ? Math.pow(10, db / 20) : 0) * (count + 1);
+        count++;
+      }
+      avg /= count; // AudioPeer divides by the cumulative bin count, not this band's — kept for fidelity
+      peerFreqBand[i] = avg * 10;
+      if(peerFreqBand[i] > peerBandBuffer[i]){
+        peerBandBuffer[i] = peerFreqBand[i];
+        peerBufferDecrease[i] = 0.005;
+      } else {
+        peerBandBuffer[i] = Math.max(0, peerBandBuffer[i] - peerBufferDecrease[i]);
+        peerBufferDecrease[i] *= 1.2;
+      }
+      if(peerFreqBand[i] > peerBandHighest[i]) peerBandHighest[i] = peerFreqBand[i];
+      var hi = peerBandHighest[i] || 1;
+      peerAudioBand[i] = peerFreqBand[i] / hi;
+      peerAudioBandBuffer[i] = peerBandBuffer[i] / hi;
+    }
+    var sum = 0, sumBuffer = 0;
+    for(var b = 0; b < 8; b++){ sum += peerAudioBand[b]; sumBuffer += peerAudioBandBuffer[b]; }
+    if(sum > peerAmplitudeHighest) peerAmplitudeHighest = sum;
+    peerAmplitude = sum / (peerAmplitudeHighest || 1);
+    peerAmplitudeBuffer = sumBuffer / (peerAmplitudeHighest || 1);
+  }
+
+  function applyMusicLedGain(stadium){
+    if(!stadium) return;
+    var data = stadium.getLedData();
+    if(musicLedMode === 'off' || !data || !musicIsPlaying()){ stadium.setLedGain(null); return; }
+    computeAudioPeerBands();
+    if(!musicLedGain || musicLedGain.length !== data.count) musicLedGain = new Float32Array(data.count);
+    musicLedFrame++;
+    var FLOOR = 0.08; // fully dark seats read as missing LEDs rather than as quiet music
+    for(var i = 0; i < data.count; i++){
+      var v = musicLedMode === 'linear' ? peerAudioBand[i % 8]
+            : musicLedMode === 'random' ? peerAudioBand[Math.floor(pseudoRandom(i * 7 + musicLedFrame * 7919) * 8)]
+            : peerAmplitudeBuffer;
+      musicLedGain[i] = FLOOR + (1 - FLOOR) * Math.max(0, Math.min(1, v));
+    }
+    stadium.setLedGain(musicLedGain);
+  }
+
+  document.getElementById('music-led-mode').addEventListener('change', function(e){
+    musicLedMode = e.target.value;
+    resetAudioPeer();
+    if(!musicWanted() && musicAudioEl){ try { musicAudioEl.pause(); } catch(err){} }
+    else if(isPlaying && musicAudioEl && musicAudioEl.paused){
+      try { musicAudioEl.currentTime = playheadSeconds; musicAudioEl.play(); } catch(err){}
+    }
+  });
+
+  // ---- Spring '25 demo show (converted from the Unity project's Resources/first_demo) ----
+  // show-first-demo.bin holds one byte per seat per unique frame (the seat's group id,
+  // 255 = no group); the .json header maps show frames to unique frames and lists each
+  // frame's group colors/effects. Playback follows the Preview transport clock.
+  var demoShowOn = false;
+  var demoShow = null;          // {header, frames: Uint8Array}
+  var demoShowLoading = null;
+  var demoColors = null, demoMask = null;
+  var DEMO_OFF_RGB = [0, 0, 0];
+
+  function loadDemoShow(){
+    if(demoShowLoading) return demoShowLoading;
+    var v = venues.find(function(x){ return x.id === currentVenueId; });
+    if(!v || !v.demoShow) return Promise.reject(new Error('no demo show for this venue'));
+    demoShowLoading = Promise.all([
+      fetch(v.demoShow.header).then(function(r){ return r.json(); }),
+      fetch(v.demoShow.frames).then(function(r){ return r.arrayBuffer(); })
+    ]).then(function(r){
+      demoShow = { header: r[0], frames: new Uint8Array(r[1]) };
+      return demoShow;
+    });
+    return demoShowLoading;
+  }
+
+  function applyDemoShowFrame(stadium, showT){
+    var h = demoShow.header, n = h.ledCount;
+    var data = stadium.getLedData();
+    if(!data || data.count !== n) return false;
+    if(!demoColors){ demoColors = new Float32Array(n * 3); demoMask = new Uint8Array(n).fill(1); }
+    var loop = document.getElementById('demo-show-loop').checked;
+    var f = Math.floor(showT * h.fps);
+    f = loop ? f % h.frames.length : Math.min(f, h.frames.length - 1);
+    var base = h.frames[f] * n;
+    var groups = h.groups[f];
+    for(var i = 0; i < n; i++){
+      var gid = demoShow.frames[base + i];
+      var g = gid === 255 ? null : groups[gid];
+      var o = i * 3;
+      if(!g){ demoColors[o] = DEMO_OFF_RGB[0]; demoColors[o + 1] = DEMO_OFF_RGB[1]; demoColors[o + 2] = DEMO_OFF_RGB[2]; continue; }
+      // same effects as seat paint; Unity's "static" group effect is per-frame random color
+      g.effect = g.effect || (g.twinkle ? 'twinkle' : g.static ? 'random' : g.pulse ? 'pulse' : 'static');
+      paintedSeatRgb(g, i, showT, scratchRgb);
+      demoColors[o] = scratchRgb[0]; demoColors[o + 1] = scratchRgb[1]; demoColors[o + 2] = scratchRgb[2];
+    }
+    stadium.setLedOverride(demoColors, demoMask);
+    return true;
+  }
+
+  document.getElementById('demo-show-toggle').addEventListener('change', function(e){
+    var box = e.target;
+    if(!box.checked){
+      demoShowOn = false;
+      if(!musicWanted() && musicAudioEl){ try { musicAudioEl.pause(); } catch(err){} }
+      return;
+    }
+    loadDemoShow().then(function(){
+      demoShowOn = box.checked;
+      if(demoShowOn) showToast("Spring '25 demo show loaded — press Play");
+    }).catch(function(err){
+      box.checked = false;
+      demoShowLoading = null;
+      showToast('Could not load the demo show');
+      console.error(err);
+    });
   });
 
   function buildPreviewSchematic(){
@@ -3102,15 +3135,39 @@
     });
   }
 
+  function setPreviewCameraModeUI(mode){
+    document.querySelectorAll('#camera-group .cam-btn').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-cam-mode') === mode);
+    });
+    document.getElementById('free-fly-hint').style.display = mode === 'free' ? '' : 'none';
+  }
   document.getElementById('camera-group').addEventListener('click', function(e){
     var btn = e.target.closest('.cam-btn');
-    if(!btn) return;
-    document.querySelectorAll('.cam-btn').forEach(function(b){ b.classList.toggle('active', b === btn); });
-    if(previewStadium) previewStadium.setCameraPreset(btn.getAttribute('data-cam'));
+    if(!btn || !previewStadium) return;
+    var mode = btn.getAttribute('data-cam-mode');
+    previewStadium.setCameraMode(mode);
+    setPreviewCameraModeUI(mode);
   });
+  document.getElementById('camera-preset').addEventListener('change', function(e){
+    if(!previewStadium || !e.target.value) return;
+    previewStadium.setCameraPreset(e.target.value); // switches back to Orbit mode
+    setPreviewCameraModeUI('orbit');
+  });
+  function onPreviewStadiumLoaded(){
+    populateCameraPresets();
+    updatePreviewStadium(playheadSeconds);
+  }
+  // Filled from the venue's cameras.json once the stadium has loaded.
+  function populateCameraPresets(){
+    var sel = document.getElementById('camera-preset');
+    var names = previewStadium ? previewStadium.getCameraPresets() : [];
+    sel.innerHTML = '<option value="">Choose a view…</option>' + names.map(function(n){
+      return '<option value="' + n + '">' + n + '</option>';
+    }).join('');
+  }
   document.getElementById('auto-orbit-toggle').addEventListener('click', function(){
     autoOrbitOn = !autoOrbitOn;
-    this.textContent = 'Auto-Orbit: ' + (autoOrbitOn ? 'On' : 'Off');
+    this.textContent = 'Auto-rotate: ' + (autoOrbitOn ? 'on' : 'off');
     this.setAttribute('aria-pressed', String(autoOrbitOn));
     this.classList.toggle('btn-current', autoOrbitOn);
     if(previewStadium) previewStadium.setAutoOrbit(autoOrbitOn);
@@ -3145,6 +3202,11 @@
       timeline: (timelineCuesByVenue[currentVenueId] || []).map(function(c){
         var pat = findPattern(c.pattern);
         return {track:c.track, pattern: pat ? pat.name : c.pattern, start:c.start, duration:c.duration};
+      }),
+      seatPaint: paintGroups.map(function(g, gi){
+        var seats = [];
+        if(ledPaintGroup) for(var i = 0; i < ledPaintGroup.length; i++) if(ledPaintGroup[i] === gi) seats.push(i);
+        return {name:g.name, color:g.color, effect:g.effect, seats:seats};
       }),
       generatedAt: new Date().toISOString()
     };
@@ -3197,49 +3259,300 @@
     item.className = 'export-history-item';
     item.innerHTML = '<span class="file-name">' + fileBase + '</span><span class="file-meta">' + new Date().toLocaleTimeString() + ' &middot; ' + (wantJson && wantPdf ? 'JSON + PDF' : wantJson ? 'JSON' : 'PDF') + '</span>';
     hist.prepend(item);
-    showToast('Export generated');
+    showToast('Downloaded');
   });
 
   function renderExportView(){
     var v = venues.find(function(x){ return x.id === currentVenueId; });
-    document.getElementById('export-project-sub').textContent = v.name + ' — ' + document.getElementById('project-name').textContent.split('_').join(' ');
+    document.getElementById('export-project-sub').textContent = 'Download the ' + document.getElementById('project-name').textContent.toLowerCase() + ' for ' + v.name + '.';
   }
 
+  // ===================== SEAT PAINT =====================
+  // Port of the Unity project's GlobalController groups: individual seats (or whole rows /
+  // sections) are assigned to a paint group, and each group's color + effect overrides the
+  // zone patterns for those seats. Like Unity, a seat belongs to at most one group.
+  var PAINT_TWINKLE_COLORS = ['#001733', '#bf4f00', '#ffffff']; // GlobalController twinkle picks
+  var PAINT_MAX_GROUPS = 9;
+  var paintGroups = [{ name:'Group 1', color:'#e86100', effect:'static' }];
+  var selectedPaintGroup = 0;
+  var paintToolOn = false;
+  var ledPaintGroup = null;   // Int8Array per LED: paint group index, -1 = unpainted
+  var paintedCount = 0;
+  var paintColors = null, paintMask = null;
+  var hexRgbCache = {};
+
+  function hexRgb(hex){
+    var c = hexRgbCache[hex];
+    if(!c){
+      var n = parseInt(hex.slice(1), 16);
+      c = hexRgbCache[hex] = [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255];
+    }
+    return c;
+  }
+
+  function ensurePaintBuffers(){
+    var data = designerStadium && designerStadium.getLedData();
+    if(!data) return null;
+    if(!ledPaintGroup || ledPaintGroup.length !== data.count){
+      ledPaintGroup = new Int8Array(data.count).fill(-1);
+      paintColors = new Float32Array(data.count * 3);
+      paintMask = new Uint8Array(data.count);
+      paintedCount = 0;
+    }
+    return data;
+  }
+
+  // The color a painted seat shows at time t. Pulse is a smooth 0.55–1.0 sine (Unity's
+  // AnimationCurve version clamped after one rise); twinkle and random re-roll on a clock
+  // rather than every frame so they read as effects instead of noise.
+  function paintedSeatRgb(g, i, t, out){
+    var rgb = hexRgb(g.color), f = 1;
+    if(g.effect === 'pulse'){
+      f = 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(t * Math.PI * 1.2));
+    } else if(g.effect === 'twinkle'){
+      rgb = hexRgb(PAINT_TWINKLE_COLORS[Math.floor(pseudoRandom(i * 131 + Math.floor(t * 2.3) * 7919) * 3)]);
+    } else if(g.effect === 'random'){
+      var tick = Math.floor(t * 8);
+      out[0] = pseudoRandom(i * 3 + tick * 104729);
+      out[1] = pseudoRandom(i * 3 + 1 + tick * 104729);
+      out[2] = pseudoRandom(i * 3 + 2 + tick * 104729);
+      return;
+    }
+    out[0] = rgb[0] * f; out[1] = rgb[1] * f; out[2] = rgb[2] * f;
+  }
+
+  var scratchRgb = [0, 0, 0];
+  // Fills the shared override buffers for this frame and hands them to a stadium instance.
+  function applyPaintFrame(stadium, t){
+    if(!stadium) return;
+    if(!ledPaintGroup || paintedCount === 0){ stadium.setLedOverride(null, null); return; }
+    for(var i = 0; i < ledPaintGroup.length; i++){
+      var gi = ledPaintGroup[i];
+      if(gi < 0){ paintMask[i] = 0; continue; }
+      paintMask[i] = 1;
+      paintedSeatRgb(paintGroups[gi], i, t, scratchRgb);
+      paintColors[i * 3] = scratchRgb[0]; paintColors[i * 3 + 1] = scratchRgb[1]; paintColors[i * 3 + 2] = scratchRgb[2];
+    }
+    stadium.setLedOverride(paintColors, paintMask);
+  }
+
+  function renderPaintPanel(){
+    var counts = paintGroups.map(function(){ return 0; });
+    if(ledPaintGroup) for(var i = 0; i < ledPaintGroup.length; i++) if(ledPaintGroup[i] >= 0) counts[ledPaintGroup[i]]++;
+    document.getElementById('paint-group-list').innerHTML = paintGroups.map(function(g, gi){
+      return '<button type="button" role="option" class="paint-group' + (gi === selectedPaintGroup ? ' active' : '') + '" data-group="' + gi + '" aria-selected="' + (gi === selectedPaintGroup) + '">' +
+        '<span class="color-swatch" style="background:' + g.color + '" aria-hidden="true"></span>' +
+        '<span>' + g.name + ' <span class="paint-effect">' + g.effect + '</span></span>' +
+        '<span class="paint-count">' + counts[gi].toLocaleString() + ' seats</span></button>';
+    }).join('');
+    var g = paintGroups[selectedPaintGroup];
+    document.getElementById('paint-color').value = g.color;
+    document.getElementById('paint-effect').value = g.effect;
+    document.getElementById('paint-add-group').disabled = paintGroups.length >= PAINT_MAX_GROUPS;
+  }
+
+  function paintSeats(pick, mode){
+    var data = ensurePaintBuffers();
+    if(!data || !pick) return;
+    var value = mode === 'erase' ? -1 : selectedPaintGroup;
+    for(var i = 0; i < data.count; i++){
+      var hit = mode === 'row' ? data.rowId[i] === pick.rowId
+              : mode === 'section' ? data.section[i] === pick.section
+              : i === pick.index;
+      if(!hit) continue;
+      if(ledPaintGroup[i] < 0 && value >= 0) paintedCount++;
+      else if(ledPaintGroup[i] >= 0 && value < 0) paintedCount--;
+      ledPaintGroup[i] = value;
+    }
+    renderPaintPanel();
+  }
+
+  document.getElementById('paint-toggle').addEventListener('click', function(){
+    paintToolOn = !paintToolOn;
+    this.textContent = paintToolOn ? 'Stop painting' : 'Start painting';
+    this.setAttribute('aria-pressed', String(paintToolOn));
+    this.classList.toggle('btn-current', paintToolOn);
+    document.querySelector('#designer-view .canvas-panel').classList.toggle('painting', paintToolOn);
+  });
+  document.getElementById('paint-group-list').addEventListener('click', function(e){
+    var b = e.target.closest('.paint-group');
+    if(!b) return;
+    selectedPaintGroup = parseInt(b.getAttribute('data-group'), 10);
+    renderPaintPanel();
+  });
+  document.getElementById('paint-color').addEventListener('input', function(e){
+    paintGroups[selectedPaintGroup].color = e.target.value;
+    renderPaintPanel();
+  });
+  document.getElementById('paint-effect').addEventListener('change', function(e){
+    paintGroups[selectedPaintGroup].effect = e.target.value;
+    renderPaintPanel();
+  });
+  document.getElementById('paint-add-group').addEventListener('click', function(){
+    if(paintGroups.length >= PAINT_MAX_GROUPS) return;
+    var palette = VENUE_PALETTES[currentVenueId] || VENUE_PALETTES['jordan-hare'];
+    paintGroups.push({ name:'Group ' + (paintGroups.length + 1), color: paintGroups.length % 2 ? palette.secondary : palette.primary, effect:'static' });
+    selectedPaintGroup = paintGroups.length - 1;
+    renderPaintPanel();
+  });
+  document.getElementById('paint-clear').addEventListener('click', function(){
+    if(ledPaintGroup) ledPaintGroup.fill(-1);
+    paintedCount = 0;
+    renderPaintPanel();
+    showToast('Seat paint cleared');
+  });
+
+  // A click (not an orbit drag) on the Designer canvas paints while the tool is on.
+  (function(){
+    var canvas = document.getElementById('stadium3d-canvas-designer');
+    var down = null;
+    canvas.addEventListener('pointerdown', function(e){ down = { x: e.clientX, y: e.clientY }; });
+    canvas.addEventListener('pointerup', function(e){
+      if(!paintToolOn || !down || !designerStadium) return;
+      var moved = Math.abs(e.clientX - down.x) + Math.abs(e.clientY - down.y);
+      down = null;
+      if(moved > 4) return;
+      var mode = (e.ctrlKey || e.metaKey) ? 'erase' : e.shiftKey ? 'row' : e.altKey ? 'section' : 'seat';
+      paintSeats(designerStadium.pickLed(e.clientX, e.clientY), mode);
+    });
+  })();
+
   // ===================== 3D STADIUM =====================
-  if(window.Stadium3D){
-    designerStadium = window.Stadium3D.createStadium3D(document.getElementById('stadium3d-canvas-designer'), {
+  // Each 3D view is created the first time its screen is opened and only renders while that
+  // screen is showing (setActiveStadiumView), so the app never animates a stadium nobody sees.
+  // Both instances share the parsed stadium assets, so opening the second one is cheap.
+  var initialVenue = venues.find(function(x){ return x.id === currentVenueId; });
+  initialVenue.zoneData.forEach(function(z, i){ currentZoneIndexBySlug[zoneSlug(z.name)] = i; });
+
+  function createStadiumFor(canvasId, maxFps){
+    return window.Stadium3D.createStadium3D(document.getElementById(canvasId), {
+      maxFps: maxFps,
       computeDotBrightness: computeDotBrightness,
       getDotColor: getDotColor
     });
-    previewStadium = window.Stadium3D.createStadium3D(document.getElementById('stadium3d-canvas-preview'), {
-      computeDotBrightness: computeDotBrightness,
-      getDotColor: getDotColor
-    });
-    // Every zone in the Show Designer view animates its own assigned
-    // pattern continuously, the same way the real LEDs would be live all
-    // the time; the selected layer additionally gets a brighter deck via
-    // highlightZone() (see applyZoneHighlightStyle).
+  }
+
+  function ensureDesignerStadium(){
+    if(designerStadium || !window.Stadium3D) return designerStadium;
+    designerStadium = createStadiumFor('stadium3d-canvas-designer', 30); // editing doesn't need more; Show runs uncapped
+    // Every zone animates its assigned pattern continuously, the way the real LEDs would;
+    // the selected layer is also brightened via highlightZone() (see applyZoneHighlightStyle).
     designerStadium.onFrame = function(t){
       var v = venues.find(function(x){ return x.id === currentVenueId; });
       if(!v) return;
       v.zoneData.forEach(function(z, i){
         designerStadium.setZoneFrame(i, findPatternByName(z.pattern), t, z.on);
       });
+      applyPaintFrame(designerStadium, t);
     };
-    var initialVenue = venues.find(function(x){ return x.id === currentVenueId; });
-    initialVenue.zoneData.forEach(function(z, i){ currentZoneIndexBySlug[zoneSlug(z.name)] = i; });
-    designerStadium.loadVenue(initialVenue, VENUE_PALETTES[currentVenueId]);
-    previewStadium.loadVenue(initialVenue, VENUE_PALETTES[currentVenueId]);
-    window.addEventListener('resize', function(){
-      designerStadium.onResize();
-      previewStadium.onResize();
-    });
+    designerStadium.highlightZone(selectedLayerIndex);
+    designerStadium.loadVenue(initialVenue);
+    return designerStadium;
   }
 
+  function ensurePreviewStadium(){
+    if(previewStadium || !window.Stadium3D) return previewStadium;
+    previewStadium = createStadiumFor('stadium3d-canvas-preview');
+    // Zone patterns in Preview are fed by the timeline (updatePreviewStadium); per frame we
+    // only layer on the seat-level overrides — the demo show if it's on, else seat paint —
+    // and the seat-level music gain.
+    previewStadium.onFrame = function(t){
+      if(!(demoShowOn && demoShow && applyDemoShowFrame(previewStadium, playheadSeconds))){
+        applyPaintFrame(previewStadium, t);
+      }
+      applyMusicLedGain(previewStadium);
+    };
+    // pick up anything set on the Preview panel before the stadium existed
+    previewStadium.setTimeOfDay(parseInt(document.getElementById('time-of-day').value, 10));
+    previewStadium.setFogDensity(parseInt(document.getElementById('fog-density').value, 10));
+    previewStadium.setAutoOrbit(autoOrbitOn);
+    previewStadium.loadVenue(initialVenue).then(onPreviewStadiumLoaded);
+    return previewStadium;
+  }
+
+  // Preview stage: the menu and settings float over the 3D view and can be hidden; Full screen
+  // hides everything but the transport (which fades back in when the pointer moves).
+  var stageUI = (function(){
+    var shell = document.getElementById('app-shell');
+    var settingsBtn = document.getElementById('stage-settings-btn');
+    var fsBtn = document.getElementById('stage-fullscreen-btn');
+    var fsLabel = document.getElementById('stage-fullscreen-label');
+    var wakeTimer = null;
+    function resizeSoon(){ requestAnimationFrame(function(){ window.dispatchEvent(new Event('resize')); }); }
+    function setNavHidden(hidden){ shell.classList.toggle('nav-hidden', hidden); }
+    function setSettingsHidden(hidden){
+      shell.classList.toggle('settings-hidden', hidden);
+      settingsBtn.setAttribute('aria-pressed', String(!hidden));
+    }
+    function isImmersive(){ return shell.classList.contains('immersive'); }
+    function wake(){
+      shell.classList.add('ui-awake');
+      clearTimeout(wakeTimer);
+      wakeTimer = setTimeout(function(){ shell.classList.remove('ui-awake'); }, 2500);
+    }
+    function setImmersive(on){
+      if(on === isImmersive()) return;
+      shell.classList.toggle('immersive', on);
+      fsLabel.textContent = on ? 'Exit full screen' : 'Full screen';
+      fsBtn.title = on ? 'Exit full screen (F or Esc)' : 'Full screen (F)';
+      clearTimeout(wakeTimer);
+      if(on) wake(); else shell.classList.remove('ui-awake');
+      resizeSoon();
+    }
+    function enterFullscreen(){
+      setImmersive(true);
+      var el = document.documentElement;
+      if(el.requestFullscreen){ el.requestFullscreen().catch(function(){}); }
+    }
+    function exitFullscreen(){
+      setImmersive(false);
+      if(document.fullscreenElement && document.exitFullscreen){ document.exitFullscreen().catch(function(){}); }
+    }
+    function toggleFullscreen(){ if(isImmersive()) exitFullscreen(); else enterFullscreen(); }
+
+    document.getElementById('stage-menu-btn').addEventListener('click', function(){ setNavHidden(false); });
+    document.getElementById('sidebar-hide').addEventListener('click', function(){ setNavHidden(true); });
+    settingsBtn.addEventListener('click', function(){ setSettingsHidden(!shell.classList.contains('settings-hidden')); });
+    document.getElementById('preview-settings-close').addEventListener('click', function(){ setSettingsHidden(true); });
+    fsBtn.addEventListener('click', toggleFullscreen);
+    document.getElementById('preview-view').addEventListener('pointermove', function(){ if(isImmersive()) wake(); });
+    // Esc (or the browser's own exit) leaves native full screen; mirror that in the layout.
+    document.addEventListener('fullscreenchange', function(){ if(!document.fullscreenElement) setImmersive(false); });
+    document.addEventListener('keydown', function(e){
+      if(!shell.classList.contains('preview-active') || e.ctrlKey || e.metaKey || e.altKey) return;
+      var tag = (e.target && e.target.tagName) || '';
+      if(tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+      if(e.key === 'f' || e.key === 'F'){ toggleFullscreen(); }
+      else if(e.key === 'Escape' && isImmersive()){ exitFullscreen(); }
+      if(isImmersive()) wake();
+    });
+    return {
+      setPreviewActive: function(on){
+        shell.classList.toggle('preview-active', on);
+        if(!on) exitFullscreen();
+        resizeSoon();
+      }
+    };
+  })();
+
+  function setActiveStadiumView(view){
+    stageUI.setPreviewActive(view === 'preview-view');
+    if(view === 'designer-view') ensureDesignerStadium();
+    if(view === 'preview-view') ensurePreviewStadium();
+    if(designerStadium) designerStadium.setActive(view === 'designer-view');
+    if(previewStadium) previewStadium.setActive(view === 'preview-view');
+  }
+
+  window.addEventListener('resize', function(){
+    if(designerStadium) designerStadium.onResize();
+    if(previewStadium) previewStadium.onResize();
+  });
+
   // init
-  renderVenues('');
+  setActiveStadiumView('designer-view');
   renderLayers();
   renderInspector();
+  renderPaintPanel();
   renderPatternGrid('');
   renderPatternInspector();
   renderTimeline();
