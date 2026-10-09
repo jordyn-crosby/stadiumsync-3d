@@ -2549,9 +2549,7 @@
     setTransportIcon(document.getElementById('preview-play'), isPlaying);
     updatePreviewStartHint();
     if(isPlaying){
-      if(musicWanted() && musicAudioEl){
-        try { musicAudioEl.currentTime = playheadSeconds; musicAudioEl.play(); } catch(e){}
-      }
+      syncMusicPlayback();
       var last = performance.now();
       playTimer = setInterval(function(){
         var now = performance.now();
@@ -2569,7 +2567,7 @@
       }, 100);
     } else {
       clearInterval(playTimer);
-      if(musicAudioEl) { try { musicAudioEl.pause(); } catch(e){} }
+      syncMusicPlayback();
     }
   }
 
@@ -2840,6 +2838,8 @@
     musicBandMax = [1, 1, 1];
     resetAudioPeer();
     if(musicAudioEl) musicAudioEl.volume = (document.getElementById('music-volume-slider').value || 80) / 100;
+    if(isPlaying) syncMusicPlayback();
+    else showToast('Song loaded — press Play');
   }
 
   document.getElementById('music-import-btn').addEventListener('click', function(){
@@ -2866,12 +2866,10 @@
   });
   document.getElementById('music-sync-toggle').addEventListener('change', function(e){
     musicSyncEnabled = e.target.checked;
-    if(!musicWanted() && musicAudioEl){ try { musicAudioEl.pause(); } catch(err){} }
     updatePreviewStadium(playheadSeconds);
   });
   document.getElementById('music-color-sync-toggle').addEventListener('change', function(e){
     musicColorSyncEnabled = e.target.checked;
-    if(!musicWanted() && musicAudioEl){ try { musicAudioEl.pause(); } catch(err){} }
     updatePreviewStadium(playheadSeconds);
   });
 
@@ -2892,8 +2890,20 @@
     peerAmplitudeHighest = peerAmplitude = peerAmplitudeBuffer = 0;
   }
 
-  function musicWanted(){
-    return musicSyncEnabled || musicColorSyncEnabled || musicLedMode !== 'off' || demoShowOn;
+  // A loaded song always plays with the transport; the music toggles only
+  // decide which light effects follow it, not whether it's audible.
+  function syncMusicPlayback(){
+    if(!musicAudioEl || !musicAudioEl.src) return;
+    if(isPlaying){
+      if(musicAudioCtx && musicAudioCtx.state === 'suspended') musicAudioCtx.resume();
+      if(musicAudioEl.paused){
+        musicAudioEl.currentTime = playheadSeconds;
+        var p = musicAudioEl.play();
+        if(p && p.catch) p.catch(function(err){ console.error(err); showToast('Could not play this song'); });
+      }
+    } else if(!musicAudioEl.paused){
+      musicAudioEl.pause();
+    }
   }
 
   function musicIsPlaying(){
@@ -2953,10 +2963,6 @@
   document.getElementById('music-led-mode').addEventListener('change', function(e){
     musicLedMode = e.target.value;
     resetAudioPeer();
-    if(!musicWanted() && musicAudioEl){ try { musicAudioEl.pause(); } catch(err){} }
-    else if(isPlaying && musicAudioEl && musicAudioEl.paused){
-      try { musicAudioEl.currentTime = playheadSeconds; musicAudioEl.play(); } catch(err){}
-    }
   });
 
   // ---- Spring '25 demo show (converted from the Unity project's Resources/first_demo) ----
@@ -3011,7 +3017,6 @@
     var box = e.target;
     if(!box.checked){
       demoShowOn = false;
-      if(!musicWanted() && musicAudioEl){ try { musicAudioEl.pause(); } catch(err){} }
       return;
     }
     loadDemoShow().then(function(){
