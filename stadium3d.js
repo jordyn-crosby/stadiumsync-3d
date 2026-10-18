@@ -125,7 +125,7 @@
     var ledCount = 0;
     var ledPos = null;       // Float32Array xyz
     var venueZoneOf = null;  // Int16Array: LED → venue.zoneData index (-1 = unmapped)
-    var zones = [];          // index-aligned with venue.zoneData: {indices, cols, rows, col, row}
+    var zones = [];          // index-aligned with venue.zoneData: {indices, cols, rows, col, row, around}
     var baseColors = null;   // Float32Array rgb written by setZoneFrame
     var overrideColors = null, overrideMask = null, ledGain = null;
     var highlighted = -1;
@@ -216,12 +216,20 @@
           venueZoneOf[j] = vz;
           if(vz >= 0) members[vz].push(j);
         }
+        // `around`: how far round the bowl each LED sits (0-1, by angle about the
+        // stadium center), passed to computeDotBrightness so stadium-spanning
+        // patterns like The Wave travel around the whole venue.
+        var cx = led.center[0], cz = led.center[2];
         zones = venue.zoneData.map(function(z, vi){
           var lz = led.zones[ledZoneToVenue.indexOf(vi)];
           var idx = Int32Array.from(members[vi]);
-          var col = new Int16Array(idx.length), row = new Int16Array(idx.length);
-          for(var k = 0; k < idx.length; k++){ col[k] = led.col[idx[k]]; row[k] = led.row[idx[k]]; }
-          return { indices: idx, col: col, row: row, cols: lz ? lz.cols : 1, rows: lz ? lz.rows : 1 };
+          var col = new Int16Array(idx.length), row = new Int16Array(idx.length), around = new Float32Array(idx.length);
+          for(var k = 0; k < idx.length; k++){
+            var li = idx[k];
+            col[k] = led.col[li]; row[k] = led.row[li];
+            around[k] = (Math.atan2(ledPos[li * 3 + 2] - cz, ledPos[li * 3] - cx) / (2 * Math.PI) + 1) % 1;
+          }
+          return { indices: idx, col: col, row: row, around: around, cols: lz ? lz.cols : 1, rows: lz ? lz.rows : 1 };
         });
 
         ledMesh = buildLedMesh();
@@ -248,7 +256,7 @@
           continue;
         }
         var col = z.col[k], row = z.row[k];
-        var bright = computeDotBrightness(pattern, col, t, z.cols, row, z.rows);
+        var bright = computeDotBrightness(pattern, col, t, z.cols, row, z.rows, z.around[k]);
         var rgb = hexToRgb(getDotColor(pattern, col, row, z.cols, z.rows));
         var boosted = 0.3 + bright * 0.7;
         baseColors[o] = rgb[0] * boosted; baseColors[o + 1] = rgb[1] * boosted; baseColors[o + 2] = rgb[2] * boosted;

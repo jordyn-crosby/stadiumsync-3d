@@ -28,15 +28,19 @@ Then visit `http://localhost:8000`. Opening `index.html` directly via `file://` 
 
 ### State management
 
-All app state lives as plain module-scoped `var` declarations inside the `index.html` IIFE (venues, current selection, pattern library, timeline tracks/cues, music-sync state, etc.) — there is no state library, no `localStorage` persistence, and no backend. Reloading the page resets everything to the hardcoded seed data (`venues` array, `patternLibrary` array, etc. defined near the top of the script).
+All app state lives as plain module-scoped `var` declarations inside the `index.html` IIFE (venues, current selection, pattern library, timeline tracks/cues, music-sync state, etc.) — there is no state library and no backend. Reloading the page resets everything to the hardcoded seed data (`venues` array, `patternLibrary` array, etc. defined near the top of the script), except for saved items:
 
-Views are swapped by toggling visibility of top-level sections and re-running per-view `render*()` functions (e.g. `renderLayers`, `renderInspector`, `renderPatternGrid`, `renderTimeline`, `renderCueInspector`, `renderExportView`) rather than any virtual-DOM diffing — each one rebuilds its section's `innerHTML` from current state.
+- **Saved items (IndexedDB).** `savedStore` in `index.html` wraps an IndexedDB database `stadiumsync` with two object stores: `patterns` (whole pattern objects — user-created ones, plus edited copies of built-ins, keyed by `id`) and `songs` (imported audio files as Blobs with name/size). Saves stay in that browser on that computer. On startup `restoreSavedPatterns` merges saved patterns over the seed library and `restoreSavedSongs` lists songs and reloads the last one played (its id is in `localStorage` as `stadiumsync.lastSongId`). `builtInPatterns` keeps the untouched seed copies for "Reset to original". Every `savedStore` call resolves rather than rejects, so the app still runs where IndexedDB is unavailable. Timeline cues, zone settings and seat paint are not saved.
+
+Views are swapped by toggling visibility of top-level sections and re-running per-view `render*()` functions (e.g. `renderLayers`, `renderInspector`, `renderPatternGrid`, `renderTimeline`, `renderExportView`) rather than any virtual-DOM diffing — each one rebuilds its section's `innerHTML` from current state.
 
 ### The shared LED math contract
 
-`computeDotBrightness(pattern, col, t, totalCols, row, totalRows)` and `getDotColor(pattern, col, row, totalCols, totalRows)` (defined in `index.html`) are the single source of truth for what a pattern looks like at a given time/position. They are used to animate:
-- the 2D LED matrix previews (pattern library cards, zone inspector, timeline scrubbing),
-- the 3D stadium view — these two functions are passed **into** `stadium3d.js` via `createStadium3D(canvas, { computeDotBrightness, getDotColor })` rather than being reimplemented there. In 3D, `col`/`row`/`totalCols`/`totalRows` come from each LED's zone grid in `leds.json`, not from `LED_COLS`/`LED_ROWS`.
+`computeDotBrightness(pattern, col, t, totalCols, row, totalRows, around)` and `getDotColor(pattern, col, row, totalCols, totalRows)` (defined in `index.html`) are the single source of truth for what a pattern looks like at a given time/position. They are used to animate:
+- the 2D LED matrix previews (zone inspector, timeline cues and scrubbing, and the hover preview on pattern cards in the library and under the timeline — `drawSwatchPreview`),
+- the 3D stadium view — these two functions are passed **into** `stadium3d.js` via `createStadium3D(canvas, { computeDotBrightness, getDotColor })` rather than being reimplemented there. In 3D, `col`/`row`/`totalCols`/`totalRows` come from each LED's zone grid in `leds.json`, not from `LED_COLS`/`LED_ROWS`, and the optional `around` (0–1, the LED's angle about the stadium center, precomputed per zone in `loadVenue`) lets stadium-spanning motions like The Wave (`motion: 'crowd-wave'`) travel around the whole bowl; callers without it (2D grids) fall back to column position.
+
+The four stadium-wide patterns (Checkerboard + Streak, Sine Wave Split, Circulating Wave, Radar Sweep) color dots by position on the venue's 400×300 map instead: their math lives in `checkerboardStreakAt`/`sineWaveSplitAt`/`circulatingWaveAt`/`radarSweepAt` (dispatched by `venueWideColorAt`), wrapped per zone by the `get*Color(slug, …)` functions.
 
 When changing pattern rendering logic, change it in these two functions only — do not add parallel logic inside `stadium3d.js`, or the 2D and 3D views will disagree. The same goes for the seat-level effects (seat paint, demo show, music gain): their color math lives in `index.html` (`paintedSeatRgb`, `applyDemoShowFrame`, `applyMusicLedGain`) and is handed to the renderer as buffers.
 
@@ -51,6 +55,8 @@ When changing pattern rendering logic, change it in these two functions only —
 ### Music sync
 
 The Preview view can drive pattern playback from an uploaded audio file via the Web Audio API (`musicAudioCtx`/`musicAnalyser`/`musicFreqData`), with rolling per-band ceilings and separate kick/chant onset-detection histories used to trigger beat-synced flashes. This logic is entirely inline in `index.html` near the bottom of the script. Alongside it, `computeAudioPeerBands` ports the Unity sim's `AudioPeer` (8 octave bands with decay buffers and running-max normalization) to drive the per-seat Linear / Random / Amplitude music modes, and the Spring '25 demo show plays from `assets/jordan-hare/show-first-demo.*` on the Preview transport clock.
+
+The Timeline reuses the loaded song too: `buildWaveform` decodes it once (via `OfflineAudioContext`) into 10ms peak frames for the waveform strip drawn under every track, and `detectBeatHits` finds onset times (log-energy flux, bass-weighted), plus the subset of "big beats" (hits ≥60% as strong as the strongest within ±2s). With the "Snap to beats" toggle on, dropped/moved/resized cue edges snap to big beats from 24px away, or to any hit from 8px. Cue edges always snap first to the playhead and to the song's bookmarks (12px). The playhead is moved by pressing/dragging on the Timeline ruler; clicking its knob (without dragging) toggles a bookmark at the playhead (`marksBySong`, in memory per song). Bookmarks are `.wave-mark` elements in the waveform strips; hovering one shows a × and clicking deletes it. The knob is outlined, and filled while the playhead sits on a bookmark.
 
 ## Conventions to preserve
 
