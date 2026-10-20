@@ -1904,6 +1904,10 @@
       '</div>' +
       '<div class="field">' +
         '<label>Try it on zones</label>' +
+        '<div style="display:flex; gap:8px; margin-bottom:8px;">' +
+          '<button type="button" class="btn" id="zone-test-select-all">Select all zones</button>' +
+          '<button type="button" class="btn" id="zone-test-clear-all">Clear all zones</button>' +
+        '</div>' +
         '<div id="zone-test-picker" class="zone-test-picker"></div>' +
       '</div>' +
       '<div class="field"><label>Pattern</label><div class="target-zone-name">' + p.name + '</div></div>' +
@@ -1969,6 +1973,22 @@
       if(!e.target.checked && idx > -1) testZoneNames.splice(idx, 1);
       buildLedMatrix(p);
       if(ledPlaying){ startLedPreview(p); } else { renderLedMatrixStatic(p); }
+    });
+
+    function refreshZoneTest(){
+      renderZoneTestPicker();
+      buildLedMatrix(p);
+      if(ledPlaying){ startLedPreview(p); } else { renderLedMatrixStatic(p); }
+    }
+    document.getElementById('zone-test-select-all').addEventListener('click', function(){
+      var v = venues.find(function(x){ return x.id === currentVenueId; });
+      testZoneNames.length = 0;
+      v.zoneData.forEach(function(z){ testZoneNames.push(z.name); });
+      refreshZoneTest();
+    });
+    document.getElementById('zone-test-clear-all').addEventListener('click', function(){
+      testZoneNames.length = 0;
+      refreshZoneTest();
     });
 
     buildLedMatrix(p);
