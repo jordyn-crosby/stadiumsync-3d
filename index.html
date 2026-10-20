@@ -339,6 +339,7 @@
   }
   .zone-check-row{ margin-top:0; border-radius:0; border:none; border-bottom:1px solid var(--outline-variant); background:transparent;}
   .zone-check-row:last-child{ border-bottom:none; }
+  .zone-check-all{ position:sticky; top:0; z-index:1; background:var(--surface-high); font-weight:600; }
   .pattern-schematic-wrap{ margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--outline-variant); }
   .pattern-schematic-svg{ width:100%; max-width:380px; display:block; margin:4px auto 0; }
   .svg-led-dot{ fill:rgba(255,255,255,0.05); }
@@ -1470,7 +1471,7 @@
     {id:'circulating-wave', name:'Circulating Wave', tags:['Motion','Dynamic'], color:'#e86100', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'solid'},
     {id:'radar-sweep', name:'Radar Sweep', tags:['Motion','Dynamic'], color:'#e86100', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'solid'},
     {id:'the-wave', name:'The Wave', tags:['Motion','Crowd'], color:'#e86100', colorRole:'primary', intensity:100, spread:15, frequency:1.0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'crowd-wave'},
-    {id:'au-logo', name:'AU Logo', tags:['Image','Static'], color:'#e86100', bgColor:'#2e6fff', trimColor:'#ffffff', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'text', textBitmap:'au-logo'},
+    {id:'au-logo', name:'AU Logo', tags:['Image','Static'], color:'#e86100', bgColor:'#0b2341', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'text', textBitmap:'au-logo'},
     {id:'auburn-text', name:'AUBURN Text', tags:['Image','Static'], color:'#e86100', bgColor:'#2e6fff', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'text', textBitmap:'auburn-text'}
   ];
   var selectedPatternId = 'tiger-wave';
@@ -1904,10 +1905,6 @@
       '</div>' +
       '<div class="field">' +
         '<label>Try it on zones</label>' +
-        '<div style="display:flex; gap:8px; margin-bottom:8px;">' +
-          '<button type="button" class="btn" id="zone-test-select-all">Select all zones</button>' +
-          '<button type="button" class="btn" id="zone-test-clear-all">Clear all zones</button>' +
-        '</div>' +
         '<div id="zone-test-picker" class="zone-test-picker"></div>' +
       '</div>' +
       '<div class="field"><label>Pattern</label><div class="target-zone-name">' + p.name + '</div></div>' +
@@ -1966,29 +1963,21 @@
 
     renderZoneTestPicker();
     document.getElementById('zone-test-picker').addEventListener('change', function(e){
-      if(!e.target.classList.contains('zone-test-check')) return;
-      var name = e.target.value;
-      var idx = testZoneNames.indexOf(name);
-      if(e.target.checked && idx === -1) testZoneNames.push(name);
-      if(!e.target.checked && idx > -1) testZoneNames.splice(idx, 1);
+      if(e.target.id === 'zone-test-all'){
+        // "All zones" checks every zone, or clears them all when unticked.
+        var v = venues.find(function(x){ return x.id === currentVenueId; });
+        testZoneNames.length = 0;
+        if(e.target.checked) v.zoneData.forEach(function(z){ testZoneNames.push(z.name); });
+        document.querySelectorAll('#zone-test-picker .zone-test-check').forEach(function(box){ box.checked = e.target.checked; });
+      } else if(e.target.classList.contains('zone-test-check')){
+        var name = e.target.value;
+        var idx = testZoneNames.indexOf(name);
+        if(e.target.checked && idx === -1) testZoneNames.push(name);
+        if(!e.target.checked && idx > -1) testZoneNames.splice(idx, 1);
+      } else return;
+      syncZoneTestAll();
       buildLedMatrix(p);
       if(ledPlaying){ startLedPreview(p); } else { renderLedMatrixStatic(p); }
-    });
-
-    function refreshZoneTest(){
-      renderZoneTestPicker();
-      buildLedMatrix(p);
-      if(ledPlaying){ startLedPreview(p); } else { renderLedMatrixStatic(p); }
-    }
-    document.getElementById('zone-test-select-all').addEventListener('click', function(){
-      var v = venues.find(function(x){ return x.id === currentVenueId; });
-      testZoneNames.length = 0;
-      v.zoneData.forEach(function(z){ testZoneNames.push(z.name); });
-      refreshZoneTest();
-    });
-    document.getElementById('zone-test-clear-all').addEventListener('click', function(){
-      testZoneNames.length = 0;
-      refreshZoneTest();
     });
 
     buildLedMatrix(p);
@@ -2032,10 +2021,24 @@
     var v = venues.find(function(x){ return x.id === currentVenueId; });
     var container = document.getElementById('zone-test-picker');
     if(!container) return;
-    container.innerHTML = v.zoneData.map(function(z){
-      var checked = testZoneNames.indexOf(z.name) > -1 ? 'checked' : '';
-      return '<label class="check-row zone-check-row"><input type="checkbox" class="zone-test-check" value="' + z.name + '" ' + checked + '> ' + z.name + '</label>';
-    }).join('');
+    container.innerHTML =
+      '<label class="check-row zone-check-row zone-check-all"><input type="checkbox" id="zone-test-all"> All zones</label>' +
+      v.zoneData.map(function(z){
+        var checked = testZoneNames.indexOf(z.name) > -1 ? 'checked' : '';
+        return '<label class="check-row zone-check-row"><input type="checkbox" class="zone-test-check" value="' + z.name + '" ' + checked + '> ' + z.name + '</label>';
+      }).join('');
+    syncZoneTestAll();
+  }
+
+  // Ticks "All zones" when every zone is picked, and shows it as a dash
+  // when only some are.
+  function syncZoneTestAll(){
+    var all = document.getElementById('zone-test-all');
+    if(!all) return;
+    var v = venues.find(function(x){ return x.id === currentVenueId; });
+    var selected = v.zoneData.filter(function(z){ return testZoneNames.indexOf(z.name) > -1; }).length;
+    all.checked = selected === v.zoneData.length;
+    all.indeterminate = selected > 0 && selected < v.zoneData.length;
   }
 
   var LED_COLS = 24, LED_ROWS = 6;
@@ -2216,33 +2219,28 @@
     return {width: width, height: GLYPH_H, rows: rows};
   }
 
-  // Hand-built low-resolution approximation of Auburn's interlocking AU
-  // athletics mark — the A's peak/legs/crossbar sit distinctly above and
-  // within the U's rounded bowl, rather than merging into one shape.
-  // This is a coarse LED-grid approximation of the silhouette, the same
-  // way any physical stadium display would necessarily simplify it —
-  // not a precise trace of the vector artwork.
+  // Auburn's interlocking AU mark as an orange outline, taken seat for seat
+  // from the Spring '25 demo show (Section 29 Low, assets/jordan-hare/
+  // show-first-demo.*), so it matches the mark the team already drew in the
+  // Unity sim.
   var AU_LOGO_BITMAP = {
-    width: 15, height: 18,
+    width: 17, height: 15,
     rows: [
-      '000001111100000',
-      '000011111110000',
-      '000011000110000',
-      '000011000110000',
-      '111011000110111',
-      '111001111100111',
-      '111001101100111',
-      '111001101100111',
-      '111000000000111',
-      '111000000000111',
-      '111000000000111',
-      '111000000000111',
-      '111000000000111',
-      '111000000000111',
-      '111000000000111',
-      '011100000001110',
-      '000111000111000',
-      '000001111100000'
+      '00000001110000000',
+      '11111111011111111',
+      '10000010001000001',
+      '10000100000100001',
+      '01101000100010110',
+      '00101001010010100',
+      '00110001110001100',
+      '00110000000001100',
+      '00100011111000100',
+      '01100100000100110',
+      '10001010001010001',
+      '10000101110100001',
+      '01111100000111110',
+      '00010000000001000',
+      '00001111111110000'
     ]
   };
 

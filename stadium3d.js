@@ -224,9 +224,14 @@
           var lz = led.zones[ledZoneToVenue.indexOf(vi)];
           var idx = Int32Array.from(members[vi]);
           var col = new Int16Array(idx.length), row = new Int16Array(idx.length), around = new Float32Array(idx.length);
+          var lastCol = (lz ? lz.cols : 1) - 1, lastRow = (lz ? lz.rows : 1) - 1;
           for(var k = 0; k < idx.length; k++){
             var li = idx[k];
-            col[k] = led.col[li]; row[k] = led.row[li];
+            // leds.json counts rows up from the front (lowest) row and columns
+            // right to left as seen from the field; patterns and the 2D previews
+            // count from the top left, so flip both here or images and text come
+            // out rotated 180° in the stadium.
+            col[k] = lastCol - led.col[li]; row[k] = lastRow - led.row[li];
             around[k] = (Math.atan2(ledPos[li * 3 + 2] - cz, ledPos[li * 3] - cx) / (2 * Math.PI) + 1) % 1;
           }
           return { indices: idx, col: col, row: row, around: around, cols: lz ? lz.cols : 1, rows: lz ? lz.rows : 1 };
