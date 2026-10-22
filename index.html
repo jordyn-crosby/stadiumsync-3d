@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+  // Apply night mode before first paint so the page doesn't flash light.
+  try { if(localStorage.getItem('stadiumsync.nightMode') === '1') document.documentElement.setAttribute('data-theme', 'night'); } catch(err){}
+</script>
 <title>Jordan-Hare Stadium | Light Show Simulation</title>
 <style>
   :root{
@@ -35,6 +39,10 @@
     --outline:#a1a1a1;
     --outline-variant:#d5d9de;
 
+    --glass:rgba(255,255,255,0.92);        /* panels floating over the 3D view */
+    --glass-strong:rgba(255,255,255,0.96);
+    --wave:rgba(11,35,65,0.4);             /* song waveform under the timeline tracks */
+
     /* auburn.edu's typeface is Sweet Sans Pro (licensed, served from Auburn's Adobe Fonts kit). It is listed first so it
        is used wherever it is installed; otherwise this falls back to system fonts, so the demo works offline. */
     --font-ui:'sweet-sans-pro', system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
@@ -53,6 +61,37 @@
     --gutter:20px;
     --space-sm:16px;
     --space-lg:32px;
+  }
+  /* Night mode (sidebar toggle, remembered per browser): dark navy surfaces, light text and buttons,
+     a brighter orange for accent text so it stays readable. */
+  :root[data-theme="night"]{
+    color-scheme:dark;
+    --accent-text:#ff8a3d;
+    --accent-soft:rgba(232,97,0,0.18);
+
+    --primary:#e3e9f1;
+    --primary-dim:#c8d2df;
+    --on-primary:#0b2341;
+    --secondary:#e3e9f1;
+    --on-secondary:#0b2341;
+    --tertiary:#5cc88a;
+
+    --ink:#e3e9f1;
+    --bg:#08111f;
+    --surface:#111d30;
+    --surface-low:#111d30;
+    --surface-container:#111d30;
+    --surface-high:#1a2940;
+    --surface-highest:#22344f;
+
+    --on-surface:#e3e9f1;
+    --on-surface-variant:#9aabc1;
+    --outline:#5f7290;
+    --outline-variant:#2a3c57;
+
+    --glass:rgba(17,29,48,0.92);
+    --glass-strong:rgba(17,29,48,0.96);
+    --wave:rgba(227,233,241,0.35);
   }
 
   *{box-sizing:border-box;}
@@ -118,6 +157,7 @@
   .nav-icon{width:20px; height:20px; flex-shrink:0;}
   .sidebar-foot{padding:10px; border-top:1px solid var(--outline-variant);}
   .sidebar-toggle .nav-icon{transition:transform .18s ease;}
+  #night-toggle[aria-pressed="true"] .nav-icon{color:var(--accent); fill:var(--accent-soft);}
 
   .app-shell.sidebar-collapsed nav.sidebar{width:var(--sidebar-collapsed);}
   .app-shell.sidebar-collapsed .brand-text,
@@ -156,6 +196,7 @@
     border:1px solid var(--outline-variant); background:var(--surface-high); color:var(--on-surface);
   }
   .btn:hover{border-color:var(--outline); color:var(--on-surface);}
+  .btn:disabled{opacity:0.5; cursor:default; border-color:var(--outline-variant);}
   .btn.btn-current{border-color:var(--accent-line); color:var(--on-surface); background:var(--accent-soft); cursor:default;}
   .import-icon{
     width:44px; height:44px; border-radius:50%; background:var(--surface-high);
@@ -206,7 +247,7 @@
     content:""; position:absolute; top:2px; left:2px; width:12px; height:12px;
     border-radius:50%; background:var(--surface); transition:left .15s ease;
   }
-  .layer-toggle.on::after{left:14px; background:#fff;}
+  .layer-toggle.on::after{left:14px; background:var(--on-primary);}
   .layer-select{
     flex:1; min-width:0; text-align:left; background:none; border:none;
     color:var(--on-surface); padding:4px 0;
@@ -263,6 +304,13 @@
     flex-shrink:0; padding:2px; background:var(--surface-high); cursor:pointer;
   }
   .color-hex{font-family:var(--font-ui); font-size:13px; color:var(--on-surface-variant);}
+  .pattern-color-list{display:flex; flex-direction:column; gap:8px;}
+  .pattern-color-remove{
+    margin-left:auto; width:28px; height:28px; border-radius:var(--radius-sm); border:1px solid transparent;
+    background:transparent; color:var(--on-surface-variant); font-size:18px; line-height:1;
+  }
+  .pattern-color-remove:hover{border-color:var(--outline-variant); color:var(--on-surface);}
+  .field-hint{margin:6px 0 0; font-size:13px; color:var(--on-surface-variant);}
 
   .slider-field .slider-head{display:flex; justify-content:space-between; align-items:baseline;}
   .slider-value{font-family:var(--font-ui); font-size:14px; color:var(--on-surface); font-weight:600;}
@@ -313,7 +361,7 @@
   }
   .pattern-preview-stage{
     min-height:110px; max-height:280px; overflow-y:auto; border-radius:var(--radius-lg); background:#050a0a; border:1px solid var(--outline-variant);
-    margin-bottom:12px; padding:8px;
+    margin-bottom:20px; padding:8px;
   }
   .led-matrix{
     display:grid; grid-template-columns:repeat(24, 1fr); grid-template-rows:repeat(6, 1fr);
@@ -339,6 +387,7 @@
   }
   .zone-check-row{ margin-top:0; border-radius:0; border:none; border-bottom:1px solid var(--outline-variant); background:transparent;}
   .zone-check-row:last-child{ border-bottom:none; }
+  .zone-check-all{ position:sticky; top:0; z-index:1; background:var(--surface-high); font-weight:600; }
   .pattern-schematic-wrap{ margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--outline-variant); }
   .pattern-schematic-svg{ width:100%; max-width:380px; display:block; margin:4px auto 0; }
   .svg-led-dot{ fill:rgba(255,255,255,0.05); }
@@ -350,6 +399,32 @@
   }
 
   /* ===== Timeline Editor ===== */
+  .timeline-shows{
+    display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-bottom:16px; padding:12px 16px;
+    background:var(--surface-container); border-radius:var(--radius-lg); border:1px solid var(--outline-variant);
+  }
+  .timeline-name-input{
+    flex:1 1 220px; max-width:360px; background:var(--surface-high); border:1px solid var(--outline-variant); color:var(--on-surface);
+    border-radius:var(--radius); padding:8px 10px; font-family:inherit; font-size:15px; font-weight:600;
+  }
+  .timeline-shows .btn{width:auto;}
+  .timeline-save-btn{background:var(--primary); color:var(--on-primary); border-color:var(--primary);}
+  .timeline-save-btn:hover{color:var(--on-primary); border-color:var(--primary);}
+  .timeline-save-state{font-size:13px; color:var(--on-surface-variant);}
+  .saved-timelines{flex-basis:100%; display:flex; flex-wrap:wrap; align-items:center; gap:6px;}
+  .saved-timelines:empty{display:none;}
+  .saved-timelines-label{font-size:13px; color:var(--on-surface-variant); margin-right:4px;}
+  .saved-timeline{display:flex; align-items:center; max-width:280px; border:1px solid var(--outline-variant); border-radius:var(--radius-md); background:var(--surface-high);}
+  .saved-timeline.current{border-color:var(--accent);}
+  .saved-timeline-name{
+    min-width:0; display:flex; align-items:baseline; gap:6px; padding:6px 4px 6px 10px; background:none; border:0;
+    color:var(--on-surface); font-family:var(--font-ui); font-size:13px; cursor:pointer; text-align:left;
+  }
+  .saved-timeline-name span:first-child{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .saved-timeline.current .saved-timeline-name{font-weight:600; cursor:default;}
+  .saved-timeline-date{flex-shrink:0; font-size:12px; color:var(--on-surface-variant); font-weight:400;}
+  .saved-timeline-delete{flex-shrink:0; width:28px; height:28px; background:none; border:0; color:var(--on-surface-variant); font-size:16px; line-height:1; cursor:pointer; border-radius:var(--radius-md);}
+  .saved-timeline-delete:hover{color:var(--on-surface); background:var(--surface-highest);}
   .timeline-transport{
     display:flex; align-items:center; gap:12px; margin-bottom:16px; padding:12px 16px;
     background:var(--surface-container); border-radius:var(--radius-lg); border:1px solid var(--outline-variant);
@@ -363,6 +438,13 @@
   .timecode{font-family:var(--font-display); font-size:22px; font-weight:600; color:var(--on-surface); min-width:100px;}
   .timeline-hint{font-size:13px; color:var(--on-surface-variant); margin-left:auto;}
   .timeline-zoom{display:flex; align-items:center; gap:6px; margin-left:16px;}
+  .snap-btn{
+    display:inline-flex; align-items:center; gap:6px; margin-left:16px; padding:6px 12px; border-radius:var(--radius-full);
+    border:1px solid var(--outline-variant); background:var(--surface-high); color:var(--on-surface);
+    font-family:var(--font-ui); font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap;
+  }
+  .snap-btn:hover{border-color:var(--outline);}
+  .snap-btn[aria-pressed="true"]{border-color:var(--accent); background:var(--accent-soft); color:var(--accent-text);}
   .zoom-btn{
     width:22px; height:22px; border-radius:50%; background:var(--surface-high);
     border:1px solid var(--outline-variant); color:var(--on-surface); font-size:14px;
@@ -376,19 +458,40 @@
   }
   .timeline-ruler{
     display:flex; height:24px; border-bottom:1px solid var(--outline-variant); position:sticky; top:0;
-    background:var(--surface-container); z-index:2; min-width:960px;
+    background:var(--surface-container); z-index:2; width:max-content; min-width:100%;
+    cursor:pointer; touch-action:none; user-select:none;
   }
+  .timeline-ruler:hover{background:var(--surface-high);}
+  /* Knob on the playhead: click it to bookmark the song at the playhead, drag
+     it (or anywhere on the ruler) to move the playhead. Outlined until the
+     playhead sits on a bookmark, then filled. */
+  .playhead-knob{position:absolute; bottom:-1px; width:16px; height:16px; margin-left:-8px; cursor:pointer;}
+  .playhead-knob svg{display:block; width:16px; height:16px;}
+  .playhead-knob path{fill:var(--surface-container); stroke:var(--accent); stroke-width:1.75; stroke-linejoin:round;}
+  .playhead-knob:hover path{fill:var(--accent-soft);}
+  .playhead-knob.marked path{fill:var(--accent);}
+  /* Instant tooltip for the knob and bookmark ticks (fixed, so the timeline's scrolling can't clip it). */
+  .hover-tip{
+    position:fixed; z-index:1000; transform:translate(-50%, calc(-100% - 8px)); pointer-events:none; white-space:nowrap;
+    padding:6px 10px; border-radius:var(--radius); background:var(--primary); color:var(--on-primary);
+    font-family:var(--font-ui); font-size:12px; font-weight:500; box-shadow:0 4px 12px rgba(11,35,65,0.2);
+  }
+  .hover-tip[hidden]{display:none;}
+  body.playhead-dragging, body.playhead-dragging *{cursor:ew-resize !important; user-select:none;}
   .ruler-tick{
     width:80px; flex-shrink:0; font-family:var(--font-ui); font-size:12px; color:var(--outline);
     padding-left:4px; border-left:1px solid var(--outline-variant); display:flex; align-items:center;
   }
-  .track-row{display:flex; border-bottom:1px solid var(--outline-variant); min-width:960px;}
+  /* Rows are as wide as the whole show, so their dividers run the full length when scrolled. */
+  .track-row{display:flex; border-bottom:1px solid var(--outline-variant); width:max-content; min-width:100%;}
   .track-label{
     width:140px; flex-shrink:0; padding:12px; font-size:14px; font-weight:500;
     border-right:1px solid var(--outline-variant); background:var(--surface-low);
-    position:sticky; left:0; z-index:1;
+    /* Above cues (selected z1), their edge handles (z2) and the playhead (z3),
+       so cues slide under the section names when the timeline scrolls sideways. */
+    position:sticky; left:0; z-index:4;
   }
-  .track-lane{flex:1; position:relative; height:52px; cursor:copy;}
+  .track-lane{flex:1 0 auto; position:relative; height:52px;}
   .track-lane:hover{background:rgba(232,97,0,0.04);}
   .playhead{position:absolute; top:0; bottom:0; width:2px; background:var(--accent); z-index:3; pointer-events:none;}
   .cue-block{
@@ -396,6 +499,100 @@
     cursor:pointer; overflow:hidden; border:1px solid rgba(0,0,0,0.35); background:#050a0a;
   }
   .cue-block.selected{outline:2px solid var(--accent); outline-offset:1px;}
+  .cue-block{cursor:grab; touch-action:none;}
+  .cue-block.selected{z-index:1;} /* the cue being dragged stays on top of the ones it passes over */
+  /* Edge handles for dragging a cue's start/end; sit above the dot grid. */
+  .cue-handle{position:absolute; top:0; bottom:0; width:8px; z-index:2; cursor:ew-resize;}
+  .cue-handle-start{left:0;}
+  .cue-handle-end{right:0;}
+  .cue-handle::after{content:''; position:absolute; top:9px; bottom:9px; width:2px; left:3px; border-radius:1px; background:rgba(255,255,255,0.75); opacity:0;}
+  .cue-block:hover .cue-handle::after, .cue-block.selected .cue-handle::after{opacity:1;}
+  .cue-delete{
+    position:absolute; top:2px; right:10px; z-index:3; width:20px; height:20px; padding:0; border-radius:50%;
+    border:0; background:rgba(255,255,255,0.9); color:var(--auburn-blue); font-size:14px; line-height:20px; cursor:pointer;
+  }
+  .cue-delete:hover{background:#fff; color:var(--accent-text);}
+  /* The loaded song's waveform, in a strip under each section's track. */
+  .track-row.has-wave{border-bottom:0;}
+  .track-wave-row{display:flex; border-bottom:1px solid var(--outline-variant); width:max-content; min-width:100%;}
+  .track-wave-row .track-label{padding:0;}
+  .track-wave-lane{flex:none; height:24px; background:var(--surface-high);}
+  .track-wave-lane{position:relative;}
+  .track-wave{
+    height:100%; pointer-events:none;
+    -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; -webkit-mask-size:100% 100%; mask-size:100% 100%;
+  }
+  .track-wave{background:var(--wave);}
+  /* Bookmarks placed on the song (click the playhead knob). The element is a
+     12px-wide hit area around the 2px tick; hovering shows a × to delete it. */
+  .wave-mark{position:absolute; top:0; bottom:0; width:12px; margin-left:-6px; cursor:pointer; z-index:1;}
+  .wave-mark::before{content:''; position:absolute; left:5px; top:0; bottom:0; width:2px; background:var(--accent);}
+  .wave-mark::after{
+    content:'\00d7'; position:absolute; left:50%; top:50%; width:16px; height:16px; margin:-8px 0 0 -8px; border-radius:50%;
+    background:var(--accent-text); color:#fff; font-size:13px; line-height:16px; text-align:center; opacity:0; transition:opacity .1s ease;
+  }
+  .wave-mark:hover::before{background:var(--accent-text);}
+  .wave-mark:hover::after{opacity:1;}
+  #timeline-view{position:relative;}
+  /* Timing for the selected cue, shown just under it. */
+  .cue-popover{
+    position:absolute; z-index:6; width:236px; padding:10px 12px 12px; border-radius:var(--radius-lg);
+    background:var(--surface-container); border:1px solid var(--outline-variant); box-shadow:0 8px 24px rgba(11,35,65,0.16);
+  }
+  .cue-popover[hidden]{display:none;}
+  .cue-popover-title{font-size:13px; font-weight:600; margin-bottom:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .cue-popover-fields{display:flex; gap:8px;}
+  .cue-popover-field{flex:1; display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--on-surface-variant);}
+  .cue-popover-field input{
+    width:100%; background:var(--surface-high); border:1px solid var(--outline-variant); color:var(--on-surface);
+    border-radius:var(--radius); padding:6px 8px; font-family:var(--font-display); font-size:14px; font-variant-numeric:tabular-nums;
+  }
+  .cue-popover-field input:focus{outline:none; border-color:var(--accent);}
+  .cue-popover-field input.invalid{border-color:var(--accent-text); background:var(--accent-soft);}
+  .cue-popover-end{margin-top:8px; font-size:12px; color:var(--on-surface-variant);}
+  .cue-popover-all{
+    display:flex; align-items:center; gap:8px; width:100%; margin-top:10px; padding:8px 10px; border-radius:var(--radius);
+    border:1px solid var(--outline-variant); background:var(--surface-high); color:var(--on-surface);
+    font-family:var(--font-ui); font-size:13px; font-weight:600; cursor:pointer; text-align:left;
+  }
+  .cue-popover-all:hover{border-color:var(--outline);}
+  .cue-popover-switch{
+    position:relative; flex-shrink:0; width:28px; height:16px; border-radius:var(--radius-full);
+    background:var(--outline); transition:background .15s ease;
+  }
+  .cue-popover-switch::after{
+    content:''; position:absolute; top:2px; left:2px; width:12px; height:12px; border-radius:50%; background:#fff; transition:left .15s ease;
+  }
+  .cue-popover-all[aria-pressed="true"]{border-color:var(--accent-line); background:var(--accent-soft);}
+  .cue-popover-all[aria-pressed="true"] .cue-popover-switch{background:var(--accent);}
+  .cue-popover-all[aria-pressed="true"] .cue-popover-switch::after{left:14px;}
+  /* The other sections' copies of the selected cue, while it's on every section. */
+  .cue-block.linked{outline:2px dashed var(--accent-line); outline-offset:1px;}
+  .cue-drop-preview{
+    position:absolute; top:8px; height:36px; border-radius:var(--radius); pointer-events:none;
+    border:2px dashed var(--accent); background:var(--accent-soft);
+  }
+  body.timeline-dragging, body.timeline-dragging *{cursor:grabbing !important; user-select:none;}
+  body.timeline-resizing, body.timeline-resizing *{cursor:ew-resize !important; user-select:none;}
+
+  .timeline-library{margin-top:20px;}
+  .timeline-library h3{margin:0 0 10px; font-size:15px;}
+  /* Mini versions of the Pattern library cards: swatch on top, name below. */
+  .timeline-palette{display:grid; grid-template-columns:repeat(auto-fill, minmax(124px, 1fr)); gap:10px;}
+  .palette-chip{
+    display:flex; flex-direction:column; padding:0; overflow:hidden; text-align:left;
+    border:1px solid var(--outline-variant); border-radius:var(--radius-md); background:var(--surface-container);
+    color:var(--on-surface); font-family:var(--font-ui); cursor:grab; touch-action:none;
+  }
+  .palette-chip:hover{border-color:rgba(232,97,0,0.4);}
+  .palette-swatch{display:block; position:relative; overflow:hidden; height:44px;}
+  .palette-chip-name{padding:7px 9px; font-size:12px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  /* Live LED preview drawn over a card's swatch while it's hovered. */
+  .swatch-preview{position:absolute; inset:0; width:100%; height:100%; display:block;}
+  .palette-ghost{
+    position:fixed; z-index:1000; pointer-events:none; transform:translate(-50%, -50%); width:124px;
+    box-shadow:0 6px 18px rgba(11,35,65,0.25); border-color:var(--accent);
+  }
   .cue-dot-grid{
     position:absolute; inset:2px; display:grid;
     grid-template-columns:repeat(var(--cue-cols, 10), 1fr);
@@ -422,7 +619,7 @@
     position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
     z-index:3; display:flex; align-items:center; gap:10px;
     font-family:var(--font-ui); font-size:15px; font-weight:600;
-    color:var(--on-surface); background:rgba(255,255,255,0.92); border:1px solid var(--accent-line);
+    color:var(--on-surface); background:var(--glass); border:1px solid var(--accent-line);
     padding:14px 22px; border-radius:var(--radius-full); cursor:pointer; white-space:nowrap;}
   .preview-start-hint:hover{ background:var(--accent-soft); border-color:var(--accent); }
   @keyframes preview-hint-pulse{ 0%,100%{opacity:0.75;} 50%{opacity:1;} }
@@ -433,11 +630,11 @@
   .sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
   .stage-btn{
     display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:var(--radius-full);
-    background:rgba(255,255,255,0.92); color:var(--on-surface); border:1px solid var(--outline-variant);
+    background:var(--glass); color:var(--on-surface); border:1px solid var(--outline-variant);
     font-size:14px; font-weight:600; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
   }
   .stage-btn:hover{border-color:var(--outline);}
-  .stage-btn[aria-pressed="true"]{border-color:var(--accent); background:#fff; color:var(--accent-text);}
+  .stage-btn[aria-pressed="true"]{border-color:var(--accent); background:var(--surface); color:var(--accent-text);}
   .stage-btn svg{width:18px; height:18px; flex-shrink:0;}
   .stage-toolbar{display:none;}
   .float-panel-head{display:none;}
@@ -460,7 +657,7 @@
 
   #preview-view .timeline-transport{
     position:absolute; left:50%; bottom:16px; transform:translateX(-50%); z-index:15; margin:0; padding:8px 16px;
-    background:rgba(255,255,255,0.92); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    background:var(--glass); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
     border-radius:var(--radius-full); transition:opacity .25s ease;
   }
   #preview-view .timeline-transport .timecode{font-size:20px; min-width:84px;}
@@ -468,7 +665,7 @@
   #preview-view .zone-inspector{
     position:absolute; top:60px; right:12px; bottom:12px; width:300px; max-width:calc(100vw - 96px); z-index:12;
     border:1px solid var(--outline-variant); border-radius:var(--radius-lg); box-shadow:0 12px 40px rgba(0,0,0,0.45);
-    background:rgba(255,255,255,0.96); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    background:var(--glass-strong); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
     transition:transform .2s ease, opacity .2s ease, visibility 0s;
   }
   .app-shell.settings-hidden #preview-view .zone-inspector{
@@ -490,7 +687,7 @@
   .app-shell.preview-active nav.sidebar{
     position:fixed; top:12px; left:12px; bottom:12px; height:auto; margin:0; z-index:30;
     box-shadow:0 12px 40px rgba(0,0,0,0.45);
-    background:rgba(255,255,255,0.96); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    background:var(--glass-strong); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
     transition:width .18s ease, transform .2s ease, opacity .2s ease, visibility 0s;
   }
   .app-shell.preview-active.nav-hidden nav.sidebar{
@@ -521,6 +718,14 @@
     width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--outline-variant);
     background:var(--surface-high); color:var(--on-surface); font-family:var(--font-ui); font-size:14px; cursor:pointer; font-weight:600;}
   .music-import-btn:hover{border-color:var(--outline); color:var(--on-surface);}
+  .saved-songs{display:flex; flex-direction:column; gap:4px; margin-top:8px;}
+  .saved-songs:empty{display:none;}
+  .saved-song{display:flex; align-items:center; gap:4px; border:1px solid var(--outline-variant); border-radius:var(--radius-md); background:var(--surface-high);}
+  .saved-song.current{border-color:var(--accent);}
+  .saved-song-name{flex:1; min-width:0; text-align:left; padding:8px 10px; background:none; border:0; color:var(--on-surface); font-family:var(--font-ui); font-size:13px; cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .saved-song.current .saved-song-name{font-weight:600; cursor:default;}
+  .saved-song-delete{flex-shrink:0; width:32px; height:32px; background:none; border:0; color:var(--on-surface-variant); font-size:18px; line-height:1; cursor:pointer; border-radius:var(--radius-md);}
+  .saved-song-delete:hover{color:var(--on-surface); background:var(--surface-highest);}
   .music-loaded-row{margin-top:10px; display:flex; flex-direction:column; gap:8px;}
   .music-slider-row{display:flex; flex-direction:column; gap:4px; margin-top:4px;}
   .music-slider-row label{display:flex; justify-content:space-between; font-size:13px; color:var(--on-surface-variant);}
@@ -622,6 +827,10 @@
       </li>
     </ul>
     <div class="sidebar-foot">
+      <button type="button" class="sidebar-toggle" id="night-toggle" aria-pressed="false" title="Turn on night mode">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+        <span class="nav-label">Night mode</span>
+      </button>
       <button type="button" class="sidebar-toggle sidebar-hide" id="sidebar-hide" title="Hide menu">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
         <span class="nav-label">Hide menu</span>
@@ -782,6 +991,15 @@
         <p>Put patterns in order across the show. <span id="timeline-venue-name" hidden>Jordan-Hare Stadium</span></p>
       </div>
 
+      <div class="timeline-shows">
+        <label for="tl-name" class="sr-only">Timeline name</label>
+        <input type="text" id="tl-name" class="timeline-name-input" placeholder="Name this timeline" maxlength="80" autocomplete="off" spellcheck="false">
+        <button type="button" class="btn timeline-save-btn" id="tl-save">Save</button>
+        <button type="button" class="btn timeline-new-btn" id="tl-new" title="Start an empty timeline">New timeline</button>
+        <span class="timeline-save-state" id="tl-save-state" role="status"></span>
+        <div class="saved-timelines" id="saved-timelines" role="list" aria-label="Saved timelines"></div>
+      </div>
+
       <div class="timeline-transport">
         <button class="transport-btn" id="tl-rewind" aria-label="Hold to rewind">
           <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><polygon points="12,5 3,12 12,19"/><polygon points="21,5 12,12 21,19"/></svg>
@@ -796,7 +1014,11 @@
           <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><rect x="5" y="5" width="14" height="14"/></svg>
         </button>
         <span class="timecode" id="tl-timecode">00:00:00</span>
-        <span class="timeline-hint">Click a track to add a cue. Hold the arrows to scrub.</span>
+        <span class="timeline-hint">Drag patterns onto tracks. Drag the ruler to move the playhead; click its knob to bookmark.</span>
+        <button type="button" class="snap-btn" id="tl-snap" aria-pressed="false" title="Snap cues to the song's beat hits">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3v6a6 6 0 0 0 12 0V3"/><path d="M6 7h4M14 7h4"/></svg>
+          Snap to beats
+        </button>
         <div class="timeline-zoom">
           <button class="zoom-btn" id="tl-zoom-out" aria-label="Zoom out">−</button>
           <span class="zoom-readout" id="tl-zoom-readout">5.0x</span>
@@ -809,9 +1031,21 @@
         <div id="timeline-tracks"></div>
       </div>
 
-      <div class="panel zone-inspector" id="cue-inspector" style="margin-top:16px; display:none;" aria-label="Cue editor">
-        <h3>Cue Editor</h3>
-        <div id="cue-inspector-body"></div>
+      <div class="cue-popover" id="cue-popover" role="group" aria-label="Cue timing" hidden>
+        <div class="cue-popover-title" id="cue-pop-title"></div>
+        <div class="cue-popover-fields">
+          <label class="cue-popover-field">Start<input type="text" id="cue-pop-start" inputmode="decimal" autocomplete="off" spellcheck="false"></label>
+          <label class="cue-popover-field">Length<input type="text" id="cue-pop-duration" inputmode="decimal" autocomplete="off" spellcheck="false"></label>
+        </div>
+        <div class="cue-popover-end" id="cue-pop-end"></div>
+        <button type="button" class="cue-popover-all" id="cue-pop-all" aria-pressed="false" title="Copy this cue onto every section and keep the copies in step">
+          <span class="cue-popover-switch" aria-hidden="true"></span>On every section
+        </button>
+      </div>
+
+      <div class="timeline-library">
+        <h3>Patterns</h3>
+        <div class="timeline-palette" id="timeline-palette" role="list" aria-label="Patterns to drag onto the timeline"></div>
       </div>
     </section>
 
@@ -906,6 +1140,7 @@
             <label>Music</label>
             <input type="file" id="music-file-input" accept="audio/*" class="music-file-input">
             <button type="button" class="music-import-btn" id="music-import-btn">Choose a song</button>
+            <div class="saved-songs" id="saved-songs" aria-label="Saved songs"></div>
             <div class="music-loaded-row" id="music-loaded-row" style="display:none;">
               <span class="music-file-name" id="music-file-name"></span>
               <label class="music-sync-toggle-label">
@@ -1189,6 +1424,60 @@
     t._timer = setTimeout(function(){ t.classList.remove('show'); }, 2200);
   }
 
+  // ===================== SAVED ITEMS (IndexedDB) =====================
+  // Patterns the user creates or edits, songs they import, and named timelines are kept in
+  // this browser's IndexedDB so they're still there next visit. There's no
+  // server: saves stay on this computer/browser. Every call resolves (never
+  // rejects) so a browser without IndexedDB — e.g. some private windows —
+  // just runs without saving.
+  var savedStore = (function(){
+    var dbPromise = null;
+    var persistAsked = false;
+    function open(){
+      if(dbPromise) return dbPromise;
+      dbPromise = new Promise(function(resolve){
+        try {
+          var req = indexedDB.open('stadiumsync', 2);
+          req.onupgradeneeded = function(){
+            var db = req.result;
+            if(!db.objectStoreNames.contains('patterns')) db.createObjectStore('patterns', {keyPath:'id'});
+            if(!db.objectStoreNames.contains('songs')) db.createObjectStore('songs', {keyPath:'id'});
+            if(!db.objectStoreNames.contains('timelines')) db.createObjectStore('timelines', {keyPath:'id'});
+          };
+          req.onsuccess = function(){
+            // Let a newer version of the app open in another tab upgrade the database.
+            req.result.onversionchange = function(){ req.result.close(); };
+            resolve(req.result);
+          };
+          req.onerror = function(){ console.error(req.error); resolve(null); };
+        } catch(err){ console.error(err); resolve(null); }
+      });
+      return dbPromise;
+    }
+    function run(storeName, mode, fn){
+      return open().then(function(db){
+        if(!db) return null;
+        return new Promise(function(resolve){
+          var tx = db.transaction(storeName, mode);
+          var req = fn(tx.objectStore(storeName));
+          tx.oncomplete = function(){ resolve(req ? req.result : true); };
+          tx.onerror = tx.onabort = function(){ console.error(tx.error); resolve(null); };
+        });
+      });
+    }
+    // Ask the browser not to evict our data under storage pressure (once).
+    function askPersist(){
+      if(persistAsked) return;
+      persistAsked = true;
+      if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function(){});
+    }
+    return {
+      getAll: function(storeName){ return run(storeName, 'readonly', function(s){ return s.getAll(); }).then(function(r){ return r || []; }); },
+      put: function(storeName, record){ askPersist(); return run(storeName, 'readwrite', function(s){ return s.put(record); }); },
+      remove: function(storeName, id){ return run(storeName, 'readwrite', function(s){ return s.delete(id); }); }
+    };
+  })();
+
   document.getElementById('layer-list').addEventListener('click', function(e){
     var toggleBtn = e.target.closest('[data-toggle-index]');
     var selectBtn = e.target.closest('[data-select-index]');
@@ -1217,6 +1506,22 @@
       setActiveStadiumView(btn.getAttribute('data-view'));
     });
   });
+
+  // Night mode. Like the sidebar, a per-browser preference; the <head> script applies it before first paint.
+  (function(){
+    var toggle = document.getElementById('night-toggle');
+    function setNight(on){
+      if(on) document.documentElement.setAttribute('data-theme', 'night');
+      else document.documentElement.removeAttribute('data-theme');
+      toggle.setAttribute('aria-pressed', String(on));
+      toggle.title = on ? 'Turn off night mode' : 'Turn on night mode';
+      try { localStorage.setItem('stadiumsync.nightMode', on ? '1' : '0'); } catch(err){}
+    }
+    setNight(document.documentElement.getAttribute('data-theme') === 'night');
+    toggle.addEventListener('click', function(){
+      setNight(document.documentElement.getAttribute('data-theme') !== 'night');
+    });
+  })();
 
   // Collapsible sidebar. The choice is a per-browser convenience, so storage failures are ignored.
   (function(){
@@ -1273,10 +1578,88 @@
     {id:'sine-wave-split', name:'Sine Wave Split', tags:['Motion','Dynamic'], color:'#e86100', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'solid'},
     {id:'circulating-wave', name:'Circulating Wave', tags:['Motion','Dynamic'], color:'#e86100', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'solid'},
     {id:'radar-sweep', name:'Radar Sweep', tags:['Motion','Dynamic'], color:'#e86100', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'solid'},
-    {id:'au-logo', name:'AU Logo', tags:['Image','Static'], color:'#e86100', bgColor:'#2e6fff', trimColor:'#ffffff', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'text', textBitmap:'au-logo'},
+    {id:'the-wave', name:'The Wave', tags:['Motion','Crowd'], color:'#e86100', colorRole:'primary', intensity:100, spread:15, frequency:1.0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'crowd-wave'},
+    {id:'au-logo', name:'AU Logo', tags:['Image','Static'], color:'#2e6fff', bgColor:'#ffffff', trimColor:'#e86100', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'text', textBitmap:'au-logo'},
     {id:'auburn-text', name:'AUBURN Text', tags:['Image','Static'], color:'#e86100', bgColor:'#2e6fff', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'text', textBitmap:'auburn-text'}
   ];
   var selectedPatternId = 'tiger-wave';
+
+  // Untouched copies of the built-in patterns, so an edited one can be reset.
+  var builtInPatterns = {};
+  patternLibrary.forEach(function(p){ builtInPatterns[p.id] = JSON.parse(JSON.stringify(p)); });
+
+  function isPatternEdited(p){
+    var original = builtInPatterns[p.id];
+    return !!original && JSON.stringify(original) !== JSON.stringify(p);
+  }
+
+  // Sliders fire on every tick, so saves are batched per pattern.
+  var patternSaveTimers = {};
+  function savePatternSoon(p){
+    clearTimeout(patternSaveTimers[p.id]);
+    patternSaveTimers[p.id] = setTimeout(function(){ savePatternNow(p); }, 400);
+  }
+  function savePatternNow(p){
+    clearTimeout(patternSaveTimers[p.id]);
+    delete patternSaveTimers[p.id];
+    var edited = isPatternEdited(p);
+    // A built-in dragged back to its original values needs no saved copy.
+    if(builtInPatterns[p.id] && !edited) savedStore.remove('patterns', p.id);
+    else savedStore.put('patterns', JSON.parse(JSON.stringify(p)));
+    var resetBtn = document.getElementById('pattern-reset-btn');
+    if(resetBtn && selectedPatternId === p.id) resetBtn.style.display = edited ? '' : 'none';
+  }
+  // Don't lose an edit made just before the tab closes.
+  window.addEventListener('pagehide', function(){
+    Object.keys(patternSaveTimers).forEach(function(id){
+      var p = findPattern(id);
+      if(p) savePatternNow(p);
+    });
+  });
+
+  // Everything that lists or draws patterns, after the library changes.
+  function refreshPatternViews(){
+    renderPatternGrid(document.getElementById('pattern-search').value);
+    renderPatternInspector();
+    renderTimeline();
+    renderExportView();
+    updatePreviewStadium(playheadSeconds);
+  }
+
+  // Saved records are whole patterns: edits to a built-in replace its
+  // fields, and anything else is a pattern the user made.
+  function restoreSavedPatterns(){
+    return savedStore.getAll('patterns').then(function(records){
+      records.forEach(function(rec){
+        var existing = findPattern(rec.id);
+        if(existing) Object.assign(existing, rec);
+        else patternLibrary.push(rec);
+      });
+      return records.length;
+    });
+  }
+
+  function deleteCustomPattern(p){
+    var i = patternLibrary.indexOf(p);
+    if(i > -1) patternLibrary.splice(i, 1);
+    // Cues can't point at a pattern that no longer exists.
+    Object.keys(timelineCuesByVenue).forEach(function(venueId){
+      timelineCuesByVenue[venueId] = timelineCuesByVenue[venueId].filter(function(c){ return c.pattern !== p.id; });
+    });
+    if(selectedCue && selectedCue.pattern === p.id) selectedCue = null;
+    clearTimeout(patternSaveTimers[p.id]);
+    savedStore.remove('patterns', p.id);
+    selectedPatternId = patternLibrary[0].id;
+  }
+
+  function resetBuiltInPattern(p){
+    var id = p.id;
+    if(!builtInPatterns[id]) return;
+    Object.keys(p).forEach(function(k){ delete p[k]; });
+    Object.assign(p, JSON.parse(JSON.stringify(builtInPatterns[id])));
+    clearTimeout(patternSaveTimers[id]);
+    savedStore.remove('patterns', id);
+  }
 
   // Each school's primary/secondary colors. Auburn is the "home" palette
   // that everything reverts to when an Auburn venue is loaded.
@@ -1319,6 +1702,9 @@
     if(!rect) return primary; // venue not mapped yet — safe fallback
     var absX = rect.x + ((col + 0.5) / cols) * rect.w;
     var absY = rect.y + ((row + 0.5) / rows) * rect.h;
+    return checkerboardStreakAt(absX, absY, primary, secondary);
+  }
+  function checkerboardStreakAt(absX, absY, primary, secondary){
     var STREAK_HALF_WIDTH = 10; // out of a 400-wide viewBox — a clearly visible but not overwhelming stripe
     if(Math.abs(absX - 200) <= STREAK_HALF_WIDTH) return '#ffffff';
     var CHECKER_CELL = 50;
@@ -1348,6 +1734,9 @@
     if(!rect) return primary; // venue not mapped yet — safe fallback
     var absX = rect.x + ((col + 0.5) / cols) * rect.w;
     var absY = rect.y + ((row + 0.5) / rows) * rect.h;
+    return sineWaveSplitAt(absX, absY, t, primary, secondary);
+  }
+  function sineWaveSplitAt(absX, absY, t, primary, secondary){
     var CENTER_X = 200, CENTER_Y = 150;
     var ZERO_LINE_Y = 150;  // the "zero" line — fixed, dead center of the stadium, never moves
     var AMPLITUDE = 130;    // large enough to actually reach the outer tiers (upper deck) so the ripples read as real scallops poking into the stands, not a band confined to the middle
@@ -1370,6 +1759,9 @@
     if(!rect) return primary;
     var absX = rect.x + ((col + 0.5) / cols) * rect.w;
     var absY = rect.y + ((row + 0.5) / rows) * rect.h;
+    return circulatingWaveAt(absX, absY, t, primary, secondary);
+  }
+  function circulatingWaveAt(absX, absY, t, primary, secondary){
     var CENTER_X = 200, CENTER_Y = 150;
     var ZERO_LINE_Y = 150;
     var AMPLITUDE = 134;
@@ -1392,6 +1784,9 @@
     if(!rect) return primary; // venue not mapped yet — safe fallback
     var absX = rect.x + ((col + 0.5) / cols) * rect.w;
     var absY = rect.y + ((row + 0.5) / rows) * rect.h;
+    return radarSweepAt(absX, absY, t, primary, secondary);
+  }
+  function radarSweepAt(absX, absY, t, primary, secondary){
     var CENTER_X = 200, CENTER_Y = 150;
     var REVOLUTION_SECONDS = 6; // time for the beam to complete one full lap
     var WHITE_ANGLE = 0.15;     // half-width of the beam, in radians
@@ -1402,6 +1797,18 @@
     diff = ((diff % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
     if(diff < WHITE_ANGLE || diff > (2 * Math.PI - WHITE_ANGLE)) return '#ffffff';
     return fixedColor;
+  }
+
+  // Color of a stadium-wide pattern at a point on the venue's 400x300
+  // top-down map (the same space as ZONE_RECTS), or null for patterns that
+  // aren't stadium-wide. Used by the pattern card hover preview, which shows
+  // the whole map at once.
+  function venueWideColorAt(p, absX, absY, t, primary, secondary){
+    if(p.id === 'checkerboard-streak') return checkerboardStreakAt(absX, absY, primary, secondary);
+    if(p.id === 'sine-wave-split') return sineWaveSplitAt(absX, absY, t, primary, secondary);
+    if(p.id === 'circulating-wave') return circulatingWaveAt(absX, absY, t, primary, secondary);
+    if(p.id === 'radar-sweep') return radarSweepAt(absX, absY, t, primary, secondary);
+    return null;
   }
 
   // Remaps every pattern's color to the given venue's palette, based on
@@ -1586,15 +1993,137 @@
     addCard.id = 'add-pattern-btn';
     addCard.innerHTML = '<div class="import-icon" aria-hidden="true">+</div><div>New pattern</div>';
     grid.appendChild(addCard);
+    renderTimelinePalette();
+  }
+
+  // Motions and color layouts a custom pattern can use (see
+  // computeDotBrightness / getDotColor for what each one does).
+  var CUSTOM_MOTIONS = [
+    {value:'pulse', label:'Pulse', hint:'Every seat fades up and down together.'},
+    {value:'strobe', label:'Flash', hint:'Every seat snaps on and off.'},
+    {value:'wave', label:'Sweep', hint:'A band of light travels across the zone.', directions:['left-right','right-left','top-bottom','bottom-top','bounce']},
+    {value:'wipe', label:'Wipe', hint:'Light fills the zone from one edge, then empties out.', directions:['left-right','right-left','top-bottom','bottom-top']},
+    {value:'ripple', label:'Ripple', hint:'Rings of light spread from the middle of the zone.', directions:['outward','inward']},
+    {value:'twinkle', label:'Twinkle', hint:'Seats sparkle on and off at random.'},
+    {value:'crowd-wave', label:'Stadium wave', hint:'A band of light travels around the whole stadium. Frequency 1 is one lap every 10 seconds.'},
+    {value:'solid', label:'Solid', hint:'Steady light, no motion.'}
+  ];
+  var DIRECTION_LABELS = {
+    'left-right':'Left to right', 'right-left':'Right to left', 'top-bottom':'Top to bottom',
+    'bottom-top':'Bottom to top', 'bounce':'Back and forth', 'outward':'Outward', 'inward':'Inward'
+  };
+  var COLOR_LAYOUTS = [
+    {value:'scatter', label:'Scattered seats'},
+    {value:'stripes', label:'Stripes'},
+    {value:'bands', label:'Bands, front to back'},
+    {value:'gradient', label:'Blend across'}
+  ];
+  var MAX_PATTERN_COLORS = 4;
+  var EXTRA_COLOR_CHOICES = ['#2e6fff', '#f5f5f5', '#e86100', '#00c853', '#d500f9', '#ffd600'];
+
+  function patternColorList(p){ return p.colors && p.colors.length ? p.colors : [p.color]; }
+
+  // Shows only the controls that do something for the pattern's motion.
+  function syncPatternFields(p){
+    var show = function(id, on){ var el = document.getElementById(id); if(el) el.style.display = on ? '' : 'none'; };
+    show('p-spread-field', p.motion === 'wave' || p.motion === 'ripple' || p.motion === 'crowd-wave');
+    show('p-freq-field', p.motion !== 'solid' && p.motion !== 'text');
+    show('p-dim-field', p.motion !== 'solid');
+    var motion = CUSTOM_MOTIONS.find(function(m){ return m.value === p.motion; });
+    var hint = document.getElementById('p-motion-hint');
+    if(hint) hint.textContent = motion ? motion.hint : '';
+    var dirSelect = document.getElementById('p-direction');
+    if(dirSelect){
+      var dirs = (motion && motion.directions) || [];
+      show('p-direction-field', dirs.length > 0);
+      dirSelect.innerHTML = dirs.map(function(d){
+        return '<option value="' + d + '"' + (d === (p.direction || dirs[0]) ? ' selected' : '') + '>' + DIRECTION_LABELS[d] + '</option>';
+      }).join('');
+    }
+    show('p-layout-field', patternColorList(p).length > 1);
+  }
+
+  function renderPatternColors(p){
+    var list = patternColorList(p);
+    document.getElementById('p-colors').innerHTML = list.map(function(c, i){
+      return '<div class="color-swatch-row pattern-color-row">' +
+        '<input type="color" class="color-input-swatch" data-color-index="' + i + '" value="' + c + '" aria-label="Color ' + (i + 1) + '">' +
+        '<span class="color-hex">' + c.toUpperCase() + '</span>' +
+        (list.length > 1 ? '<button type="button" class="pattern-color-remove" data-remove-color="' + i + '" title="Remove color" aria-label="Remove color ' + (i + 1) + '">×</button>' : '') +
+      '</div>';
+    }).join('') +
+    (list.length < MAX_PATTERN_COLORS ? '<button type="button" class="btn" id="p-color-add">Add color</button>' : '');
+  }
+
+  // Wires up Motion, Direction, Colors, Color layout and Dim level, which
+  // only custom patterns have.
+  function bindCustomPatternControls(p){
+    var redraw = function(){
+      savePatternSoon(p);
+      syncPatternFields(p);
+      if(!ledPlaying) renderLedMatrixStatic(p);
+    };
+    var setColors = function(list){
+      p.color = list[0];
+      if(list.length > 1) p.colors = list; else { delete p.colors; delete p.colorLayout; }
+      renderPatternGrid(document.getElementById('pattern-search').value); // refresh the card thumbnail too
+      redraw();
+    };
+
+    document.getElementById('p-motion').addEventListener('change', function(e){
+      p.motion = e.target.value;
+      var motion = CUSTOM_MOTIONS.find(function(m){ return m.value === p.motion; });
+      var dirs = (motion && motion.directions) || [];
+      if(dirs.indexOf(p.direction) === -1){ if(dirs.length) p.direction = dirs[0]; else delete p.direction; }
+      redraw();
+    });
+    document.getElementById('p-direction').addEventListener('change', function(e){
+      p.direction = e.target.value;
+      redraw();
+    });
+    document.getElementById('p-layout').addEventListener('change', function(e){
+      if(e.target.value === 'scatter') delete p.colorLayout; else p.colorLayout = e.target.value;
+      redraw();
+    });
+    document.getElementById('p-dim').addEventListener('input', function(e){
+      p.dimLevel = parseInt(e.target.value, 10);
+      document.getElementById('p-dim-val').textContent = p.dimLevel + '%';
+      redraw();
+    });
+
+    var colorsEl = document.getElementById('p-colors');
+    renderPatternColors(p);
+    colorsEl.addEventListener('input', function(e){
+      var i = e.target.getAttribute('data-color-index');
+      if(i === null) return;
+      var list = patternColorList(p).slice();
+      list[+i] = e.target.value;
+      e.target.nextElementSibling.textContent = e.target.value.toUpperCase();
+      setColors(list);
+    });
+    colorsEl.addEventListener('click', function(e){
+      var list = patternColorList(p).slice();
+      var remove = e.target.closest('[data-remove-color]');
+      if(remove){
+        list.splice(+remove.getAttribute('data-remove-color'), 1);
+      } else if(e.target.closest('#p-color-add')){
+        list.push(EXTRA_COLOR_CHOICES.find(function(c){ return list.indexOf(c) === -1; }) || '#ffffff');
+      } else return;
+      setColors(list);
+      renderPatternColors(p);
+    });
   }
 
   function renderPatternInspector(){
     var p = findPattern(selectedPatternId);
     var body = document.getElementById('pattern-inspector-body');
-    if(!p){ body.innerHTML = '<p class="empty-note">Select a pattern to edit its parameters.</p>'; return; }
+    if(!p){ body.innerHTML = '<p class="empty-note">Select a pattern to edit its parameters.</p>'; syncPatternPreview(); return; }
+    // Patterns the user made get the full set of controls; built-ins keep
+    // their own motion and just take color/speed tweaks.
+    var custom = !builtInPatterns[p.id] && p.motion !== 'text';
+    var dimLevel = p.dimLevel != null ? p.dimLevel : 6;
     body.innerHTML =
       '<div class="pattern-preview-stage" id="pattern-preview-stage"></div>' +
-      '<button class="btn" id="pattern-preview-toggle" style="margin-bottom:16px;">Play pattern</button>' +
       '<div class="field">' +
         '<label>Use for every zone</label>' +
         '<div class="apply-venue-range-row">' +
@@ -1606,60 +2135,105 @@
       '<div class="field">' +
         '<label>Try it on zones</label>' +
         '<div id="zone-test-picker" class="zone-test-picker"></div>' +
+        '<button class="btn" id="zone-test-clear" style="margin-top:8px;">Clear zones</button>' +
       '</div>' +
       '<div class="field"><label>Pattern</label><div class="target-zone-name">' + p.name + '</div></div>' +
-      '<div class="field"><label for="p-color">Color</label><div class="color-swatch-row"><input type="color" id="p-color" class="color-input-swatch" value="' + p.color + '"><span class="color-hex" id="p-color-hex">' + p.color.toUpperCase() + '</span></div></div>' +
+      (custom
+        ? '<div class="field"><label for="p-motion">Motion</label><select id="p-motion">' +
+            CUSTOM_MOTIONS.map(function(m){ return '<option value="' + m.value + '"' + (m.value === p.motion ? ' selected' : '') + '>' + m.label + '</option>'; }).join('') +
+          '</select><p class="field-hint" id="p-motion-hint"></p></div>' +
+          '<div class="field" id="p-direction-field"><label for="p-direction">Direction</label><select id="p-direction"></select></div>' +
+          '<div class="field"><label>Colors</label><div id="p-colors" class="pattern-color-list"></div></div>' +
+          '<div class="field" id="p-layout-field"><label for="p-layout">Color layout</label><select id="p-layout">' +
+            COLOR_LAYOUTS.map(function(l){ return '<option value="' + l.value + '"' + (l.value === (p.colorLayout || 'scatter') ? ' selected' : '') + '>' + l.label + '</option>'; }).join('') +
+          '</select></div>'
+        : '<div class="field"><label for="p-color">Color</label><div class="color-swatch-row"><input type="color" id="p-color" class="color-input-swatch" value="' + p.color + '"><span class="color-hex" id="p-color-hex">' + p.color.toUpperCase() + '</span></div></div>') +
       '<div class="field slider-field"><div class="slider-head"><label for="p-intensity">Intensity</label><span class="slider-value" id="p-intensity-val">' + p.intensity + '%</span></div><input type="range" id="p-intensity" min="0" max="100" value="' + p.intensity + '"></div>' +
-      '<div class="field slider-field"><div class="slider-head"><label for="p-spread">Band Width</label><span class="slider-value" id="p-spread-val">' + p.spread + '%</span></div><input type="range" id="p-spread" min="2" max="100" value="' + p.spread + '"></div>' +
-      '<div class="field slider-field"><div class="slider-head"><label for="p-freq">Frequency</label><span class="slider-value" id="p-freq-val">' + p.frequency + ' Hz</span></div><input type="range" id="p-freq" min="0" max="10" step="0.1" value="' + p.frequency + '"></div>' +
-      '<div class="field"><label>Time Sync</label><label class="check-row"><input type="checkbox" id="p-lock" ' + (p.lockClock ? 'checked' : '') + '> Lock to Master Clock (' + p.bpmBase + ' BPM)</label></div>';
+      '<div class="field slider-field" id="p-spread-field"><div class="slider-head"><label for="p-spread">Band Width</label><span class="slider-value" id="p-spread-val">' + p.spread + '%</span></div><input type="range" id="p-spread" min="2" max="100" value="' + p.spread + '"></div>' +
+      '<div class="field slider-field" id="p-freq-field"><div class="slider-head"><label for="p-freq">Frequency</label><span class="slider-value" id="p-freq-val">' + p.frequency + ' Hz</span></div><input type="range" id="p-freq" min="0" max="10" step="0.1" value="' + p.frequency + '"></div>' +
+      (custom
+        ? '<div class="field slider-field" id="p-dim-field"><div class="slider-head"><label for="p-dim">Dim level</label><span class="slider-value" id="p-dim-val">' + dimLevel + '%</span></div><input type="range" id="p-dim" min="0" max="60" value="' + dimLevel + '"></div>'
+        : '') +
+      '<div class="field"><label>Time Sync</label><label class="check-row"><input type="checkbox" id="p-lock" ' + (p.lockClock ? 'checked' : '') + '> Lock to Master Clock (' + p.bpmBase + ' BPM)</label></div>' +
+      (builtInPatterns[p.id]
+        ? '<button class="btn" id="pattern-reset-btn"' + (isPatternEdited(p) ? '' : ' style="display:none;"') + '>Reset to original</button>'
+        : '<button class="btn" id="pattern-delete-btn">Delete pattern</button>');
 
     document.getElementById('p-intensity').addEventListener('input', function(e){
       p.intensity = parseInt(e.target.value,10);
+      savePatternSoon(p);
       document.getElementById('p-intensity-val').textContent = p.intensity + '%';
       if(!ledPlaying) renderLedMatrixStatic(p);
     });
-    document.getElementById('p-color').addEventListener('input', function(e){
+    var colorInput = document.getElementById('p-color');
+    if(colorInput) colorInput.addEventListener('input', function(e){
       p.color = e.target.value;
+      savePatternSoon(p);
       document.getElementById('p-color-hex').textContent = p.color.toUpperCase();
       renderPatternGrid(document.getElementById('pattern-search').value); // refresh the card thumbnail too
       if(!ledPlaying) renderLedMatrixStatic(p);
     });
+    if(custom) bindCustomPatternControls(p);
+    syncPatternFields(p);
     document.getElementById('p-spread').addEventListener('input', function(e){
       p.spread = parseInt(e.target.value,10);
+      savePatternSoon(p);
       document.getElementById('p-spread-val').textContent = p.spread + '%';
       if(!ledPlaying) renderLedMatrixStatic(p);
     });
     document.getElementById('p-freq').addEventListener('input', function(e){
       p.frequency = parseFloat(e.target.value);
+      savePatternSoon(p);
       document.getElementById('p-freq-val').textContent = p.frequency + ' Hz';
       if(!ledPlaying) renderLedMatrixStatic(p);
     });
     document.getElementById('p-lock').addEventListener('change', function(e){
       p.lockClock = e.target.checked;
+      savePatternSoon(p);
+    });
+
+    var resetBtn = document.getElementById('pattern-reset-btn');
+    if(resetBtn) resetBtn.addEventListener('click', function(){
+      resetBuiltInPattern(p);
+      refreshPatternViews();
+      showToast(p.name + ' is back to its original settings');
+    });
+    var deleteBtn = document.getElementById('pattern-delete-btn');
+    if(deleteBtn) deleteBtn.addEventListener('click', function(){
+      if(!window.confirm('Delete "' + p.name + '"? Any timeline cues using it are removed too.')) return;
+      deleteCustomPattern(p);
+      refreshPatternViews();
+      showToast('Pattern deleted');
     });
 
     renderZoneTestPicker();
     document.getElementById('zone-test-picker').addEventListener('change', function(e){
-      if(!e.target.classList.contains('zone-test-check')) return;
-      var name = e.target.value;
-      var idx = testZoneNames.indexOf(name);
-      if(e.target.checked && idx === -1) testZoneNames.push(name);
-      if(!e.target.checked && idx > -1) testZoneNames.splice(idx, 1);
+      if(e.target.id === 'zone-test-all'){
+        // "All zones" checks every zone, or clears them all when unticked.
+        var v = venues.find(function(x){ return x.id === currentVenueId; });
+        testZoneNames.length = 0;
+        if(e.target.checked) v.zoneData.forEach(function(z){ testZoneNames.push(z.name); });
+        document.querySelectorAll('#zone-test-picker .zone-test-check').forEach(function(box){ box.checked = e.target.checked; });
+      } else if(e.target.classList.contains('zone-test-check')){
+        var name = e.target.value;
+        var idx = testZoneNames.indexOf(name);
+        if(e.target.checked && idx === -1) testZoneNames.push(name);
+        if(!e.target.checked && idx > -1) testZoneNames.splice(idx, 1);
+      } else return;
+      syncZoneTestAll();
+      buildLedMatrix(p);
+      if(ledPlaying){ startLedPreview(p); } else { renderLedMatrixStatic(p); }
+    });
+    document.getElementById('zone-test-clear').addEventListener('click', function(){
+      testZoneNames.length = 0;
+      renderZoneTestPicker();
       buildLedMatrix(p);
       if(ledPlaying){ startLedPreview(p); } else { renderLedMatrixStatic(p); }
     });
 
     buildLedMatrix(p);
     renderLedMatrixStatic(p);
-    document.getElementById('pattern-preview-toggle').addEventListener('click', function(){
-      if(ledPlaying){
-        stopLedPreview(p);
-      } else {
-        startLedPreview(p);
-      }
-      this.textContent = ledPlaying ? 'Stop' : 'Play pattern';
-    });
+    syncPatternPreview();
     document.getElementById('pattern-apply-venue-btn').addEventListener('click', function(){
       var tracks = timelineTracksByVenue[currentVenueId] || [];
       if(!tracks.length) return;
@@ -1691,10 +2265,26 @@
     var v = venues.find(function(x){ return x.id === currentVenueId; });
     var container = document.getElementById('zone-test-picker');
     if(!container) return;
-    container.innerHTML = v.zoneData.map(function(z){
-      var checked = testZoneNames.indexOf(z.name) > -1 ? 'checked' : '';
-      return '<label class="check-row zone-check-row"><input type="checkbox" class="zone-test-check" value="' + z.name + '" ' + checked + '> ' + z.name + '</label>';
-    }).join('');
+    container.innerHTML =
+      '<label class="check-row zone-check-row zone-check-all"><input type="checkbox" id="zone-test-all"> All zones</label>' +
+      v.zoneData.map(function(z){
+        var checked = testZoneNames.indexOf(z.name) > -1 ? 'checked' : '';
+        return '<label class="check-row zone-check-row"><input type="checkbox" class="zone-test-check" value="' + z.name + '" ' + checked + '> ' + z.name + '</label>';
+      }).join('');
+    syncZoneTestAll();
+  }
+
+  // Ticks "All zones" when every zone is picked, and shows it as a dash
+  // when only some are.
+  function syncZoneTestAll(){
+    var all = document.getElementById('zone-test-all');
+    if(!all) return;
+    var v = venues.find(function(x){ return x.id === currentVenueId; });
+    var selected = v.zoneData.filter(function(z){ return testZoneNames.indexOf(z.name) > -1; }).length;
+    all.checked = selected === v.zoneData.length;
+    all.indeterminate = selected > 0 && selected < v.zoneData.length;
+    var clear = document.getElementById('zone-test-clear');
+    if(clear) clear.disabled = selected === 0;
   }
 
   var LED_COLS = 24, LED_ROWS = 6;
@@ -1875,33 +2465,57 @@
     return {width: width, height: GLYPH_H, rows: rows};
   }
 
-  // Hand-built low-resolution approximation of Auburn's interlocking AU
-  // athletics mark — the A's peak/legs/crossbar sit distinctly above and
-  // within the U's rounded bowl, rather than merging into one shape.
-  // This is a coarse LED-grid approximation of the silhouette, the same
-  // way any physical stadium display would necessarily simplify it —
-  // not a precise trace of the vector artwork.
+  // Auburn's interlocking AU athletics mark, traced from the official SVG
+  // (navy #03244d letters, orange #f26522 outline) by rasterizing it and
+  // taking each cell's majority color, with the thin outline kept wherever
+  // it covers 30% of a cell. 48x42 keeps the logo's 250:221 proportions and
+  // is about the height of the tallest zones (47 rows). '1' = letter fill,
+  // '2' = outline (including where the A crosses over the U), '0' = background.
   var AU_LOGO_BITMAP = {
-    width: 15, height: 18,
+    width: 48, height: 42, hasTrim: true,
     rows: [
-      '000001111100000',
-      '000011111110000',
-      '000011000110000',
-      '000011000110000',
-      '111011000110111',
-      '111001111100111',
-      '111001101100111',
-      '111001101100111',
-      '111000000000111',
-      '111000000000111',
-      '111000000000111',
-      '111000000000111',
-      '111000000000111',
-      '111000000000111',
-      '111000000000111',
-      '011100000001110',
-      '000111000111000',
-      '000001111100000'
+      '000000000000000000022222222220000000000000000000',
+      '000000000000000000022222222220000000000000000000',
+      '000000000000000000221111111122000000000000000000',
+      '000000000000000000221111111112000000000000000000',
+      '000000000000000002211111111112200000000000000000',
+      '222222222222222022111111111111220222222222222222',
+      '222222222222222022111111111111220222222222222222',
+      '221111111111122221111111111111122221111111111122',
+      '221111111111122221111111211111122221111111111122',
+      '221111111111122211111112221111112221111111111122',
+      '221111111111122211111122221111111221111111111122',
+      '222221111122222111111122022111111222221111122222',
+      '022221111122221111111220022111111122221111122220',
+      '000221111122221111111220002211111122221111122000',
+      '000221111122211111112200002211111112221111122000',
+      '000221111122211111122222222221111112221111122000',
+      '000221111122111111122222222221111111221111122000',
+      '000221111122111111111111111111111111221111122000',
+      '000221111221111111111111111111111111122111122000',
+      '000221112211111111111111111111111111112211122000',
+      '000221112211111111111111111111111111112211122000',
+      '000221122111111122222222222222221111111221122000',
+      '000221122111111122000000000000022111111221122000',
+      '000221221111111220000000000000002211111122122000',
+      '000221221111112200000000000000002211111122122000',
+      '222222211111112222220000000022222221111112222222',
+      '222222111111112222220000000022222221111111222222',
+      '221111111111111111220000000022111111111111111122',
+      '221111111111111111220000000022111111111111111122',
+      '221111111111111111220000000022111111111111111122',
+      '222222222222222222220000000022222222222222222222',
+      '222222222222222222220000000022222222222222222222',
+      '000221111111222000000000000000000222111111122000',
+      '000021111111122222000000000000022221111111120000',
+      '000022111111111222222222222222222111111111220000',
+      '000002211111111111122222222221111111111112200000',
+      '000002221111111111111111111111111111111122200000',
+      '000000022211111111111111111111111111112222000000',
+      '000000002222111111111111111111111111222200000000',
+      '000000000022222111111111111111111222220000000000',
+      '000000000000222222222222222222222222000000000000',
+      '000000000000000002222222222222200000000000000000'
     ]
   };
 
@@ -1958,13 +2572,16 @@
 
   // Classifies a dot into one of three zones for logos that need a real
   // outline, not just flat lit/unlit: 'core' (the shape's own fill),
-  // 'trim' (a one-pixel outline where the shape borders open background —
-  // found by checking the bitmap's own neighboring pixels), or
+  // 'trim' (the outline — '2' pixels in the bitmap, or for a bitmap without
+  // them, a one-pixel border found from the neighboring pixels), or
   // 'background' (everything else).
   function classifyLogoZone(bitmapKey, col, row, totalCols, totalRows){
     var px = resolveBitmapPixel(bitmapKey, col, row, totalCols, totalRows);
     if(!px) return 'background';
-    if(px.bmp.rows[px.by][px.bx] === '1') return 'core';
+    var v = px.bmp.rows[px.by][px.bx];
+    if(v === '1') return 'core';
+    if(v === '2') return 'trim';
+    if(px.bmp.hasTrim) return 'background';
     for(var dy = -1; dy <= 1; dy++){
       for(var dx = -1; dx <= 1; dx++){
         if(dx === 0 && dy === 0) continue;
@@ -1991,6 +2608,32 @@
     return (n >>> 0) / 4294967296;
   }
 
+  // Blends evenly through `colors` as f goes 0 → 1. Quantized and cached,
+  // since the 3D view asks for every LED on every frame.
+  var gradientCache = {};
+  function gradientColorAt(colors, f){
+    var step = Math.round(Math.max(0, Math.min(1, f)) * 63);
+    var key = colors.join(',') + '|' + step;
+    if(gradientCache[key]) return gradientCache[key];
+    var x = step / 63 * (colors.length - 1);
+    var i = Math.min(colors.length - 2, Math.floor(x));
+    var a = parseInt(colors[i].slice(1), 16), b = parseInt(colors[i + 1].slice(1), 16), k = x - i;
+    var mixed = [16, 8, 0].map(function(shift){
+      var ca = (a >> shift) & 255, cb = (b >> shift) & 255;
+      return ('0' + Math.round(ca + (cb - ca) * k).toString(16)).slice(-2);
+    }).join('');
+    return (gradientCache[key] = '#' + mixed);
+  }
+
+  // How far (0-1) a dot sits along a custom pattern's direction of travel.
+  // Row 0 is the top as seen from the field.
+  function directionPos(dir, col, row, totalCols, totalRows){
+    if(dir === 'right-left') return (totalCols - 1 - col) / totalCols;
+    if(dir === 'top-bottom') return row / totalRows;
+    if(dir === 'bottom-top') return (totalRows - 1 - row) / totalRows;
+    return col / totalCols;
+  }
+
   // Resolves the color for one specific dot. Patterns with a single
   // `color` use it everywhere; patterns with a `colors` array (like a
   // mixed multi-color twinkle) assign each dot ONE fixed color from the
@@ -2008,6 +2651,15 @@
       return lit ? p.color : p.bgColor;
     }
     if(p.colors && p.colors.length){
+      // Custom patterns can lay their colors out by position instead of
+      // scattering them: stripes down the columns, bands across the rows,
+      // or a blend from one side to the other.
+      var n = p.colors.length;
+      totalCols = totalCols || LED_COLS;
+      totalRows = totalRows || 1;
+      if(p.colorLayout === 'stripes') return p.colors[Math.floor(col * n * 2 / totalCols) % n];
+      if(p.colorLayout === 'bands') return p.colors[Math.min(n - 1, Math.floor(row * n / totalRows))];
+      if(p.colorLayout === 'gradient') return gradientColorAt(p.colors, totalCols > 1 ? col / (totalCols - 1) : 0);
       var seed = col * 92821 + row * 68917;
       var idx = Math.floor(pseudoRandom(seed) * p.colors.length) % p.colors.length;
       return p.colors[idx];
@@ -2021,13 +2673,17 @@
   // on the very next frame with no restart trick needed. totalCols/totalRows
   // default to the generic matrix size, but each zone's own dot grid passes
   // its own real dimensions so patterns scale correctly to that zone.
-  function computeDotBrightness(p, col, t, totalCols, row, totalRows){
+  // `around` (optional, 0-1) is how far round the stadium bowl the LED sits;
+  // the 3D view passes it so stadium-spanning motions (The Wave) travel
+  // around the whole venue. Without it they run along the grid's columns.
+  function computeDotBrightness(p, col, t, totalCols, row, totalRows, around){
     totalCols = totalCols || LED_COLS;
     row = row || 0;
     totalRows = totalRows || 1;
     var freq = p.frequency > 0 ? p.frequency : 0.5;
     var peak = Math.max(0.05, p.intensity / 100);
-    var floor = 0.06;
+    // How bright "off" dots stay; custom patterns can set it with Dim level.
+    var floor = Math.min(peak, p.dimLevel != null ? p.dimLevel / 100 : 0.06);
     if(p.motion === 'solid') return peak;
     if(p.motion === 'text'){
       if(p.trimColor){
@@ -2051,6 +2707,21 @@
       var cyclePos = ((t + randPhase) * freq * randSpeed) % 1;
       return cyclePos < randOnWidth ? peak : floor;
     }
+    if(p.motion === 'crowd-wave'){
+      // The Wave: a band of "standing" seats travels round the bowl. The
+      // front rises fast (people springing up), the crest is brightest (arms
+      // up), and the back eases off slower (sitting back down). Frequency
+      // sets the pace — 1 is one lap every 10 seconds — and Band Width
+      // (spread) how much of the bowl is up at once.
+      var pos = (around !== undefined && around !== null) ? around : (col + 0.5) / totalCols;
+      var crest = (t * freq * 0.1) % 1;
+      var d = pos - crest;
+      d -= Math.round(d); // signed distance round the loop, -0.5..0.5
+      var band = Math.max(0.02, p.spread / 100);
+      var x = d > 0 ? d / (band * 0.35) : -d / (band * 0.65);
+      if(x >= 1) return floor;
+      return floor + (0.5 + 0.5 * Math.cos(Math.PI * x)) * (peak - floor);
+    }
     if(p.motion === 'strobe'){
       var cyclePos2 = (t * freq) % 1;
       return cyclePos2 < 0.5 ? peak : floor;
@@ -2059,13 +2730,42 @@
       var phase = (Math.sin(t * freq * Math.PI * 2) + 1) / 2;
       return floor + phase * (peak - floor);
     }
-    // wave: a lit band of columns sweeps left to right, band width from Spread
-    var bandCols = Math.max(1, (p.spread / 100) * totalCols);
-    var peakCol = (t * freq * (totalCols / 2)) % totalCols;
-    var dist = Math.abs(col - peakCol);
-    dist = Math.min(dist, totalCols - dist); // wrap around for a seamless loop
-    if(dist > bandCols / 2) return floor;
-    var falloff = 1 - (dist / (bandCols/2 + 0.001));
+    var dir = p.direction || 'left-right';
+    var cells = (dir === 'top-bottom' || dir === 'bottom-top') ? totalRows : totalCols;
+    var along = directionPos(dir, col, row, totalCols, totalRows);
+    if(p.motion === 'wipe'){
+      // Light fills the zone from one edge, then empties out the same way.
+      var fill = (t * freq * 0.5) % 1;
+      var at = along + 0.5 / cells;
+      var on = fill < 0.5 ? at <= fill * 2 : at > (fill - 0.5) * 2;
+      return on ? peak : floor;
+    }
+    if(p.motion === 'ripple'){
+      // Rings spread out from the middle of the zone (or close in on it),
+      // ring width from Band Width.
+      var dx = (col + 0.5) / totalCols - 0.5, dy = (row + 0.5) / totalRows - 0.5;
+      var r = Math.sqrt(dx * dx + dy * dy) / Math.SQRT1_2;
+      if(dir === 'inward') r = 1 - r;
+      var ringDist = r - (t * freq * 0.5) % 1;
+      ringDist = Math.abs(ringDist - Math.round(ringDist));
+      var halfRing = Math.max(0.02, p.spread / 100) / 2;
+      if(ringDist > halfRing) return floor;
+      return floor + (1 - ringDist / halfRing) * (peak - floor);
+    }
+    // wave: a lit band sweeps across (left to right unless the pattern
+    // sets a direction), band width from Spread
+    var halfBand = Math.max(1 / cells, p.spread / 100) / 2;
+    var head, dist;
+    if(dir === 'bounce'){
+      head = 1 - Math.abs(1 - 2 * ((t * freq * 0.25) % 1)); // there and back
+      dist = Math.abs(along - head);
+    } else {
+      head = (t * freq * 0.5) % 1;
+      dist = Math.abs(along - head);
+      dist = Math.min(dist, 1 - dist); // wrap around for a seamless loop
+    }
+    if(dist > halfBand) return floor;
+    var falloff = 1 - (dist / (halfBand + 0.001 / cells));
     return floor + falloff * (peak - floor);
   }
 
@@ -2107,7 +2807,15 @@
     ledPlaying = false;
     if(ledRafId) window.cancelAnimationFrame(ledRafId);
     ledRafId = null;
-    renderLedMatrixStatic(p);
+    if(p) renderLedMatrixStatic(p);
+  }
+
+  // The selected pattern's preview plays whenever the Patterns view is
+  // open, so edits show up live, and stops when another view is shown.
+  function syncPatternPreview(){
+    var p = findPattern(selectedPatternId);
+    if(p && document.getElementById('pattern-view').classList.contains('active')) startLedPreview(p);
+    else if(ledPlaying) stopLedPreview(p);
   }
 
   document.getElementById('pattern-grid').addEventListener('click', function(e){
@@ -2115,7 +2823,9 @@
       var name = window.prompt('Name this pattern', 'New pattern');
       if(!name) return;
       var id = 'custom-' + Date.now();
-      patternLibrary.push({id:id, name:name, tags:['Custom'], color:'#00f0ff', intensity:70, spread:40, frequency:1.0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'pulse'});
+      var newPattern = {id:id, name:name, tags:['Custom'], color:'#00f0ff', intensity:70, spread:40, frequency:1.0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'pulse'};
+      patternLibrary.push(newPattern);
+      savedStore.put('patterns', JSON.parse(JSON.stringify(newPattern)));
       selectedPatternId = id;
       renderPatternGrid(document.getElementById('pattern-search').value);
       renderPatternInspector();
@@ -2146,17 +2856,17 @@
   };
   var timelineCuesByVenue = {
     'jordan-hare': [
-      // TEMP TEST SHOW: Twinkle Mixed (orange/blue/white sparkle) running
-      // continuously with no gaps, so the ambient look is a full-color
-      // twinkle throughout — the big kick accent hits then cut through it
-      // with a solid orange/blue flash (see updatePreviewStadium's
+      // Starter show: Twinkle Mixed (orange/blue/white sparkle) on every
+      // section for the first 30 seconds — the same length as a dropped
+      // pattern — so each cue's start and end are both visible on the
+      // Timeline without scrolling at the default zoom. Big kick accents cut
+      // through it with a solid orange/blue flash (see updatePreviewStadium's
       // isBigFlash branch). The original choreographed jordan-hare show is
-      // preserved in StadiumSync_Studio_Prototype_ORIGINAL_SHOW_BACKUP.html
-      // and can be restored once music sync is confirmed working.
-      {track:'Student Section', pattern:'twinkle-mixed', start:0, duration:236},
-      {track:'Lower Bowl', pattern:'twinkle-mixed', start:0, duration:236},
-      {track:'Upper Deck', pattern:'twinkle-mixed', start:0, duration:236},
-      {track:'End Zones', pattern:'twinkle-mixed', start:0, duration:236}
+      // preserved in StadiumSync_Studio_Prototype_ORIGINAL_SHOW_BACKUP.html.
+      {track:'Student Section', pattern:'twinkle-mixed', start:0, duration:30},
+      {track:'Lower Bowl', pattern:'twinkle-mixed', start:0, duration:30},
+      {track:'Upper Deck', pattern:'twinkle-mixed', start:0, duration:30},
+      {track:'End Zones', pattern:'twinkle-mixed', start:0, duration:30}
     ],
     'neville': [
       {track:'Student Section', pattern:'tiger-wave', start:0, duration:8},
@@ -2383,9 +3093,17 @@
       tick.textContent = String(m).padStart(2,'0') + ':00';
       ruler.appendChild(tick);
     }
+    var knob = document.createElement('div');
+    knob.className = 'playhead-knob' + (bookmarkAtPlayhead() !== null ? ' marked' : '');
+    knob.setAttribute('role', 'button');
+    knob.setAttribute('aria-label', bookmarkAtPlayhead() !== null ? 'Remove the bookmark at the playhead' : 'Bookmark this spot in the audio waveform');
+    knob.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5h10a1.5 1.5 0 0 1 1.5 1.5v5.4L8 14.5 1.5 8.4V3A1.5 1.5 0 0 1 3 1.5z"/></svg>';
+    knob.style.left = (140 + playheadSeconds * PX_PER_SEC) + 'px';
+    ruler.appendChild(knob);
 
     var tracksEl = document.getElementById('timeline-tracks');
     tracksEl.innerHTML = '';
+    var waveUrl = timelineWaveformUrl();
     tracks.forEach(function(trackName){
       var row = document.createElement('div');
       row.className = 'track-row';
@@ -2402,7 +3120,8 @@
       cues.filter(function(c){ return c.track === trackName; }).forEach(function(cue, idx){
         var block = document.createElement('div');
         var pat = findPattern(cue.pattern);
-        block.className = 'cue-block' + (selectedCue === cue ? ' selected' : '');
+        block.className = 'cue-block' + (selectedCue === cue ? ' selected' : '') +
+          (selectedCue && cue !== selectedCue && cue.group && cue.group === selectedCue.group ? ' linked' : '');
         var widthPx = cue.duration * PX_PER_SEC;
         block.style.left = (cue.start * PX_PER_SEC) + 'px';
         block.style.width = widthPx + 'px';
@@ -2439,6 +3158,21 @@
         // on hover via the tooltip, so nothing is actually hidden.
         var fullName = pat ? pat.name : cue.pattern;
         block.title = fullName + ' — ' + formatTimecode(cue.start) + ' to ' + formatTimecode(cue.start + cue.duration);
+        if(selectedCue === cue){
+          var del = document.createElement('button');
+          del.type = 'button';
+          del.className = 'cue-delete';
+          del.title = 'Delete cue';
+          del.setAttribute('aria-label', 'Delete ' + fullName + ' cue');
+          del.textContent = '\u00d7';
+          block.appendChild(del);
+        }
+        ['start','end'].forEach(function(edge){
+          var handle = document.createElement('div');
+          handle.className = 'cue-handle cue-handle-' + edge;
+          handle.setAttribute('data-cue-edge', edge);
+          block.appendChild(handle);
+        });
 
         lane.appendChild(block);
       });
@@ -2448,13 +3182,17 @@
         playhead.className = 'playhead';
         playhead.id = 'timeline-playhead';
         playhead.style.left = (playheadSeconds * PX_PER_SEC) + 'px';
-        playhead.style.height = (tracks.length * 52) + 'px';
+        playhead.style.height = (tracks.length * (waveUrl ? 52 + 1 + WAVE_ROW_HEIGHT : 52)) + 'px';
         lane.style.position = 'relative';
         lane.appendChild(playhead);
       }
 
       row.appendChild(lane);
       tracksEl.appendChild(row);
+      if(waveUrl){
+        row.classList.add('has-wave');
+        tracksEl.appendChild(buildWaveRow(waveUrl, songMarks(), lane.style.width));
+      }
     });
 
     // single playhead spanning all rows visually via absolute position on wrapper
@@ -2475,38 +3213,36 @@
     document.getElementById('timeline-wrap').appendChild(globalHead);
 
     document.getElementById('tl-timecode').textContent = formatTimecode(playheadSeconds);
-    renderCueInspector();
+    drawDropPreview(); // playback re-renders mid-drag; keep the drop target visible
+    updateCuePopover();
+    updateTimelineSaveState();
   }
 
-  function renderCueInspector(){
-    var panel = document.getElementById('cue-inspector');
-    var body = document.getElementById('cue-inspector-body');
-    if(!selectedCue){ panel.style.display = 'none'; return; }
-    panel.style.display = 'block';
-    var options = patternLibrary.map(function(p){
-      return '<option value="' + p.id + '"' + (p.id === selectedCue.pattern ? ' selected' : '') + '>' + p.name + '</option>';
-    }).join('');
-    body.innerHTML =
-      '<div class="field"><label for="cue-pattern">Pattern</label><select id="cue-pattern">' + options + '</select></div>' +
-      '<div class="export-row">' +
-        '<div class="field"><label for="cue-start">Start (sec)</label><input type="number" id="cue-start" min="0" max="' + TIMELINE_DURATION + '" value="' + selectedCue.start + '" style="width:100%; background:var(--surface-high); border:1px solid var(--outline-variant); color:var(--on-surface); padding:8px; border-radius:var(--radius);"></div>' +
-        '<div class="field"><label for="cue-duration">Duration (sec)</label><input type="number" id="cue-duration" min="1" max="' + TIMELINE_DURATION + '" value="' + selectedCue.duration + '" style="width:100%; background:var(--surface-high); border:1px solid var(--outline-variant); color:var(--on-surface); padding:8px; border-radius:var(--radius);"></div>' +
-      '</div>' +
-      '<button class="btn" id="cue-delete" style="margin-top:12px; border-color:var(--error);">Delete Cue</button>';
-
-    document.getElementById('cue-pattern').addEventListener('change', function(e){ selectedCue.pattern = e.target.value; renderTimeline(); });
-    document.getElementById('cue-start').addEventListener('input', function(e){ selectedCue.start = Math.max(0, parseInt(e.target.value,10) || 0); renderTimeline(); });
-    document.getElementById('cue-duration').addEventListener('input', function(e){ selectedCue.duration = Math.max(1, parseInt(e.target.value,10) || 1); renderTimeline(); });
-    document.getElementById('cue-delete').addEventListener('click', function(){
-      var cues = timelineCuesByVenue[currentVenueId];
-      var i = cues.indexOf(selectedCue);
-      if(i > -1) cues.splice(i,1);
-      selectedCue = null;
-      renderTimeline();
-    });
+  function deleteSelectedCue(){
+    if(!selectedCue) return;
+    var doomed = cueGroup(selectedCue);
+    if(!doomed.length) doomed = [selectedCue];
+    timelineCuesByVenue[currentVenueId] = timelineCuesByVenue[currentVenueId].filter(function(c){ return doomed.indexOf(c) === -1; });
+    selectedCue = null;
+    renderTimeline();
+    updatePreviewStadium(playheadSeconds);
   }
+
+  // Delete/Backspace removes the selected cue while the Timeline is showing.
+  document.addEventListener('keydown', function(e){
+    if(e.key !== 'Delete' && e.key !== 'Backspace') return;
+    if(!selectedCue || !document.getElementById('timeline-view').classList.contains('active')) return;
+    var tag = (e.target && e.target.tagName) || '';
+    if(tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+    e.preventDefault();
+    deleteSelectedCue();
+  });
 
   document.getElementById('timeline-tracks').addEventListener('click', function(e){
+    // A drag ends with a click on whatever is under the pointer; don't
+    // treat it as "add a cue here" or "select this cue".
+    if(suppressTimelineClick){ suppressTimelineClick = false; return; }
+    if(e.target.closest('.cue-delete')){ deleteSelectedCue(); return; }
     var cueBlock = e.target.closest('.cue-block');
     if(cueBlock){
       var trackName = cueBlock.getAttribute('data-cue-track');
@@ -2516,15 +3252,605 @@
       renderTimeline();
       return;
     }
-    var lane = e.target.closest('.track-lane');
-    if(lane){
-      var rect = lane.getBoundingClientRect();
-      var clickSec = Math.max(0, Math.min(TIMELINE_DURATION - 15, (e.clientX - rect.left) / PX_PER_SEC));
-      var newCue = {track: lane.getAttribute('data-track'), pattern: patternLibrary[0].id, start: Math.round(clickSec), duration: 30};
-      timelineCuesByVenue[currentVenueId].push(newCue);
-      selectedCue = newCue;
-      renderTimeline();
+    // Clicking empty track space just deselects; patterns are only added by
+    // dragging them in from the Patterns strip.
+    if(e.target.closest('.track-lane')) deselectCue();
+  });
+
+  // ---- Drag and drop on the timeline ----
+  // Patterns are dragged from the Patterns strip below the tracks onto a lane, and
+  // cues are dragged to move them or by their edges to change length. Pointer
+  // events (not HTML5 drag and drop) so it works the same with touch. The
+  // move/up listeners live on document, because renderTimeline rebuilds
+  // the lanes every 100ms during playback and would orphan the drag.
+  var DEFAULT_DROP_DURATION = 30;
+  var DRAG_THRESHOLD_PX = 4;
+  var MIN_CUE_SECONDS = 0.25;      // short enough for a one-beat flash
+  var BIG_BEAT_SNAP_PX = 24;       // big beats pull a cue edge from this far away...
+  var SMALL_BEAT_SNAP_PX = 8;      // ...other hits only when the edge is already this close
+  var PLAYHEAD_SNAP_PX = 12;       // cue edges snap to the playhead whether or not beat snapping is on
+  var GAP_EDGE_SNAP_PX = 12;       // a pattern dropped this close after a cue starts right where it ends
+  var SNAP_PREF_KEY = 'stadiumsync.snapToBeats';
+
+  // "Snap to beats": while on, dropped/moved/resized cue edges jump to the
+  // loaded song's hits (see detectBeatHits), preferring its big beats, which
+  // reach three times as far. Away from any hit, and with no song loaded,
+  // edges snap to whole seconds as before.
+  var snapToBeats = false;
+  try { snapToBeats = localStorage.getItem(SNAP_PREF_KEY) === '1'; } catch(err){}
+
+  function songBeats(){ return waveformPeaks ? waveformPeaks.beats : null; }
+
+  // Time in sorted list closest to sec, if within maxPx on screen; else null.
+  function nearestWithin(list, sec, maxPx){
+    if(!list || !list.length) return null;
+    var lo = 0, hi = list.length - 1;
+    while(lo < hi){ var mid = (lo + hi) >> 1; if(list[mid] < sec) lo = mid + 1; else hi = mid; }
+    var best = list[lo];
+    if(lo > 0 && Math.abs(list[lo - 1] - sec) < Math.abs(best - sec)) best = list[lo - 1];
+    return Math.abs(best - sec) * PX_PER_SEC <= maxPx ? best : null;
+  }
+
+  // What a cue edge at sec snaps to, strongest first: the playhead and the
+  // song's marks (always), then — with "Snap to beats" on — a big beat within
+  // reach, even over a closer small hit, then a small hit. Null if nothing is close.
+  function snapTarget(sec){
+    if(Math.abs(playheadSeconds - sec) * PX_PER_SEC <= PLAYHEAD_SNAP_PX) return playheadSeconds;
+    var mark = nearestWithin(songMarks(), sec, PLAYHEAD_SNAP_PX);
+    if(mark !== null) return mark;
+    var beats = songBeats();
+    if(!snapToBeats || !beats) return null;
+    var big = nearestWithin(beats.big, sec, BIG_BEAT_SNAP_PX);
+    return big !== null ? big : nearestWithin(beats.all, sec, SMALL_BEAT_SNAP_PX);
+  }
+
+  function snapTime(sec){
+    var target = snapTarget(sec);
+    return target !== null ? target : Math.round(sec);
+  }
+
+  // ---- Bookmarks on the song ----
+  // Clicking the playhead knob bookmarks the loaded song at the playhead (or
+  // removes the bookmark already there); hovering a bookmark's tick in a
+  // waveform strip and clicking deletes it. Bookmarks are kept per song for
+  // this visit, ticked in orange in the waveform strips, and cue edges snap
+  // to them.
+  var marksBySong = {};
+  var MARK_HIT_PX = 4; // the playhead counts as "on" a bookmark this close to it
+  function songMarks(){ return (currentSongId && marksBySong[currentSongId]) || []; }
+  function bookmarkAtPlayhead(){ return nearestWithin(songMarks(), playheadSeconds, MARK_HIT_PX); }
+
+  function removeBookmark(m){
+    marksBySong[currentSongId] = songMarks().filter(function(x){ return x !== m; });
+    showToast('Removed the bookmark at ' + formatClock(m));
+    renderTimeline();
+  }
+
+  function toggleMarkAtPlayhead(){
+    if(!currentSongId){ showToast('Load a song in Show → Music to bookmark it'); return; }
+    var near = bookmarkAtPlayhead();
+    if(near !== null){ removeBookmark(near); return; }
+    var marks = marksBySong[currentSongId] = songMarks().concat(playheadSeconds);
+    marks.sort(function(a, b){ return a - b; });
+    showToast('Bookmarked ' + formatClock(playheadSeconds));
+    renderTimeline();
+  }
+
+  // Deleting from the waveform: pointerdown rather than click, because the
+  // strips are rebuilt every 100ms during playback.
+  document.getElementById('timeline-tracks').addEventListener('pointerdown', function(e){
+    var tick = e.target.closest('.wave-mark');
+    if(!tick || e.button !== 0) return;
+    e.preventDefault();
+    hideHoverTip();
+    removeBookmark(parseFloat(tick.getAttribute('data-mark')));
+  });
+
+  // Instant tooltips for the playhead knob and bookmark ticks.
+  var hoverTip = document.createElement('div');
+  hoverTip.className = 'hover-tip';
+  hoverTip.hidden = true;
+  document.body.appendChild(hoverTip);
+  function hideHoverTip(){ hoverTip.hidden = true; }
+  document.addEventListener('pointerover', function(e){
+    if(playheadDrag || timelineDrag){ hideHoverTip(); return; }
+    var knob = e.target.closest && e.target.closest('.playhead-knob');
+    var tick = !knob && e.target.closest && e.target.closest('.wave-mark');
+    var el = knob || tick;
+    if(!el){ hideHoverTip(); return; }
+    hoverTip.textContent = knob
+      ? (knob.classList.contains('marked') ? 'Click to remove this bookmark' : 'Click to bookmark this spot in the audio waveform')
+      : 'Click to delete this bookmark (' + formatClock(parseFloat(tick.getAttribute('data-mark'))) + ')';
+    var r = el.getBoundingClientRect();
+    hoverTip.style.left = (r.left + r.width / 2) + 'px';
+    hoverTip.style.top = r.top + 'px';
+    hoverTip.hidden = false;
+  });
+  document.getElementById('timeline-wrap').addEventListener('scroll', hideHoverTip);
+
+
+  function setSnapToBeats(on){
+    snapToBeats = on;
+    try { localStorage.setItem(SNAP_PREF_KEY, on ? '1' : '0'); } catch(err){}
+    document.getElementById('tl-snap').setAttribute('aria-pressed', String(on));
+    renderTimeline();
+  }
+  document.getElementById('tl-snap').setAttribute('aria-pressed', String(snapToBeats));
+  document.getElementById('tl-snap').addEventListener('click', function(){
+    setSnapToBeats(!snapToBeats);
+    if(snapToBeats && !songBeats()){
+      showToast(currentSongId ? 'Still reading the song — beats will appear shortly' : 'Load a song in Show → Music to snap to its beats');
     }
+  });
+  var timelineDrag = null;        // the drag in progress, if any
+  var dropPreview = null;         // {track, start, duration} while a pattern hovers a lane
+  var suppressTimelineClick = false;
+
+  function renderTimelinePalette(){
+    var strip = document.getElementById('timeline-palette');
+    strip.innerHTML = patternLibrary.map(function(p){
+      return '<button type="button" class="palette-chip" role="listitem" data-palette-pattern="' + p.id + '" title="Drag ' + p.name + ' onto a track">' +
+        '<span class="palette-swatch" style="' + buildSwatchStyle(p) + '"></span>' +
+        '<span class="palette-chip-name">' + p.name + '</span></button>';
+    }).join('');
+  }
+
+  // ---- Hover preview on pattern cards ----
+  // Hovering a card (Pattern library or the timeline's mini cards) animates
+  // the pattern as LED dots over its swatch, using the shared
+  // computeDotBrightness/getDotColor (and, for stadium-wide patterns,
+  // venueWideColorAt over the whole venue map). Only the hovered card runs a
+  // frame loop, and it stops when the pointer leaves.
+  var swatchPreview = null; // {card, swatch, pattern, canvas, raf, start}
+
+  function drawSwatchPreview(sp, t){
+    var canvas = sp.canvas, ctx = canvas.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    var w = canvas.width / dpr, h = canvas.height / dpr, p = sp.pattern;
+    var spacing = p.motion === 'text' ? 3.5 : 6; // images need more dots to be readable
+    var cols = Math.max(2, Math.floor(w / spacing)), rows = Math.max(2, Math.floor(h / spacing));
+    var dx = w / cols, dy = h / rows, radius = Math.min(dx, dy) * 0.36;
+    var palette = VENUE_PALETTES[currentVenueId] || VENUE_PALETTES['jordan-hare'];
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#050a0a';
+    ctx.fillRect(0, 0, w, h);
+    var ring = p.motion === 'crowd-wave'; // draw a stadium-shaped ring so The Wave reads as going round the stands
+    for(var row = 0; row < rows; row++){
+      for(var col = 0; col < cols; col++){
+        var nx = (col + 0.5) / cols * 2 - 1, ny = (row + 0.5) / rows * 2 - 1;
+        if(ring && (nx * nx + ny * ny > 1 || nx * nx + ny * ny < 0.3)) continue;
+        var around = (Math.atan2(ny * 300, nx * 400) / (2 * Math.PI) + 1) % 1;
+        var color = venueWideColorAt(p, (col + 0.5) / cols * 400, (row + 0.5) / rows * 300, t, palette.primary, palette.secondary)
+          || getDotColor(p, col, row, cols, rows);
+        ctx.globalAlpha = computeDotBrightness(p, col, t, cols, row, rows, around);
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc((col + 0.5) * dx, (row + 0.5) * dy, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  function startSwatchPreview(card, swatch, pattern){
+    if(swatchPreview && swatchPreview.card === card) return;
+    stopSwatchPreview();
+    var canvas = document.createElement('canvas');
+    canvas.className = 'swatch-preview';
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(swatch.clientWidth * dpr);
+    canvas.height = Math.round(swatch.clientHeight * dpr);
+    swatch.appendChild(canvas);
+    var sp = swatchPreview = {card:card, swatch:swatch, pattern:pattern, canvas:canvas, raf:0, start:performance.now()};
+    (function frame(now){
+      // The card can be re-rendered away (e.g. a color edit rebuilds the grid).
+      if(swatchPreview !== sp || !canvas.isConnected){ if(swatchPreview === sp) stopSwatchPreview(); return; }
+      drawSwatchPreview(sp, ((now || performance.now()) - sp.start) / 1000);
+      sp.raf = window.requestAnimationFrame(frame);
+    })();
+  }
+
+  function stopSwatchPreview(){
+    if(!swatchPreview) return;
+    window.cancelAnimationFrame(swatchPreview.raf);
+    swatchPreview.canvas.remove();
+    swatchPreview = null;
+  }
+
+  function wireSwatchPreview(container, cardSelector, idAttr){
+    container.addEventListener('pointerover', function(e){
+      if(e.pointerType === 'touch' || (timelineDrag && timelineDrag.active)) return;
+      var card = e.target.closest(cardSelector);
+      if(!card || !container.contains(card)) return;
+      var pattern = findPattern(card.getAttribute(idAttr));
+      var swatch = card.querySelector('.pattern-swatch, .palette-swatch');
+      if(pattern && swatch) startSwatchPreview(card, swatch, pattern);
+    });
+    container.addEventListener('pointerout', function(e){
+      var card = e.target.closest(cardSelector);
+      if(!card || !swatchPreview || swatchPreview.card !== card) return;
+      if(e.relatedTarget && card.contains(e.relatedTarget)) return;
+      stopSwatchPreview();
+    });
+  }
+  wireSwatchPreview(document.getElementById('pattern-grid'), '[data-pattern-id]', 'data-pattern-id');
+  wireSwatchPreview(document.getElementById('timeline-palette'), '[data-palette-pattern]', 'data-palette-pattern');
+
+  function cueFromBlock(block){
+    var trackName = block.getAttribute('data-cue-track');
+    var idx = parseInt(block.getAttribute('data-cue-index'), 10);
+    return timelineCuesByVenue[currentVenueId].filter(function(c){ return c.track === trackName; })[idx];
+  }
+
+  function laneAt(clientX, clientY){
+    var el = document.elementFromPoint(clientX, clientY);
+    return el ? el.closest('.track-lane') : null;
+  }
+
+  function secondsInLane(lane, clientX){
+    return (clientX - lane.getBoundingClientRect().left) / PX_PER_SEC;
+  }
+
+  function clampSec(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+  // A cue that was just dropped, moved or resized takes over its time on its
+  // track: other cues there are trimmed, split around it, or removed if
+  // fully covered. Playback runs the first cue it finds at a given time, so
+  // without this a new cue laid over an existing one would never play.
+  function carveOutCue(cue){
+    var s = cue.start, e = cue.start + cue.duration;
+    var result = [];
+    timelineCuesByVenue[currentVenueId].forEach(function(c){
+      var cs = c.start, ce = c.start + c.duration;
+      if(c === cue || c.track !== cue.track || ce <= s || cs >= e){ result.push(c); return; }
+      // A linked cue that gets cut leaves its group: its pieces no longer
+      // match the other sections' copies.
+      if(cs < s){ result.push(Object.assign({}, c, {duration:s - cs, group:undefined})); }
+      if(ce > e){ result.push(Object.assign({}, c, {start:e, duration:ce - e, group:undefined})); }
+    });
+    timelineCuesByVenue[currentVenueId] = result;
+  }
+
+  // ---- "On every section": a cue copied onto every track, kept in step ----
+  // Copies share a `group` id. Moving, resizing or retyping one moves them
+  // all; deleting one deletes them all; turning it off keeps only the one
+  // you're on.
+  function cueGroup(cue){
+    if(!cue || !cue.group) return [];
+    return timelineCuesByVenue[currentVenueId].filter(function(c){ return c.group === cue.group; });
+  }
+
+  // Gives every copy the timing of `cue`, then lets each take over its time.
+  function syncCueGroup(cue){
+    var members = cueGroup(cue);
+    members.forEach(function(m){ m.start = cue.start; m.duration = cue.duration; });
+    (members.length ? members : [cue]).forEach(carveOutCue);
+  }
+
+  function setCueOnEverySection(cue, on){
+    if(on){
+      var group = 'g' + Date.now();
+      cue.group = group;
+      // Another section's cue with the same pattern overlapping this one is
+      // that section's version of it (e.g. the same cue before this one was
+      // shortened), so the copy replaces it outright instead of splitting it
+      // and leaving a leftover piece. Other patterns are trimmed as usual.
+      var cueEnd = cue.start + cue.duration;
+      timelineCuesByVenue[currentVenueId] = timelineCuesByVenue[currentVenueId].filter(function(c){
+        return c === cue || c.track === cue.track || c.pattern !== cue.pattern ||
+          c.start >= cueEnd || c.start + c.duration <= cue.start;
+      });
+      (timelineTracksByVenue[currentVenueId] || []).forEach(function(track){
+        if(track === cue.track) return;
+        timelineCuesByVenue[currentVenueId].push({track:track, pattern:cue.pattern, start:cue.start, duration:cue.duration, group:group});
+      });
+      syncCueGroup(cue);
+    } else {
+      timelineCuesByVenue[currentVenueId] = timelineCuesByVenue[currentVenueId].filter(function(c){
+        return c === cue || c.group !== cue.group;
+      });
+      delete cue.group;
+    }
+    renderTimeline();
+    updatePreviewStadium(playheadSeconds);
+  }
+
+  // Where a pattern dropped at `sec` on `track` lands. In empty space it
+  // fits the gap: it starts at the pointer (or right at the end of the cue
+  // before, when that's within snapping distance) and is cut short to end
+  // where the next cue begins if the gap is shorter than the default length.
+  // Dropped onto an existing cue, it keeps the default length and replaces
+  // that stretch (see carveOutCue).
+  function dropPlacement(track, sec){
+    var raw = clampSec(sec, 0, TIMELINE_DURATION - MIN_CUE_SECONDS);
+    var prevEnd = 0, nextStart = TIMELINE_DURATION, overCue = false;
+    timelineCuesByVenue[currentVenueId].forEach(function(c){
+      if(c.track !== track) return;
+      var end = c.start + c.duration;
+      if(c.start <= raw && raw < end) overCue = true;
+      else if(end <= raw) prevEnd = Math.max(prevEnd, end);
+      else if(c.start > raw) nextStart = Math.min(nextStart, c.start);
+    });
+    if(overCue || nextStart - prevEnd < MIN_CUE_SECONDS){
+      var start = clampSec(snapTime(raw), 0, TIMELINE_DURATION - MIN_CUE_SECONDS);
+      return {start:start, duration:Math.min(TIMELINE_DURATION, snapTime(start + DEFAULT_DROP_DURATION)) - start};
+    }
+    var gapStart = (raw - prevEnd) * PX_PER_SEC <= GAP_EDGE_SNAP_PX ? prevEnd : snapTime(raw);
+    gapStart = clampSec(gapStart, prevEnd, nextStart - MIN_CUE_SECONDS);
+    var gapEnd = Math.min(nextStart, snapTime(gapStart + DEFAULT_DROP_DURATION));
+    if(gapEnd - gapStart < MIN_CUE_SECONDS) gapEnd = Math.min(nextStart, gapStart + MIN_CUE_SECONDS);
+    return {start:gapStart, duration:gapEnd - gapStart};
+  }
+
+  function drawDropPreview(){
+    var old = document.querySelector('.cue-drop-preview');
+    if(old) old.remove();
+    if(!dropPreview) return;
+    var lane = document.querySelector('.track-lane[data-track="' + dropPreview.track + '"]');
+    if(!lane) return;
+    var box = document.createElement('div');
+    box.className = 'cue-drop-preview';
+    box.style.left = (dropPreview.start * PX_PER_SEC) + 'px';
+    box.style.width = (dropPreview.duration * PX_PER_SEC) + 'px';
+    lane.appendChild(box);
+  }
+
+  // Move/resize redraws just the dragged block; the full render (thousands
+  // of LED dots) happens once on release.
+  function updateDraggedBlock(cue){
+    var block = document.querySelector('.cue-block.selected');
+    if(!block || cueFromBlock(block) !== cue) return;
+    block.style.left = (cue.start * PX_PER_SEC) + 'px';
+    block.style.width = (cue.duration * PX_PER_SEC) + 'px';
+    // Linked copies follow on screen; their timing is synced on release.
+    document.querySelectorAll('.cue-block.linked').forEach(function(copy){
+      copy.style.left = block.style.left;
+      copy.style.width = block.style.width;
+    });
+    updateCuePopover();
+  }
+
+  // ---- Selected cue's timing popover ----
+  // Lives outside the tracks (which are rebuilt every 100ms during playback)
+  // so typing isn't interrupted; it's repositioned under the selected cue on
+  // every render, drag and scroll. Edits apply on Enter or when a field loses
+  // focus, then the cue takes over its new time like a drag does.
+  function formatClock(sec){
+    var m = Math.floor(sec / 60), rest = sec - m * 60;
+    return m + ':' + (rest < 10 ? '0' : '') + rest.toFixed(2);
+  }
+  function formatSeconds(sec){
+    return String(Math.round(sec * 100) / 100);
+  }
+  // Accepts "65.5", "65.5s", "1:05.5"; NaN if it can't be read.
+  function parseClock(text){
+    var t = String(text).trim().replace(/s$/i, '').trim();
+    if(!t) return NaN;
+    var parts = t.split(':');
+    if(parts.length > 2) return NaN;
+    if(!parts.every(function(p){ return /^\d*\.?\d+$|^\d+\.$/.test(p.trim()); })) return NaN;
+    return parts.length === 2 ? parseFloat(parts[0]) * 60 + parseFloat(parts[1]) : parseFloat(parts[0]);
+  }
+
+  function cuePopoverEditing(){
+    var a = document.activeElement;
+    return !!a && (a.id === 'cue-pop-start' || a.id === 'cue-pop-duration');
+  }
+
+  // Shows the selected cue's real values, clearing any unreadable entry.
+  function fillCuePopover(){
+    if(!selectedCue) return;
+    var pat = findPattern(selectedCue.pattern);
+    var startEl = document.getElementById('cue-pop-start'), durEl = document.getElementById('cue-pop-duration');
+    document.getElementById('cue-pop-title').textContent = (pat ? pat.name : selectedCue.pattern) + ' · ' + selectedCue.track;
+    startEl.value = formatClock(selectedCue.start);
+    durEl.value = formatSeconds(selectedCue.duration) + 's';
+    startEl.classList.remove('invalid');
+    durEl.classList.remove('invalid');
+    document.getElementById('cue-pop-end').textContent = 'Ends at ' + formatClock(selectedCue.start + selectedCue.duration);
+    document.getElementById('cue-pop-all').setAttribute('aria-pressed', String(cueGroup(selectedCue).length > 1));
+  }
+
+  function updateCuePopover(){
+    var pop = document.getElementById('cue-popover');
+    var block = selectedCue && document.querySelector('.cue-block.selected');
+    var wrap = document.getElementById('timeline-wrap');
+    if(!block || !wrap.offsetParent){ if(!cuePopoverEditing()) pop.hidden = true; return; }
+    var r = block.getBoundingClientRect(), w = wrap.getBoundingClientRect();
+    var visLeft = Math.max(r.left, w.left + 140), visRight = Math.min(r.right, w.right);
+    if(visRight - visLeft < 8 && !cuePopoverEditing()){ pop.hidden = true; return; }
+    if(!cuePopoverEditing()) fillCuePopover();
+    pop.hidden = false;
+    var view = document.getElementById('timeline-view').getBoundingClientRect();
+    var left = Math.max(w.left + 140, Math.min(visLeft, w.right - pop.offsetWidth));
+    pop.style.left = (left - view.left) + 'px';
+    pop.style.top = (r.bottom + 6 - view.top) + 'px';
+  }
+
+  function applyCuePopover(){
+    var cue = selectedCue;
+    if(!cue) return;
+    var startEl = document.getElementById('cue-pop-start'), durEl = document.getElementById('cue-pop-duration');
+    var start = parseClock(startEl.value), duration = parseClock(durEl.value);
+    startEl.classList.toggle('invalid', !isFinite(start));
+    durEl.classList.toggle('invalid', !isFinite(duration));
+    if(!isFinite(start) || !isFinite(duration)) return;
+    start = clampSec(Math.round(start * 100) / 100, 0, TIMELINE_DURATION - MIN_CUE_SECONDS);
+    duration = clampSec(Math.round(duration * 100) / 100, MIN_CUE_SECONDS, TIMELINE_DURATION - start);
+    if(start === cue.start && duration === cue.duration){ updateCuePopover(); return; }
+    cue.start = start;
+    cue.duration = duration;
+    syncCueGroup(cue);
+    // A typed start can move the cue off screen; bring it back into view so
+    // it (and this popover) stay visible.
+    var wrap = document.getElementById('timeline-wrap');
+    var cueLeft = cue.start * PX_PER_SEC, visibleWidth = wrap.clientWidth - 140;
+    if(cueLeft < wrap.scrollLeft || cueLeft > wrap.scrollLeft + visibleWidth - 40){
+      wrap.scrollLeft = Math.max(0, cueLeft - 40);
+    }
+    renderTimeline();
+    updatePreviewStadium(playheadSeconds);
+  }
+
+  ['cue-pop-start', 'cue-pop-duration'].forEach(function(id){
+    var input = document.getElementById(id);
+    input.addEventListener('change', applyCuePopover);
+    input.addEventListener('focus', function(){ input.select(); });
+    input.addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){ e.preventDefault(); applyCuePopover(); if(!input.classList.contains('invalid')) input.blur(); }
+      else if(e.key === 'Escape'){
+        // Cancels the edit only; a second Escape (outside the field) deselects.
+        e.stopPropagation();
+        fillCuePopover(); // restore first, so blurring doesn't apply the abandoned text
+        input.blur();
+      }
+    });
+    input.addEventListener('blur', function(){
+      // Leaving a field with unreadable text puts the cue's real value back.
+      setTimeout(function(){ if(!cuePopoverEditing()){ fillCuePopover(); updateCuePopover(); } }, 0);
+    });
+  });
+  document.getElementById('cue-pop-all').addEventListener('click', function(){
+    if(!selectedCue) return;
+    var on = cueGroup(selectedCue).length > 1;
+    setCueOnEverySection(selectedCue, !on);
+    showToast(on ? 'Removed the copies from the other sections' : 'Now on every section — changes to one apply to all');
+  });
+  document.getElementById('timeline-wrap').addEventListener('scroll', updateCuePopover);
+  window.addEventListener('resize', updateCuePopover);
+
+  // Escape, or pressing anywhere outside the timeline, its popover and its
+  // controls, deselects the cue (and so hides the popover).
+  function deselectCue(){
+    if(!selectedCue) return;
+    selectedCue = null;
+    renderTimeline();
+  }
+  document.addEventListener('keydown', function(e){
+    if(e.key !== 'Escape' || (timelineDrag && timelineDrag.active) || cuePopoverEditing()) return;
+    if(document.getElementById('timeline-view').classList.contains('active')) deselectCue();
+  });
+  document.addEventListener('pointerdown', function(e){
+    if(!selectedCue || e.target.closest('#timeline-wrap, #cue-popover, .timeline-transport, #timeline-palette')) return;
+    deselectCue();
+  });
+
+  function beginTimelineDrag(e, drag){
+    if(e.button !== 0) return;
+    drag.startX = e.clientX;
+    drag.startY = e.clientY;
+    drag.active = false;
+    timelineDrag = drag;
+    e.preventDefault();
+  }
+
+  document.getElementById('timeline-palette').addEventListener('pointerdown', function(e){
+    var chip = e.target.closest('[data-palette-pattern]');
+    if(chip) beginTimelineDrag(e, {kind:'pattern', patternId:chip.getAttribute('data-palette-pattern'), chip:chip});
+  });
+
+  document.getElementById('timeline-palette').addEventListener('click', function(e){
+    if(e.target.closest('[data-palette-pattern]')) showToast('Drag the pattern onto a track to add it');
+  });
+
+  document.getElementById('timeline-tracks').addEventListener('pointerdown', function(e){
+    var block = e.target.closest('.cue-block');
+    if(!block || e.target.closest('.cue-delete')) return;
+    var cue = cueFromBlock(block);
+    if(!cue) return;
+    var edge = e.target.getAttribute('data-cue-edge');
+    beginTimelineDrag(e, {
+      kind: edge ? 'resize-' + edge : 'move',
+      cue: cue,
+      origStart: cue.start,
+      origEnd: cue.start + cue.duration
+    });
+  });
+
+  document.addEventListener('pointermove', function(e){
+    var d = timelineDrag;
+    if(!d) return;
+    if(!d.active){
+      if(Math.abs(e.clientX - d.startX) < DRAG_THRESHOLD_PX && Math.abs(e.clientY - d.startY) < DRAG_THRESHOLD_PX) return;
+      d.active = true;
+      if(d.kind === 'pattern'){
+        stopSwatchPreview(); // don't clone a live canvas into the ghost
+        d.ghost = d.chip.cloneNode(true);
+        d.ghost.classList.add('palette-ghost');
+        document.body.appendChild(d.ghost);
+        document.body.classList.add('timeline-dragging');
+      } else {
+        selectedCue = d.cue;
+        renderTimeline();
+        document.body.classList.add(d.kind === 'move' ? 'timeline-dragging' : 'timeline-resizing');
+      }
+    }
+
+    if(d.kind === 'pattern'){
+      d.ghost.style.left = e.clientX + 'px';
+      d.ghost.style.top = e.clientY + 'px';
+      var lane = laneAt(e.clientX, e.clientY);
+      if(lane){
+        var track = lane.getAttribute('data-track');
+        dropPreview = Object.assign({track:track}, dropPlacement(track, secondsInLane(lane, e.clientX)));
+      } else {
+        dropPreview = null;
+      }
+      drawDropPreview();
+      return;
+    }
+
+    var deltaSec = (e.clientX - d.startX) / PX_PER_SEC;
+    var cue = d.cue;
+    if(d.kind === 'move'){
+      // Snap whichever edge is closer to the playhead or a beat; otherwise whole seconds.
+      var len = d.origEnd - d.origStart;
+      var rawStart = d.origStart + deltaSec, rawEnd = rawStart + len;
+      var startBeat = snapTarget(rawStart), endBeat = snapTarget(rawEnd);
+      var newStart;
+      if(startBeat !== null && (endBeat === null || Math.abs(startBeat - rawStart) <= Math.abs(endBeat - rawEnd))) newStart = startBeat;
+      else if(endBeat !== null) newStart = endBeat - len;
+      else newStart = d.origStart + Math.round(deltaSec);
+      cue.start = clampSec(newStart, 0, TIMELINE_DURATION - len);
+    } else if(d.kind === 'resize-end'){
+      cue.duration = clampSec(snapTime(d.origEnd + deltaSec), d.origStart + MIN_CUE_SECONDS, TIMELINE_DURATION) - d.origStart;
+    } else { // resize-start: the end stays put
+      cue.start = clampSec(snapTime(d.origStart + deltaSec), 0, d.origEnd - MIN_CUE_SECONDS);
+      cue.duration = d.origEnd - cue.start;
+    }
+    updateDraggedBlock(cue);
+  });
+
+  function endTimelineDrag(cancelled){
+    var d = timelineDrag;
+    timelineDrag = null;
+    if(!d || !d.active) return;
+    suppressTimelineClick = true;
+    setTimeout(function(){ suppressTimelineClick = false; }, 0);
+    document.body.classList.remove('timeline-dragging', 'timeline-resizing');
+    if(d.kind === 'pattern'){
+      d.ghost.remove();
+      var drop = dropPreview;
+      dropPreview = null;
+      if(drop && !cancelled){
+        var newCue = {track:drop.track, pattern:d.patternId, start:drop.start, duration:drop.duration};
+        timelineCuesByVenue[currentVenueId].push(newCue);
+        carveOutCue(newCue);
+        selectedCue = newCue;
+      }
+    } else if(cancelled){
+      d.cue.start = d.origStart;
+      d.cue.duration = d.origEnd - d.origStart;
+    } else {
+      syncCueGroup(d.cue);
+    }
+    renderTimeline();
+    updatePreviewStadium(playheadSeconds);
+  }
+  document.addEventListener('pointerup', function(){ endTimelineDrag(false); });
+  document.addEventListener('pointercancel', function(){ endTimelineDrag(true); });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && timelineDrag && timelineDrag.active) endTimelineDrag(true);
   });
 
   // Shared show-clock playback. Timeline and Preview both drive (and reflect)
@@ -2609,6 +3935,63 @@
   function stopScrub(){
     if(scrubTimer){ window.clearInterval(scrubTimer); scrubTimer = null; }
   }
+
+  // Dragging the playhead: press anywhere on the Timeline ruler to jump the
+  // playhead there, and drag to move it. Playback pauses while dragging, like
+  // the hold-to-scrub buttons. Redraws are batched to one per frame. Pressing
+  // the knob itself doesn't jump; released without dragging, it marks the song.
+  var playheadDrag = null;
+  function movePlayheadTo(clientX){
+    var lane = document.querySelector('.track-lane');
+    if(!lane) return;
+    playheadSeconds = clampSec(secondsInLane(lane, clientX), 0, TIMELINE_DURATION);
+    if(playheadDrag && !playheadDrag.frame){
+      playheadDrag.frame = window.requestAnimationFrame(function(){
+        if(playheadDrag) playheadDrag.frame = 0;
+        renderTimeline();
+        syncPreviewTimecode();
+        updatePreviewStadium(playheadSeconds);
+        updatePreviewStartHint();
+      });
+    }
+  }
+  document.getElementById('timeline-ruler').addEventListener('pointerdown', function(e){
+    if(e.button !== 0 || e.target.closest('.track-label')) return;
+    e.preventDefault();
+    if(isPlaying) toggleShowPlayback();
+    stopScrub();
+    var onKnob = !!e.target.closest('.playhead-knob');
+    hideHoverTip();
+    playheadDrag = {frame:0, onKnob:onKnob, startX:e.clientX, moved:!onKnob};
+    document.body.classList.add('playhead-dragging');
+    if(!onKnob) movePlayheadTo(e.clientX);
+  });
+  document.addEventListener('pointermove', function(e){
+    if(!playheadDrag) return;
+    if(!playheadDrag.moved){
+      if(Math.abs(e.clientX - playheadDrag.startX) < DRAG_THRESHOLD_PX) return;
+      playheadDrag.moved = true;
+    }
+    movePlayheadTo(e.clientX);
+  });
+  function endPlayheadDrag(){
+    if(!playheadDrag) return;
+    if(playheadDrag.frame) window.cancelAnimationFrame(playheadDrag.frame);
+    var clickedKnob = playheadDrag.onKnob && !playheadDrag.moved;
+    playheadDrag = null;
+    if(clickedKnob){
+      document.body.classList.remove('playhead-dragging');
+      toggleMarkAtPlayhead();
+      return;
+    }
+    document.body.classList.remove('playhead-dragging');
+    renderTimeline();
+    syncPreviewTimecode();
+    updatePreviewStadium(playheadSeconds);
+    updatePreviewStartHint();
+  }
+  document.addEventListener('pointerup', endPlayheadDrag);
+  document.addEventListener('pointercancel', endPlayheadDrag);
 
   function wireScrubButton(id, direction){
     var btn = document.getElementById(id);
@@ -2822,13 +4205,23 @@
     return dominant === 0 ? palette.primary : (dominant === 1 ? palette.secondary : '#ffffff');
   }
 
-  function handleMusicFileImport(file){
-    if(!file) return;
+  // Imported songs are saved (see savedStore) and listed under "Choose a
+  // song"; the last one played is reloaded on the next visit.
+  var savedSongs = [];       // {id, name, size, type, addedAt, blob}, oldest first
+  var currentSongId = null;
+  var currentSongUrl = null;
+  var LAST_SONG_KEY = 'stadiumsync.lastSongId';
+
+  function loadSong(song, quiet){
     setupMusicAudioGraph();
     if(!musicAudioEl) return; // Web Audio unavailable
     if(musicAudioCtx && musicAudioCtx.state === 'suspended') musicAudioCtx.resume();
-    musicAudioEl.src = URL.createObjectURL(file);
-    document.getElementById('music-file-name').textContent = file.name;
+    if(currentSongUrl) URL.revokeObjectURL(currentSongUrl);
+    currentSongUrl = URL.createObjectURL(song.blob);
+    currentSongId = song.id;
+    try { localStorage.setItem(LAST_SONG_KEY, song.id); } catch(err){}
+    musicAudioEl.src = currentSongUrl;
+    document.getElementById('music-file-name').textContent = song.name;
     document.getElementById('music-loaded-row').style.display = 'flex';
     // Reset the adaptive levels so a new song doesn't inherit the previous
     // song's loudness ceiling and start out under- or over-reactive.
@@ -2837,9 +4230,246 @@
     musicPulseLevel = 0;
     musicBandMax = [1, 1, 1];
     resetAudioPeer();
-    if(musicAudioEl) musicAudioEl.volume = (document.getElementById('music-volume-slider').value || 80) / 100;
+    musicAudioEl.volume = (document.getElementById('music-volume-slider').value || 80) / 100;
+    renderSavedSongs();
+    buildWaveform(song);
     if(isPlaying) syncMusicPlayback();
-    else showToast('Song loaded — press Play');
+    else if(!quiet) showToast('Song loaded — press Play');
+  }
+
+  // ---- Song waveform under the Timeline tracks ----
+  // The song plays from 0:00 on the show clock, so its waveform is drawn on
+  // the same seconds-to-pixels scale as the cues. Peaks are computed once
+  // per song.
+  var WAVEFORM_PEAKS_PER_SEC = 100;
+  var WAVE_ROW_HEIGHT = 24;   // .track-wave-lane height
+  var waveformPeaks = null;   // {songId, peaks: Float32Array (0-1), seconds}
+
+  // Finds the song's hits: moments where loudness jumps (onsets), weighting
+  // the bass band so kick drums stand out. Works on the same 10ms frames as
+  // the waveform. Returns hit times in seconds, used for snapping cues:
+  // {all: every hit, big: the hits that stand out from their neighbors}.
+  function detectBeatHits(energy, lowEnergy, frameLen){
+    var n = energy.length, flux = new Float32Array(n);
+    var prevFull = 0, prevLow = 0;
+    for(var i = 0; i < n; i++){
+      // Log energy so a hit counts the same in quiet and loud passages; the
+      // small floor keeps near-silence from producing noise.
+      var full = Math.log(1e-4 + energy[i] / frameLen), lowE = Math.log(1e-4 + lowEnergy[i] / frameLen);
+      if(i > 0) flux[i] = Math.max(0, full - prevFull) + 1.5 * Math.max(0, lowE - prevLow);
+      prevFull = full; prevLow = lowE;
+    }
+    // A frame is a hit if it's the strongest within 50ms and stands well
+    // above the average of the surrounding second.
+    var prefix = new Float64Array(n + 1);
+    for(var p = 0; p < n; p++) prefix[p + 1] = prefix[p] + flux[p];
+    var globalMean = prefix[n] / Math.max(1, n);
+    var WINDOW = 50, LOCAL = 5, MIN_GAP = 12; // frames: ±0.5s average, ±50ms peak, 120ms between hits
+    var hits = [], strengths = [], last = -MIN_GAP;
+    for(var f = 1; f < n - 1; f++){
+      var lo = Math.max(0, f - WINDOW), hi = Math.min(n, f + WINDOW + 1);
+      var localMean = (prefix[hi] - prefix[lo]) / (hi - lo);
+      if(flux[f] < localMean * 2 + globalMean * 0.5) continue;
+      var isPeak = true;
+      for(var q = Math.max(0, f - LOCAL); q <= Math.min(n - 1, f + LOCAL); q++){
+        if(flux[q] > flux[f]){ isPeak = false; break; }
+      }
+      if(!isPeak || f - last < MIN_GAP) continue;
+      hits.push(f / WAVEFORM_PEAKS_PER_SEC);
+      strengths.push(flux[f]);
+      last = f;
+    }
+    // Big beats: hits at least 60% as strong as the strongest hit within 2
+    // seconds either side — kicks and accents rather than hi-hats, judged
+    // locally so quiet sections still have big beats of their own.
+    var big = [], from = 0, to = 0;
+    for(var h = 0; h < hits.length; h++){
+      while(hits[from] < hits[h] - 2) from++;
+      while(to < hits.length && hits[to] <= hits[h] + 2) to++;
+      var strongest = 0;
+      for(var k = from; k < to; k++) if(strengths[k] > strongest) strongest = strengths[k];
+      if(strengths[h] >= strongest * 0.6) big.push(hits[h]);
+    }
+    return {all:hits, big:big};
+  }
+
+  function buildWaveform(song){
+    waveformPeaks = null;
+    renderTimeline();
+    var Offline = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if(!Offline || !song.blob.arrayBuffer) return;
+    song.blob.arrayBuffer().then(function(buf){
+      return new Offline(1, 1, 44100).decodeAudioData(buf);
+    }).then(function(audio){
+      if(song.id !== currentSongId) return; // another song was loaded meanwhile
+      var seconds = Math.min(audio.duration, TIMELINE_DURATION);
+      var perPeak = Math.max(1, Math.floor(audio.sampleRate / WAVEFORM_PEAKS_PER_SEC));
+      var count = Math.ceil(seconds * WAVEFORM_PEAKS_PER_SEC);
+      var peaks = new Float32Array(count);
+      var energy = new Float32Array(count), lowEnergy = new Float32Array(count);
+      var lowAlpha = 1 - Math.exp(-2 * Math.PI * 150 / audio.sampleRate); // ~150Hz low-pass, for kick drums
+      var loudest = 0;
+      for(var ch = 0; ch < audio.numberOfChannels; ch++){
+        var data = audio.getChannelData(ch), low = 0;
+        for(var i = 0; i < count; i++){
+          var end = Math.min(data.length, (i + 1) * perPeak), m = peaks[i], e = 0, le = 0;
+          for(var j = i * perPeak; j < end; j++){
+            var x = data[j], v = x < 0 ? -x : x;
+            if(v > m) m = v;
+            e += x * x;
+            low += lowAlpha * (x - low);
+            le += low * low;
+          }
+          peaks[i] = m;
+          energy[i] += e;
+          lowEnergy[i] += le;
+          if(m > loudest) loudest = m;
+        }
+      }
+      if(loudest > 0) for(var k = 0; k < count; k++) peaks[k] /= loudest;
+      waveformPeaks = {songId:song.id, peaks:peaks, seconds:seconds, beats:detectBeatHits(energy, lowEnergy, perPeak)};
+      renderTimeline();
+    }).catch(function(err){ console.error('Could not draw the waveform', err); });
+  }
+
+  // Renders the peaks once into an image used as a CSS mask for the
+  // waveform strips; only redone when the song or zoom changes.
+  var waveformImage = {key:'', url:null};
+  function timelineWaveformUrl(){
+    if(!waveformPeaks) return null;
+    var width = Math.round(TIMELINE_DURATION * PX_PER_SEC);
+    var key = waveformPeaks.songId + '|' + width;
+    if(waveformImage.key === key) return waveformImage.url;
+    var height = WAVE_ROW_HEIGHT;
+    var dpr = Math.min(window.devicePixelRatio || 1, 16384 / width); // stay under canvas size limits
+    var canvas = document.createElement('canvas');
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = '#000';
+    var mid = height / 2, peaks = waveformPeaks.peaks;
+    var drawWidth = Math.min(width, Math.floor(waveformPeaks.seconds * PX_PER_SEC));
+    for(var x = 0; x < drawWidth; x++){
+      var from = Math.floor(x / PX_PER_SEC * WAVEFORM_PEAKS_PER_SEC);
+      var to = Math.max(from + 1, Math.floor((x + 1) / PX_PER_SEC * WAVEFORM_PEAKS_PER_SEC));
+      var peak = 0;
+      for(var i = from; i < to && i < peaks.length; i++) if(peaks[i] > peak) peak = peaks[i];
+      var half = Math.max(0.5, peak * mid * 0.9);
+      ctx.fillRect(x, mid - half, 1, half * 2);
+    }
+    waveformImage = {key:key, url:canvas.toDataURL('image/png')};
+    return waveformImage.url;
+  }
+
+  // The strip under a section's track: an empty label cell (to line up
+  // with the track labels) and the waveform, on the cues' time scale, with
+  // the song's bookmarks ticked in orange.
+  function buildWaveRow(url, marks, width){
+    var row = document.createElement('div');
+    row.className = 'track-wave-row';
+    var label = document.createElement('div');
+    label.className = 'track-label';
+    var lane = document.createElement('div');
+    lane.className = 'track-wave-lane';
+    lane.style.width = width;
+    var wave = document.createElement('div');
+    wave.className = 'track-wave';
+    wave.style.webkitMaskImage = wave.style.maskImage = 'url(' + url + ')';
+    lane.appendChild(wave);
+    marks.forEach(function(m){
+      var tick = document.createElement('div');
+      tick.className = 'wave-mark';
+      tick.style.left = (m * PX_PER_SEC) + 'px';
+      tick.setAttribute('data-mark', m);
+      tick.setAttribute('role', 'button');
+      tick.setAttribute('aria-label', 'Delete the bookmark at ' + formatClock(m));
+      lane.appendChild(tick);
+    });
+    row.appendChild(label);
+    row.appendChild(lane);
+    return row;
+  }
+
+  function unloadSong(){
+    if(musicAudioEl){ musicAudioEl.pause(); musicAudioEl.removeAttribute('src'); musicAudioEl.load(); }
+    if(currentSongUrl) URL.revokeObjectURL(currentSongUrl);
+    currentSongUrl = null;
+    currentSongId = null;
+    waveformPeaks = null;
+    renderTimeline();
+    try { localStorage.removeItem(LAST_SONG_KEY); } catch(err){}
+    document.getElementById('music-loaded-row').style.display = 'none';
+  }
+
+  function handleMusicFileImport(file){
+    if(!file) return;
+    // Re-importing the same file reuses its saved copy instead of storing it twice.
+    var song = savedSongs.find(function(s){ return s.name === file.name && s.size === file.size; });
+    if(!song){
+      song = {id:'song-' + Date.now(), name:file.name, size:file.size, type:file.type, addedAt:Date.now(), blob:file};
+      savedSongs.push(song);
+      savedStore.put('songs', song).then(function(ok){
+        if(ok) return;
+        savedSongs.splice(savedSongs.indexOf(song), 1);
+        renderSavedSongs();
+        showToast("Couldn't save this song — it will play now but won't be kept");
+      });
+    }
+    loadSong(song);
+  }
+
+  function renderSavedSongs(){
+    var list = document.getElementById('saved-songs');
+    list.innerHTML = '';
+    savedSongs.forEach(function(song){
+      var row = document.createElement('div');
+      row.className = 'saved-song' + (song.id === currentSongId ? ' current' : '');
+      var pick = document.createElement('button');
+      pick.type = 'button';
+      pick.className = 'saved-song-name';
+      pick.textContent = song.name;
+      pick.title = song.id === currentSongId ? 'Loaded' : 'Load this song';
+      pick.setAttribute('data-song-id', song.id);
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'saved-song-delete';
+      del.title = 'Delete saved song';
+      del.setAttribute('aria-label', 'Delete ' + song.name);
+      del.setAttribute('data-delete-song-id', song.id);
+      del.textContent = '\u00d7';
+      row.appendChild(pick);
+      row.appendChild(del);
+      list.appendChild(row);
+    });
+  }
+
+  document.getElementById('saved-songs').addEventListener('click', function(e){
+    var pick = e.target.closest('[data-song-id]');
+    var del = e.target.closest('[data-delete-song-id]');
+    if(pick){
+      var song = savedSongs.find(function(s){ return s.id === pick.getAttribute('data-song-id'); });
+      if(song && song.id !== currentSongId) loadSong(song);
+    } else if(del){
+      var id = del.getAttribute('data-delete-song-id');
+      var doomed = savedSongs.find(function(s){ return s.id === id; });
+      if(!doomed || !window.confirm('Delete "' + doomed.name + '" from saved songs?')) return;
+      savedSongs.splice(savedSongs.indexOf(doomed), 1);
+      savedStore.remove('songs', id);
+      if(id === currentSongId) unloadSong();
+      renderSavedSongs();
+    }
+  });
+
+  function restoreSavedSongs(){
+    return savedStore.getAll('songs').then(function(songs){
+      savedSongs = songs.sort(function(a, b){ return a.addedAt - b.addedAt; });
+      var lastId = null;
+      try { lastId = localStorage.getItem(LAST_SONG_KEY); } catch(err){}
+      var last = savedSongs.find(function(s){ return s.id === lastId; });
+      if(last && !currentSongId) loadSong(last, true);
+      else renderSavedSongs();
+    });
   }
 
   document.getElementById('music-import-btn').addEventListener('click', function(){
@@ -3194,7 +4824,196 @@
     if(previewStadium) previewStadium.setFogDensity(v);
   });
 
+  // ===================== SAVED TIMELINES =====================
+  // A saved timeline is a named copy of the cues, plus the song it was built
+  // to and that song's bookmarks, kept in savedStore's `timelines` store. The
+  // one last saved or opened is reopened on the next visit, and its name is
+  // the project name used by Export.
+  var savedTimelines = [];          // {id, name, venueId, cues, songId, marks, savedAt}, newest first
+  var currentTimelineId = null;
+  var timelineSavedCues = null;     // JSON of the cues as last saved/opened, to spot unsaved changes
+  var timelineSavedName = '';
+  var LAST_TIMELINE_KEY = 'stadiumsync.lastTimelineId';
+  var DEFAULT_PROJECT_NAME = document.getElementById('project-name').textContent;
+
+  function timelineCuesJson(){ return JSON.stringify(timelineCuesByVenue[currentVenueId] || []); }
+  function timelineNameValue(){ return document.getElementById('tl-name').value.trim(); }
+
+  function timelineHasChanges(){
+    if(timelineSavedCues === null) return false; // saved timelines are still loading
+    return timelineCuesJson() !== timelineSavedCues || timelineNameValue() !== timelineSavedName;
+  }
+
+  function updateTimelineSaveState(){
+    var el = document.getElementById('tl-save-state');
+    var text = !currentTimelineId ? 'Not saved yet' : (timelineHasChanges() ? 'Unsaved changes' : 'Saved');
+    if(el.textContent !== text) el.textContent = text; // runs every playback frame; skip no-op writes
+  }
+
+  function confirmDiscardTimelineChanges(){
+    return !timelineHasChanges() || window.confirm('Discard the unsaved changes to this timeline?');
+  }
+
+  function setCurrentTimeline(rec){
+    currentTimelineId = rec ? rec.id : null;
+    timelineSavedCues = rec ? JSON.stringify(rec.cues) : timelineCuesJson();
+    timelineSavedName = rec ? rec.name : '';
+    document.getElementById('tl-name').value = timelineSavedName;
+    document.getElementById('project-name').textContent = rec ? rec.name : DEFAULT_PROJECT_NAME;
+    try {
+      if(rec) localStorage.setItem(LAST_TIMELINE_KEY, rec.id);
+      else localStorage.removeItem(LAST_TIMELINE_KEY);
+    } catch(err){}
+    renderSavedTimelines();
+    renderExportView();
+    updateTimelineSaveState();
+  }
+
+  function saveCurrentTimeline(){
+    var name = timelineNameValue();
+    if(!name){
+      document.getElementById('tl-name').focus();
+      showToast('Name this timeline to save it');
+      return;
+    }
+    // Names identify timelines in the list, so saving under another one's name replaces it.
+    var clash = savedTimelines.find(function(t){ return t.id !== currentTimelineId && t.name.toLowerCase() === name.toLowerCase(); });
+    if(clash && !window.confirm('Replace the saved timeline "' + clash.name + '"?')) return;
+    var rec = {
+      id: clash ? clash.id : (currentTimelineId || 'timeline-' + Date.now()),
+      name: name,
+      venueId: currentVenueId,
+      cues: JSON.parse(timelineCuesJson()),
+      songId: currentSongId,
+      marks: songMarks().slice(),
+      savedAt: Date.now()
+    };
+    savedStore.put('timelines', rec).then(function(ok){
+      if(!ok){ showToast("Couldn't save this timeline"); return; }
+      savedTimelines = [rec].concat(savedTimelines.filter(function(t){ return t.id !== rec.id; }));
+      setCurrentTimeline(rec);
+      showToast('Saved "' + name + '"');
+    });
+  }
+
+  function openTimeline(rec, quiet){
+    // Cues can't point at a pattern deleted since this timeline was saved.
+    var cues = rec.cues.filter(function(c){ return findPattern(c.pattern); });
+    var dropped = rec.cues.length - cues.length;
+    timelineCuesByVenue[currentVenueId] = JSON.parse(JSON.stringify(cues));
+    selectedCue = null;
+    var song = rec.songId && savedSongs.find(function(s){ return s.id === rec.songId; });
+    if(song){
+      if(rec.marks) marksBySong[song.id] = rec.marks.slice();
+      if(song.id !== currentSongId) loadSong(song, true);
+    }
+    setCurrentTimeline(rec);
+    renderTimeline();
+    updatePreviewStadium(playheadSeconds);
+    if(quiet) return;
+    var note = '';
+    if(dropped) note = ' — ' + dropped + (dropped === 1 ? ' cue used a deleted pattern and was' : ' cues used deleted patterns and were') + ' left out';
+    else if(rec.songId && !song) note = ' — its song is no longer saved';
+    showToast('Opened "' + rec.name + '"' + note);
+  }
+
+  function startNewTimeline(){
+    if(!confirmDiscardTimelineChanges()) return;
+    timelineCuesByVenue[currentVenueId] = [];
+    selectedCue = null;
+    setCurrentTimeline(null);
+    renderTimeline();
+    updatePreviewStadium(playheadSeconds);
+    document.getElementById('tl-name').focus();
+  }
+
+  function renderSavedTimelines(){
+    var list = document.getElementById('saved-timelines');
+    list.innerHTML = '';
+    if(!savedTimelines.length) return;
+    var label = document.createElement('span');
+    label.className = 'saved-timelines-label';
+    label.textContent = 'Saved timelines';
+    list.appendChild(label);
+    savedTimelines.forEach(function(t){
+      var item = document.createElement('div');
+      item.className = 'saved-timeline' + (t.id === currentTimelineId ? ' current' : '');
+      item.setAttribute('role', 'listitem');
+      var pick = document.createElement('button');
+      pick.type = 'button';
+      pick.className = 'saved-timeline-name';
+      pick.title = t.id === currentTimelineId ? 'Open now' : 'Open ' + t.name;
+      pick.setAttribute('data-timeline-id', t.id);
+      var name = document.createElement('span');
+      name.textContent = t.name;
+      var date = document.createElement('span');
+      date.className = 'saved-timeline-date';
+      date.textContent = new Date(t.savedAt).toLocaleDateString(undefined, {month:'short', day:'numeric'});
+      pick.appendChild(name);
+      pick.appendChild(date);
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'saved-timeline-delete';
+      del.title = 'Delete saved timeline';
+      del.setAttribute('aria-label', 'Delete ' + t.name);
+      del.setAttribute('data-delete-timeline-id', t.id);
+      del.textContent = '×';
+      item.appendChild(pick);
+      item.appendChild(del);
+      list.appendChild(item);
+    });
+  }
+
+  document.getElementById('saved-timelines').addEventListener('click', function(e){
+    var pick = e.target.closest('[data-timeline-id]');
+    var del = e.target.closest('[data-delete-timeline-id]');
+    if(pick){
+      var rec = savedTimelines.find(function(t){ return t.id === pick.getAttribute('data-timeline-id'); });
+      if(rec && rec.id !== currentTimelineId && confirmDiscardTimelineChanges()) openTimeline(rec);
+    } else if(del){
+      var id = del.getAttribute('data-delete-timeline-id');
+      var doomed = savedTimelines.find(function(t){ return t.id === id; });
+      if(!doomed || !window.confirm('Delete the saved timeline "' + doomed.name + '"?')) return;
+      savedTimelines = savedTimelines.filter(function(t){ return t !== doomed; });
+      savedStore.remove('timelines', id);
+      // Its cues stay on screen, now as an unsaved timeline.
+      if(id === currentTimelineId){
+        var keepName = timelineNameValue();
+        setCurrentTimeline(null);
+        document.getElementById('tl-name').value = keepName;
+      } else {
+        renderSavedTimelines();
+      }
+    }
+  });
+
+  document.getElementById('tl-save').addEventListener('click', saveCurrentTimeline);
+  document.getElementById('tl-new').addEventListener('click', startNewTimeline);
+  document.getElementById('tl-name').addEventListener('input', updateTimelineSaveState);
+  document.getElementById('tl-name').addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); saveCurrentTimeline(); }
+  });
+
+  // Runs after saved patterns and songs are restored, since a timeline's cues
+  // and song refer to them.
+  function restoreSavedTimelines(){
+    return savedStore.getAll('timelines').then(function(records){
+      savedTimelines = records.sort(function(a, b){ return b.savedAt - a.savedAt; });
+      var lastId = null;
+      try { lastId = localStorage.getItem(LAST_TIMELINE_KEY); } catch(err){}
+      var last = savedTimelines.find(function(t){ return t.id === lastId; });
+      if(last) openTimeline(last, true);
+      else setCurrentTimeline(null);
+    });
+  }
+
   // ===================== EXPORT =====================
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(ch){
+      return {'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[ch];
+    });
+  }
+
   function buildShowMetadata(){
     var v = venues.find(function(x){ return x.id === currentVenueId; });
     return {
@@ -3236,7 +5055,7 @@
     return '<html><head><title>Design Specification — '+meta.venue+'</title><meta charset="utf-8">' +
       '<style>body{font-family:Arial,sans-serif; padding:40px; color:#111;} h1{margin-bottom:0;} h2{border-bottom:2px solid #ccc; padding-bottom:6px; margin-top:32px;} table{width:100%; border-collapse:collapse; margin-top:12px;} th,td{border:1px solid #ccc; padding:8px; text-align:left; font-size:13px;} th{background:#f0f0f0;}</style>' +
       '</head><body>' +
-      '<h1>'+meta.project+'</h1><p>'+meta.venue+' &middot; Capacity '+meta.capacity+' &middot; Generated '+new Date(meta.generatedAt).toLocaleString()+'</p>' +
+      '<h1>'+escapeHtml(meta.project)+'</h1><p>'+meta.venue+' &middot; Capacity '+meta.capacity+' &middot; Generated '+new Date(meta.generatedAt).toLocaleString()+'</p>' +
       '<h2>Zone Map</h2><table><tr><th>Zone</th><th>Nodes</th><th>Status</th><th>Pattern</th><th>Intensity</th></tr>'+zoneRows+'</table>' +
       '<h2>Pattern Schedule</h2><table><tr><th>Track</th><th>Pattern</th><th>Start</th><th>End</th></tr>'+cueRows+'</table>' +
       '<h2>Notes</h2><p style="color:#666;">This is a design record for planning and rehearsal only. It does not contain live hardware control data.</p>' +
@@ -3269,7 +5088,10 @@
 
   function renderExportView(){
     var v = venues.find(function(x){ return x.id === currentVenueId; });
-    document.getElementById('export-project-sub').textContent = 'Download the ' + document.getElementById('project-name').textContent.toLowerCase() + ' for ' + v.name + '.';
+    var project = document.getElementById('project-name').textContent;
+    document.getElementById('export-project-sub').textContent = currentTimelineId
+      ? 'Download "' + project + '" for ' + v.name + '.'
+      : 'Download the ' + project.toLowerCase() + ' for ' + v.name + '.';
   }
 
   // ===================== SEAT PAINT =====================
@@ -3546,6 +5368,7 @@
     if(view === 'preview-view') ensurePreviewStadium();
     if(designerStadium) designerStadium.setActive(view === 'designer-view');
     if(previewStadium) previewStadium.setActive(view === 'preview-view');
+    syncPatternPreview();
   }
 
   window.addEventListener('resize', function(){
@@ -3554,7 +5377,13 @@
   });
 
   // init
+  // Open on the whole stadium twinkling, circling overhead in aerial mode.
+  venues.find(function(x){ return x.id === currentVenueId; }).zoneData.forEach(function(z){
+    z.pattern = 'Twinkle Mixed';
+    z.on = true;
+  });
   setActiveStadiumView('designer-view');
+  if(designerStadium) designerStadium.setCameraMode('aerial', {fit:true, snap:true});
   renderLayers();
   renderInspector();
   renderPaintPanel();
@@ -3565,6 +5394,11 @@
   updatePreviewStadium(playheadSeconds);
   updatePreviewStartHint();
   renderExportView();
+  // Bring back what was saved on earlier visits.
+  Promise.all([
+    restoreSavedPatterns().then(function(count){ if(count) refreshPatternViews(); }),
+    restoreSavedSongs()
+  ]).then(restoreSavedTimelines);
 })();
 </script>
 </body>

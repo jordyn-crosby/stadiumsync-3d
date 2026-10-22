@@ -43,7 +43,7 @@ compression). Pass `--skip-glb` to only rebuild the JSON/show files. Outputs:
 
 ## Zones
 
-`tools/zone_map.json` assigns each of the 84 Unity sections to one of the 12 Jordan-Hare zones
+`tools/zone_map.json` assigns each of the 84 Unity sections to one of the 11 Jordan-Hare zones
 (the Designer layers), by deck plus the section's angle around the field (0° = +x/east,
 90° = +z/north). Zone names must match `zoneData[].name` in `index.html`. Within a zone,
 `row` counts up from the front row, stacking higher decks above lower ones, and `col` runs

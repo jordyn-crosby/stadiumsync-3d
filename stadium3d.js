@@ -125,7 +125,7 @@
     var ledCount = 0;
     var ledPos = null;       // Float32Array xyz
     var venueZoneOf = null;  // Int16Array: LED → venue.zoneData index (-1 = unmapped)
-    var zones = [];          // index-aligned with venue.zoneData: {indices, cols, rows, col, row}
+    var zones = [];          // index-aligned with venue.zoneData: {indices, cols, rows, col, row, around}
     var baseColors = null;   // Float32Array rgb written by setZoneFrame
     var overrideColors = null, overrideMask = null, ledGain = null;
     var highlighted = -1;
@@ -155,7 +155,7 @@
         ledMesh.material.dispose();
         ledMesh = null;
       }
-      led = null; ledCount = 0; zones = [];
+      led = null; ledCount = 0; zones = []; stadiumBox = null;
       overrideColors = overrideMask = ledGain = null;
     }
 
@@ -196,6 +196,9 @@
       return loadVenueAssets(venue.model).then(function(a){
         if(token !== loadToken) return;
         stadiumGroup.add(a.gltf.scene.clone());
+        stadiumGroup.updateMatrixWorld(true);
+        stadiumBox = new THREE.Box3().setFromObject(stadiumGroup);
+        stadiumReach = null; aerialFitDistance = null;
         led = a.leds;
         cameraData = a.cameras;
         ledCount = led.count;
@@ -216,12 +219,25 @@
           venueZoneOf[j] = vz;
           if(vz >= 0) members[vz].push(j);
         }
+        // `around`: how far round the bowl each LED sits (0-1, by angle about the
+        // stadium center), passed to computeDotBrightness so stadium-spanning
+        // patterns like The Wave travel around the whole venue.
+        var cx = led.center[0], cz = led.center[2];
         zones = venue.zoneData.map(function(z, vi){
           var lz = led.zones[ledZoneToVenue.indexOf(vi)];
           var idx = Int32Array.from(members[vi]);
-          var col = new Int16Array(idx.length), row = new Int16Array(idx.length);
-          for(var k = 0; k < idx.length; k++){ col[k] = led.col[idx[k]]; row[k] = led.row[idx[k]]; }
-          return { indices: idx, col: col, row: row, cols: lz ? lz.cols : 1, rows: lz ? lz.rows : 1 };
+          var col = new Int16Array(idx.length), row = new Int16Array(idx.length), around = new Float32Array(idx.length);
+          var lastCol = (lz ? lz.cols : 1) - 1, lastRow = (lz ? lz.rows : 1) - 1;
+          for(var k = 0; k < idx.length; k++){
+            var li = idx[k];
+            // leds.json counts rows up from the front (lowest) row and columns
+            // right to left as seen from the field; patterns and the 2D previews
+            // count from the top left, so flip both here or images and text come
+            // out rotated 180° in the stadium.
+            col[k] = lastCol - led.col[li]; row[k] = lastRow - led.row[li];
+            around[k] = (Math.atan2(ledPos[li * 3 + 2] - cz, ledPos[li * 3] - cx) / (2 * Math.PI) + 1) % 1;
+          }
+          return { indices: idx, col: col, row: row, around: around, cols: lz ? lz.cols : 1, rows: lz ? lz.rows : 1 };
         });
 
         ledMesh = buildLedMesh();
@@ -248,7 +264,7 @@
           continue;
         }
         var col = z.col[k], row = z.row[k];
-        var bright = computeDotBrightness(pattern, col, t, z.cols, row, z.rows);
+        var bright = computeDotBrightness(pattern, col, t, z.cols, row, z.rows, z.around[k]);
         var rgb = hexToRgb(getDotColor(pattern, col, row, z.cols, z.rows));
         var boosted = 0.3 + bright * 0.7;
         baseColors[o] = rgb[0] * boosted; baseColors[o + 1] = rgb[1] * boosted; baseColors[o + 2] = rgb[2] * boosted;
@@ -341,13 +357,21 @@
     var aerialYaw = 0;
     var flyYaw = 0, flyPitch = 0;
     var keys = {};
-    function setCameraMode(mode){
+    // Aerial options (setCameraMode('aerial', {fit, snap})): `fit` pulls back far enough to keep
+    // the whole stadium in frame at every point of the circle, instead of cameras.json's distance;
+    // `snap` starts the camera on the circle rather than gliding there from the current view.
+    var aerialFit = false, aerialSnap = false;
+    var aerialFitDistance = null, aerialFitAspect = 0;
+    var stadiumBox = null; // world-space bounds of the stadium model, once loaded
+    function setCameraMode(mode, options){
       if(mode === 'fixed') mode = 'orbit';
       if(['orbit', 'aerial', 'free'].indexOf(mode) < 0) return;
       var prev = cameraMode;
       cameraMode = mode;
       camPresetTarget = null;
       controls.enabled = mode === 'orbit';
+      aerialFit = mode === 'aerial' && !!(options && options.fit);
+      aerialSnap = mode === 'aerial' && !!(options && options.snap);
       if(mode === 'aerial'){
         // continue from the current azimuth so the switch doesn't jump
         var a = cameraData ? cameraData.aerial.target : [0, 0, -6.82];
@@ -364,16 +388,89 @@
       }
     }
 
+    // How far the stadium model reaches out from the aerial target at each height: the model's
+    // height is split into bands, each keeping its furthest vertex. Read from the vertices rather
+    // than the bounding box, whose corners and full height (light towers) overstate it.
+    var REACH_BANDS = 12;
+    function measureStadiumReach(target){
+      var bands = [];
+      var minY = stadiumBox.min.y, span = Math.max(1e-6, stadiumBox.max.y - minY);
+      for(var b = 0; b < REACH_BANDS; b++) bands.push({ yBottom: minY + span * b / REACH_BANDS, yTop: -Infinity, r: 0 });
+      var v = new THREE.Vector3();
+      stadiumGroup.traverse(function(o){
+        var pos = o.isMesh && o.geometry.attributes.position;
+        if(!pos) return;
+        for(var i = 0; i < pos.count; i++){
+          v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld);
+          var band = bands[Math.min(REACH_BANDS - 1, Math.floor((v.y - minY) / span * REACH_BANDS))];
+          var r = Math.hypot(v.x - target[0], v.z - target[2]);
+          if(r > band.r) band.r = r;
+          if(v.y > band.yTop) band.yTop = v.y;
+        }
+      });
+      // A band's rings sit at its bottom and its highest vertex, so they cover everything in it.
+      return bands.filter(function(b){ return b.r > 0; });
+    }
+
+    // Nearest aerial distance that keeps the stadium in frame whichever way the circle faces:
+    // rings of points at the model's reach for each height band must all project inside the
+    // view (with a small margin).
+    var stadiumReach = null;
+    function fitAerialDistance(a){
+      var target = new THREE.Vector3(a.target[0], a.target[1], a.target[2]);
+      if(!stadiumReach) stadiumReach = measureStadiumReach(a.target);
+      var ring = [];
+      stadiumReach.forEach(function(b){
+        for(var i = 0; i < 32; i++){
+          var ang = i / 32 * Math.PI * 2;
+          [b.yBottom, b.yTop].forEach(function(y){
+            ring.push(new THREE.Vector3(target.x + Math.cos(ang) * b.r, y, target.z + Math.sin(ang) * b.r));
+          });
+        }
+      });
+      var pitch = THREE.MathUtils.degToRad(a.pitchDeg);
+      var probe = camera.clone();
+      var p = new THREE.Vector3();
+      function fits(d){
+        probe.position.set(target.x, target.y + Math.sin(pitch) * d, target.z + Math.cos(pitch) * d);
+        probe.lookAt(target);
+        probe.updateMatrixWorld();
+        return ring.every(function(pt){
+          p.copy(pt).project(probe);
+          return p.z < 1 && Math.abs(p.x) <= 0.96 && Math.abs(p.y) <= 0.96;
+        });
+      }
+      var lo = 1, hi = 1000;
+      for(var n = 0; n < 30; n++){
+        var mid = (lo + hi) / 2;
+        if(fits(mid)) hi = mid; else lo = mid;
+      }
+      return hi;
+    }
+
     function updateAerial(dt){
       var a = cameraData ? cameraData.aerial : { target: [0, 0, -6.82], distance: 56, pitchDeg: 45, yawDegPerSec: 3 };
+      var distance = a.distance;
+      if(aerialFit && stadiumBox){
+        if(aerialFitDistance === null || aerialFitAspect !== camera.aspect){
+          aerialFitDistance = fitAerialDistance(a);
+          aerialFitAspect = camera.aspect;
+        }
+        distance = aerialFitDistance;
+      }
       aerialYaw += THREE.MathUtils.degToRad(a.yawDegPerSec) * dt;
       var pitch = THREE.MathUtils.degToRad(a.pitchDeg);
       var desired = new THREE.Vector3(
-        a.target[0] + Math.sin(aerialYaw) * Math.cos(pitch) * a.distance,
-        a.target[1] + Math.sin(pitch) * a.distance,
-        a.target[2] + Math.cos(aerialYaw) * Math.cos(pitch) * a.distance
+        a.target[0] + Math.sin(aerialYaw) * Math.cos(pitch) * distance,
+        a.target[1] + Math.sin(pitch) * distance,
+        a.target[2] + Math.cos(aerialYaw) * Math.cos(pitch) * distance
       );
-      camera.position.lerp(desired, Math.min(1, dt * 1.5));
+      if(aerialSnap){
+        camera.position.copy(desired);
+        if(stadiumBox) aerialSnap = false; // keep snapping until the model (and its fit) is in
+      } else {
+        camera.position.lerp(desired, Math.min(1, dt * 1.5));
+      }
       camera.lookAt(a.target[0], a.target[1], a.target[2]);
     }
 
