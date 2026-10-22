@@ -126,6 +126,7 @@
     var ledPos = null;       // Float32Array xyz
     var venueZoneOf = null;  // Int16Array: LED → venue.zoneData index (-1 = unmapped)
     var zones = [];          // index-aligned with venue.zoneData: {indices, cols, rows, col, row, around}
+    var ledZoneCol = null, ledZoneRow = null, ledAround = null; // the same, per LED
     var baseColors = null;   // Float32Array rgb written by setZoneFrame
     var overrideColors = null, overrideMask = null, ledGain = null;
     var highlighted = -1;
@@ -223,6 +224,7 @@
         // stadium center), passed to computeDotBrightness so stadium-spanning
         // patterns like The Wave travel around the whole venue.
         var cx = led.center[0], cz = led.center[2];
+        ledZoneCol = new Int16Array(ledCount); ledZoneRow = new Int16Array(ledCount); ledAround = new Float32Array(ledCount);
         zones = venue.zoneData.map(function(z, vi){
           var lz = led.zones[ledZoneToVenue.indexOf(vi)];
           var idx = Int32Array.from(members[vi]);
@@ -236,6 +238,7 @@
             // out rotated 180° in the stadium.
             col[k] = lastCol - led.col[li]; row[k] = lastRow - led.row[li];
             around[k] = (Math.atan2(ledPos[li * 3 + 2] - cz, ledPos[li * 3] - cx) / (2 * Math.PI) + 1) % 1;
+            ledZoneCol[li] = col[k]; ledZoneRow[li] = row[k]; ledAround[li] = around[k];
           }
           return { indices: idx, col: col, row: row, around: around, cols: lz ? lz.cols : 1, rows: lz ? lz.rows : 1 };
         });
@@ -309,7 +312,12 @@
       if(!led) return null;
       return {
         count: ledCount, zone: venueZoneOf, row: led.row, col: led.col,
-        section: led.section, rowId: led.rowId, sections: led.sections
+        section: led.section, rowId: led.rowId, sections: led.sections,
+        // Each LED's place in its zone's pattern grid, exactly as setZoneFrame
+        // uses it, so index.html can light any set of seats with the shared
+        // pattern math (custom Timeline sections) and match the zones around them.
+        zoneCol: ledZoneCol, zoneRow: ledZoneRow, around: ledAround,
+        zoneCols: zones.map(function(z){ return z.cols; }), zoneRows: zones.map(function(z){ return z.rows; })
       };
     }
 
