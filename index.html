@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+  // Apply night mode before first paint so the page doesn't flash light.
+  try { if(localStorage.getItem('stadiumsync.nightMode') === '1') document.documentElement.setAttribute('data-theme', 'night'); } catch(err){}
+</script>
 <title>Jordan-Hare Stadium | Light Show Simulation</title>
 <style>
   :root{
@@ -35,6 +39,10 @@
     --outline:#a1a1a1;
     --outline-variant:#d5d9de;
 
+    --glass:rgba(255,255,255,0.92);        /* panels floating over the 3D view */
+    --glass-strong:rgba(255,255,255,0.96);
+    --wave:rgba(11,35,65,0.4);             /* song waveform under the timeline tracks */
+
     /* auburn.edu's typeface is Sweet Sans Pro (licensed, served from Auburn's Adobe Fonts kit). It is listed first so it
        is used wherever it is installed; otherwise this falls back to system fonts, so the demo works offline. */
     --font-ui:'sweet-sans-pro', system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
@@ -53,6 +61,37 @@
     --gutter:20px;
     --space-sm:16px;
     --space-lg:32px;
+  }
+  /* Night mode (sidebar toggle, remembered per browser): dark navy surfaces, light text and buttons,
+     a brighter orange for accent text so it stays readable. */
+  :root[data-theme="night"]{
+    color-scheme:dark;
+    --accent-text:#ff8a3d;
+    --accent-soft:rgba(232,97,0,0.18);
+
+    --primary:#e3e9f1;
+    --primary-dim:#c8d2df;
+    --on-primary:#0b2341;
+    --secondary:#e3e9f1;
+    --on-secondary:#0b2341;
+    --tertiary:#5cc88a;
+
+    --ink:#e3e9f1;
+    --bg:#08111f;
+    --surface:#111d30;
+    --surface-low:#111d30;
+    --surface-container:#111d30;
+    --surface-high:#1a2940;
+    --surface-highest:#22344f;
+
+    --on-surface:#e3e9f1;
+    --on-surface-variant:#9aabc1;
+    --outline:#5f7290;
+    --outline-variant:#2a3c57;
+
+    --glass:rgba(17,29,48,0.92);
+    --glass-strong:rgba(17,29,48,0.96);
+    --wave:rgba(227,233,241,0.35);
   }
 
   *{box-sizing:border-box;}
@@ -118,6 +157,7 @@
   .nav-icon{width:20px; height:20px; flex-shrink:0;}
   .sidebar-foot{padding:10px; border-top:1px solid var(--outline-variant);}
   .sidebar-toggle .nav-icon{transition:transform .18s ease;}
+  #night-toggle[aria-pressed="true"] .nav-icon{color:var(--accent); fill:var(--accent-soft);}
 
   .app-shell.sidebar-collapsed nav.sidebar{width:var(--sidebar-collapsed);}
   .app-shell.sidebar-collapsed .brand-text,
@@ -156,6 +196,7 @@
     border:1px solid var(--outline-variant); background:var(--surface-high); color:var(--on-surface);
   }
   .btn:hover{border-color:var(--outline); color:var(--on-surface);}
+  .btn:disabled{opacity:0.5; cursor:default; border-color:var(--outline-variant);}
   .btn.btn-current{border-color:var(--accent-line); color:var(--on-surface); background:var(--accent-soft); cursor:default;}
   .import-icon{
     width:44px; height:44px; border-radius:50%; background:var(--surface-high);
@@ -206,7 +247,7 @@
     content:""; position:absolute; top:2px; left:2px; width:12px; height:12px;
     border-radius:50%; background:var(--surface); transition:left .15s ease;
   }
-  .layer-toggle.on::after{left:14px; background:#fff;}
+  .layer-toggle.on::after{left:14px; background:var(--on-primary);}
   .layer-select{
     flex:1; min-width:0; text-align:left; background:none; border:none;
     color:var(--on-surface); padding:4px 0;
@@ -263,6 +304,13 @@
     flex-shrink:0; padding:2px; background:var(--surface-high); cursor:pointer;
   }
   .color-hex{font-family:var(--font-ui); font-size:13px; color:var(--on-surface-variant);}
+  .pattern-color-list{display:flex; flex-direction:column; gap:8px;}
+  .pattern-color-remove{
+    margin-left:auto; width:28px; height:28px; border-radius:var(--radius-sm); border:1px solid transparent;
+    background:transparent; color:var(--on-surface-variant); font-size:18px; line-height:1;
+  }
+  .pattern-color-remove:hover{border-color:var(--outline-variant); color:var(--on-surface);}
+  .field-hint{margin:6px 0 0; font-size:13px; color:var(--on-surface-variant);}
 
   .slider-field .slider-head{display:flex; justify-content:space-between; align-items:baseline;}
   .slider-value{font-family:var(--font-ui); font-size:14px; color:var(--on-surface); font-weight:600;}
@@ -313,7 +361,7 @@
   }
   .pattern-preview-stage{
     min-height:110px; max-height:280px; overflow-y:auto; border-radius:var(--radius-lg); background:#050a0a; border:1px solid var(--outline-variant);
-    margin-bottom:12px; padding:8px;
+    margin-bottom:20px; padding:8px;
   }
   .led-matrix{
     display:grid; grid-template-columns:repeat(24, 1fr); grid-template-rows:repeat(6, 1fr);
@@ -351,6 +399,32 @@
   }
 
   /* ===== Timeline Editor ===== */
+  .timeline-shows{
+    display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-bottom:16px; padding:12px 16px;
+    background:var(--surface-container); border-radius:var(--radius-lg); border:1px solid var(--outline-variant);
+  }
+  .timeline-name-input{
+    flex:1 1 220px; max-width:360px; background:var(--surface-high); border:1px solid var(--outline-variant); color:var(--on-surface);
+    border-radius:var(--radius); padding:8px 10px; font-family:inherit; font-size:15px; font-weight:600;
+  }
+  .timeline-shows .btn{width:auto;}
+  .timeline-save-btn{background:var(--primary); color:var(--on-primary); border-color:var(--primary);}
+  .timeline-save-btn:hover{color:var(--on-primary); border-color:var(--primary);}
+  .timeline-save-state{font-size:13px; color:var(--on-surface-variant);}
+  .saved-timelines{flex-basis:100%; display:flex; flex-wrap:wrap; align-items:center; gap:6px;}
+  .saved-timelines:empty{display:none;}
+  .saved-timelines-label{font-size:13px; color:var(--on-surface-variant); margin-right:4px;}
+  .saved-timeline{display:flex; align-items:center; max-width:280px; border:1px solid var(--outline-variant); border-radius:var(--radius-md); background:var(--surface-high);}
+  .saved-timeline.current{border-color:var(--accent);}
+  .saved-timeline-name{
+    min-width:0; display:flex; align-items:baseline; gap:6px; padding:6px 4px 6px 10px; background:none; border:0;
+    color:var(--on-surface); font-family:var(--font-ui); font-size:13px; cursor:pointer; text-align:left;
+  }
+  .saved-timeline-name span:first-child{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .saved-timeline.current .saved-timeline-name{font-weight:600; cursor:default;}
+  .saved-timeline-date{flex-shrink:0; font-size:12px; color:var(--on-surface-variant); font-weight:400;}
+  .saved-timeline-delete{flex-shrink:0; width:28px; height:28px; background:none; border:0; color:var(--on-surface-variant); font-size:16px; line-height:1; cursor:pointer; border-radius:var(--radius-md);}
+  .saved-timeline-delete:hover{color:var(--on-surface); background:var(--surface-highest);}
   .timeline-transport{
     display:flex; align-items:center; gap:12px; margin-bottom:16px; padding:12px 16px;
     background:var(--surface-container); border-radius:var(--radius-lg); border:1px solid var(--outline-variant);
@@ -435,7 +509,7 @@
   .cue-block:hover .cue-handle::after, .cue-block.selected .cue-handle::after{opacity:1;}
   .cue-delete{
     position:absolute; top:2px; right:10px; z-index:3; width:20px; height:20px; padding:0; border-radius:50%;
-    border:0; background:rgba(255,255,255,0.9); color:var(--primary); font-size:14px; line-height:20px; cursor:pointer;
+    border:0; background:rgba(255,255,255,0.9); color:var(--auburn-blue); font-size:14px; line-height:20px; cursor:pointer;
   }
   .cue-delete:hover{background:#fff; color:var(--accent-text);}
   /* The loaded song's waveform, in a strip under each section's track. */
@@ -448,7 +522,7 @@
     height:100%; pointer-events:none;
     -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; -webkit-mask-size:100% 100%; mask-size:100% 100%;
   }
-  .track-wave{background:rgba(11,35,65,0.4);}
+  .track-wave{background:var(--wave);}
   /* Bookmarks placed on the song (click the playhead knob). The element is a
      12px-wide hit area around the 2px tick; hovering shows a × to delete it. */
   .wave-mark{position:absolute; top:0; bottom:0; width:12px; margin-left:-6px; cursor:pointer; z-index:1;}
@@ -545,7 +619,7 @@
     position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
     z-index:3; display:flex; align-items:center; gap:10px;
     font-family:var(--font-ui); font-size:15px; font-weight:600;
-    color:var(--on-surface); background:rgba(255,255,255,0.92); border:1px solid var(--accent-line);
+    color:var(--on-surface); background:var(--glass); border:1px solid var(--accent-line);
     padding:14px 22px; border-radius:var(--radius-full); cursor:pointer; white-space:nowrap;}
   .preview-start-hint:hover{ background:var(--accent-soft); border-color:var(--accent); }
   @keyframes preview-hint-pulse{ 0%,100%{opacity:0.75;} 50%{opacity:1;} }
@@ -556,11 +630,11 @@
   .sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
   .stage-btn{
     display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:var(--radius-full);
-    background:rgba(255,255,255,0.92); color:var(--on-surface); border:1px solid var(--outline-variant);
+    background:var(--glass); color:var(--on-surface); border:1px solid var(--outline-variant);
     font-size:14px; font-weight:600; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
   }
   .stage-btn:hover{border-color:var(--outline);}
-  .stage-btn[aria-pressed="true"]{border-color:var(--accent); background:#fff; color:var(--accent-text);}
+  .stage-btn[aria-pressed="true"]{border-color:var(--accent); background:var(--surface); color:var(--accent-text);}
   .stage-btn svg{width:18px; height:18px; flex-shrink:0;}
   .stage-toolbar{display:none;}
   .float-panel-head{display:none;}
@@ -583,7 +657,7 @@
 
   #preview-view .timeline-transport{
     position:absolute; left:50%; bottom:16px; transform:translateX(-50%); z-index:15; margin:0; padding:8px 16px;
-    background:rgba(255,255,255,0.92); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    background:var(--glass); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
     border-radius:var(--radius-full); transition:opacity .25s ease;
   }
   #preview-view .timeline-transport .timecode{font-size:20px; min-width:84px;}
@@ -591,7 +665,7 @@
   #preview-view .zone-inspector{
     position:absolute; top:60px; right:12px; bottom:12px; width:300px; max-width:calc(100vw - 96px); z-index:12;
     border:1px solid var(--outline-variant); border-radius:var(--radius-lg); box-shadow:0 12px 40px rgba(0,0,0,0.45);
-    background:rgba(255,255,255,0.96); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    background:var(--glass-strong); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
     transition:transform .2s ease, opacity .2s ease, visibility 0s;
   }
   .app-shell.settings-hidden #preview-view .zone-inspector{
@@ -613,7 +687,7 @@
   .app-shell.preview-active nav.sidebar{
     position:fixed; top:12px; left:12px; bottom:12px; height:auto; margin:0; z-index:30;
     box-shadow:0 12px 40px rgba(0,0,0,0.45);
-    background:rgba(255,255,255,0.96); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    background:var(--glass-strong); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
     transition:width .18s ease, transform .2s ease, opacity .2s ease, visibility 0s;
   }
   .app-shell.preview-active.nav-hidden nav.sidebar{
@@ -753,6 +827,10 @@
       </li>
     </ul>
     <div class="sidebar-foot">
+      <button type="button" class="sidebar-toggle" id="night-toggle" aria-pressed="false" title="Turn on night mode">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+        <span class="nav-label">Night mode</span>
+      </button>
       <button type="button" class="sidebar-toggle sidebar-hide" id="sidebar-hide" title="Hide menu">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
         <span class="nav-label">Hide menu</span>
@@ -911,6 +989,15 @@
       <div class="view-head">
         <h2 id="timeline-heading">Timeline</h2>
         <p>Put patterns in order across the show. <span id="timeline-venue-name" hidden>Jordan-Hare Stadium</span></p>
+      </div>
+
+      <div class="timeline-shows">
+        <label for="tl-name" class="sr-only">Timeline name</label>
+        <input type="text" id="tl-name" class="timeline-name-input" placeholder="Name this timeline" maxlength="80" autocomplete="off" spellcheck="false">
+        <button type="button" class="btn timeline-save-btn" id="tl-save">Save</button>
+        <button type="button" class="btn timeline-new-btn" id="tl-new" title="Start an empty timeline">New timeline</button>
+        <span class="timeline-save-state" id="tl-save-state" role="status"></span>
+        <div class="saved-timelines" id="saved-timelines" role="list" aria-label="Saved timelines"></div>
       </div>
 
       <div class="timeline-transport">
@@ -1338,7 +1425,7 @@
   }
 
   // ===================== SAVED ITEMS (IndexedDB) =====================
-  // Patterns the user creates or edits, and songs they import, are kept in
+  // Patterns the user creates or edits, songs they import, and named timelines are kept in
   // this browser's IndexedDB so they're still there next visit. There's no
   // server: saves stay on this computer/browser. Every call resolves (never
   // rejects) so a browser without IndexedDB — e.g. some private windows —
@@ -1350,13 +1437,18 @@
       if(dbPromise) return dbPromise;
       dbPromise = new Promise(function(resolve){
         try {
-          var req = indexedDB.open('stadiumsync', 1);
+          var req = indexedDB.open('stadiumsync', 2);
           req.onupgradeneeded = function(){
             var db = req.result;
             if(!db.objectStoreNames.contains('patterns')) db.createObjectStore('patterns', {keyPath:'id'});
             if(!db.objectStoreNames.contains('songs')) db.createObjectStore('songs', {keyPath:'id'});
+            if(!db.objectStoreNames.contains('timelines')) db.createObjectStore('timelines', {keyPath:'id'});
           };
-          req.onsuccess = function(){ resolve(req.result); };
+          req.onsuccess = function(){
+            // Let a newer version of the app open in another tab upgrade the database.
+            req.result.onversionchange = function(){ req.result.close(); };
+            resolve(req.result);
+          };
           req.onerror = function(){ console.error(req.error); resolve(null); };
         } catch(err){ console.error(err); resolve(null); }
       });
@@ -1415,6 +1507,22 @@
     });
   });
 
+  // Night mode. Like the sidebar, a per-browser preference; the <head> script applies it before first paint.
+  (function(){
+    var toggle = document.getElementById('night-toggle');
+    function setNight(on){
+      if(on) document.documentElement.setAttribute('data-theme', 'night');
+      else document.documentElement.removeAttribute('data-theme');
+      toggle.setAttribute('aria-pressed', String(on));
+      toggle.title = on ? 'Turn off night mode' : 'Turn on night mode';
+      try { localStorage.setItem('stadiumsync.nightMode', on ? '1' : '0'); } catch(err){}
+    }
+    setNight(document.documentElement.getAttribute('data-theme') === 'night');
+    toggle.addEventListener('click', function(){
+      setNight(document.documentElement.getAttribute('data-theme') !== 'night');
+    });
+  })();
+
   // Collapsible sidebar. The choice is a per-browser convenience, so storage failures are ignored.
   (function(){
     var shell = document.getElementById('app-shell');
@@ -1471,7 +1579,7 @@
     {id:'circulating-wave', name:'Circulating Wave', tags:['Motion','Dynamic'], color:'#e86100', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'solid'},
     {id:'radar-sweep', name:'Radar Sweep', tags:['Motion','Dynamic'], color:'#e86100', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'solid'},
     {id:'the-wave', name:'The Wave', tags:['Motion','Crowd'], color:'#e86100', colorRole:'primary', intensity:100, spread:15, frequency:1.0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'crowd-wave'},
-    {id:'au-logo', name:'AU Logo', tags:['Image','Static'], color:'#e86100', bgColor:'#0b2341', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'text', textBitmap:'au-logo'},
+    {id:'au-logo', name:'AU Logo', tags:['Image','Static'], color:'#2e6fff', bgColor:'#ffffff', trimColor:'#e86100', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'text', textBitmap:'au-logo'},
     {id:'auburn-text', name:'AUBURN Text', tags:['Image','Static'], color:'#e86100', bgColor:'#2e6fff', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'text', textBitmap:'auburn-text'}
   ];
   var selectedPatternId = 'tiger-wave';
@@ -1888,13 +1996,134 @@
     renderTimelinePalette();
   }
 
+  // Motions and color layouts a custom pattern can use (see
+  // computeDotBrightness / getDotColor for what each one does).
+  var CUSTOM_MOTIONS = [
+    {value:'pulse', label:'Pulse', hint:'Every seat fades up and down together.'},
+    {value:'strobe', label:'Flash', hint:'Every seat snaps on and off.'},
+    {value:'wave', label:'Sweep', hint:'A band of light travels across the zone.', directions:['left-right','right-left','top-bottom','bottom-top','bounce']},
+    {value:'wipe', label:'Wipe', hint:'Light fills the zone from one edge, then empties out.', directions:['left-right','right-left','top-bottom','bottom-top']},
+    {value:'ripple', label:'Ripple', hint:'Rings of light spread from the middle of the zone.', directions:['outward','inward']},
+    {value:'twinkle', label:'Twinkle', hint:'Seats sparkle on and off at random.'},
+    {value:'crowd-wave', label:'Stadium wave', hint:'A band of light travels around the whole stadium. Frequency 1 is one lap every 10 seconds.'},
+    {value:'solid', label:'Solid', hint:'Steady light, no motion.'}
+  ];
+  var DIRECTION_LABELS = {
+    'left-right':'Left to right', 'right-left':'Right to left', 'top-bottom':'Top to bottom',
+    'bottom-top':'Bottom to top', 'bounce':'Back and forth', 'outward':'Outward', 'inward':'Inward'
+  };
+  var COLOR_LAYOUTS = [
+    {value:'scatter', label:'Scattered seats'},
+    {value:'stripes', label:'Stripes'},
+    {value:'bands', label:'Bands, front to back'},
+    {value:'gradient', label:'Blend across'}
+  ];
+  var MAX_PATTERN_COLORS = 4;
+  var EXTRA_COLOR_CHOICES = ['#2e6fff', '#f5f5f5', '#e86100', '#00c853', '#d500f9', '#ffd600'];
+
+  function patternColorList(p){ return p.colors && p.colors.length ? p.colors : [p.color]; }
+
+  // Shows only the controls that do something for the pattern's motion.
+  function syncPatternFields(p){
+    var show = function(id, on){ var el = document.getElementById(id); if(el) el.style.display = on ? '' : 'none'; };
+    show('p-spread-field', p.motion === 'wave' || p.motion === 'ripple' || p.motion === 'crowd-wave');
+    show('p-freq-field', p.motion !== 'solid' && p.motion !== 'text');
+    show('p-dim-field', p.motion !== 'solid');
+    var motion = CUSTOM_MOTIONS.find(function(m){ return m.value === p.motion; });
+    var hint = document.getElementById('p-motion-hint');
+    if(hint) hint.textContent = motion ? motion.hint : '';
+    var dirSelect = document.getElementById('p-direction');
+    if(dirSelect){
+      var dirs = (motion && motion.directions) || [];
+      show('p-direction-field', dirs.length > 0);
+      dirSelect.innerHTML = dirs.map(function(d){
+        return '<option value="' + d + '"' + (d === (p.direction || dirs[0]) ? ' selected' : '') + '>' + DIRECTION_LABELS[d] + '</option>';
+      }).join('');
+    }
+    show('p-layout-field', patternColorList(p).length > 1);
+  }
+
+  function renderPatternColors(p){
+    var list = patternColorList(p);
+    document.getElementById('p-colors').innerHTML = list.map(function(c, i){
+      return '<div class="color-swatch-row pattern-color-row">' +
+        '<input type="color" class="color-input-swatch" data-color-index="' + i + '" value="' + c + '" aria-label="Color ' + (i + 1) + '">' +
+        '<span class="color-hex">' + c.toUpperCase() + '</span>' +
+        (list.length > 1 ? '<button type="button" class="pattern-color-remove" data-remove-color="' + i + '" title="Remove color" aria-label="Remove color ' + (i + 1) + '">×</button>' : '') +
+      '</div>';
+    }).join('') +
+    (list.length < MAX_PATTERN_COLORS ? '<button type="button" class="btn" id="p-color-add">Add color</button>' : '');
+  }
+
+  // Wires up Motion, Direction, Colors, Color layout and Dim level, which
+  // only custom patterns have.
+  function bindCustomPatternControls(p){
+    var redraw = function(){
+      savePatternSoon(p);
+      syncPatternFields(p);
+      if(!ledPlaying) renderLedMatrixStatic(p);
+    };
+    var setColors = function(list){
+      p.color = list[0];
+      if(list.length > 1) p.colors = list; else { delete p.colors; delete p.colorLayout; }
+      renderPatternGrid(document.getElementById('pattern-search').value); // refresh the card thumbnail too
+      redraw();
+    };
+
+    document.getElementById('p-motion').addEventListener('change', function(e){
+      p.motion = e.target.value;
+      var motion = CUSTOM_MOTIONS.find(function(m){ return m.value === p.motion; });
+      var dirs = (motion && motion.directions) || [];
+      if(dirs.indexOf(p.direction) === -1){ if(dirs.length) p.direction = dirs[0]; else delete p.direction; }
+      redraw();
+    });
+    document.getElementById('p-direction').addEventListener('change', function(e){
+      p.direction = e.target.value;
+      redraw();
+    });
+    document.getElementById('p-layout').addEventListener('change', function(e){
+      if(e.target.value === 'scatter') delete p.colorLayout; else p.colorLayout = e.target.value;
+      redraw();
+    });
+    document.getElementById('p-dim').addEventListener('input', function(e){
+      p.dimLevel = parseInt(e.target.value, 10);
+      document.getElementById('p-dim-val').textContent = p.dimLevel + '%';
+      redraw();
+    });
+
+    var colorsEl = document.getElementById('p-colors');
+    renderPatternColors(p);
+    colorsEl.addEventListener('input', function(e){
+      var i = e.target.getAttribute('data-color-index');
+      if(i === null) return;
+      var list = patternColorList(p).slice();
+      list[+i] = e.target.value;
+      e.target.nextElementSibling.textContent = e.target.value.toUpperCase();
+      setColors(list);
+    });
+    colorsEl.addEventListener('click', function(e){
+      var list = patternColorList(p).slice();
+      var remove = e.target.closest('[data-remove-color]');
+      if(remove){
+        list.splice(+remove.getAttribute('data-remove-color'), 1);
+      } else if(e.target.closest('#p-color-add')){
+        list.push(EXTRA_COLOR_CHOICES.find(function(c){ return list.indexOf(c) === -1; }) || '#ffffff');
+      } else return;
+      setColors(list);
+      renderPatternColors(p);
+    });
+  }
+
   function renderPatternInspector(){
     var p = findPattern(selectedPatternId);
     var body = document.getElementById('pattern-inspector-body');
-    if(!p){ body.innerHTML = '<p class="empty-note">Select a pattern to edit its parameters.</p>'; return; }
+    if(!p){ body.innerHTML = '<p class="empty-note">Select a pattern to edit its parameters.</p>'; syncPatternPreview(); return; }
+    // Patterns the user made get the full set of controls; built-ins keep
+    // their own motion and just take color/speed tweaks.
+    var custom = !builtInPatterns[p.id] && p.motion !== 'text';
+    var dimLevel = p.dimLevel != null ? p.dimLevel : 6;
     body.innerHTML =
       '<div class="pattern-preview-stage" id="pattern-preview-stage"></div>' +
-      '<button class="btn" id="pattern-preview-toggle" style="margin-bottom:16px;">Play pattern</button>' +
       '<div class="field">' +
         '<label>Use for every zone</label>' +
         '<div class="apply-venue-range-row">' +
@@ -1906,12 +2135,25 @@
       '<div class="field">' +
         '<label>Try it on zones</label>' +
         '<div id="zone-test-picker" class="zone-test-picker"></div>' +
+        '<button class="btn" id="zone-test-clear" style="margin-top:8px;">Clear zones</button>' +
       '</div>' +
       '<div class="field"><label>Pattern</label><div class="target-zone-name">' + p.name + '</div></div>' +
-      '<div class="field"><label for="p-color">Color</label><div class="color-swatch-row"><input type="color" id="p-color" class="color-input-swatch" value="' + p.color + '"><span class="color-hex" id="p-color-hex">' + p.color.toUpperCase() + '</span></div></div>' +
+      (custom
+        ? '<div class="field"><label for="p-motion">Motion</label><select id="p-motion">' +
+            CUSTOM_MOTIONS.map(function(m){ return '<option value="' + m.value + '"' + (m.value === p.motion ? ' selected' : '') + '>' + m.label + '</option>'; }).join('') +
+          '</select><p class="field-hint" id="p-motion-hint"></p></div>' +
+          '<div class="field" id="p-direction-field"><label for="p-direction">Direction</label><select id="p-direction"></select></div>' +
+          '<div class="field"><label>Colors</label><div id="p-colors" class="pattern-color-list"></div></div>' +
+          '<div class="field" id="p-layout-field"><label for="p-layout">Color layout</label><select id="p-layout">' +
+            COLOR_LAYOUTS.map(function(l){ return '<option value="' + l.value + '"' + (l.value === (p.colorLayout || 'scatter') ? ' selected' : '') + '>' + l.label + '</option>'; }).join('') +
+          '</select></div>'
+        : '<div class="field"><label for="p-color">Color</label><div class="color-swatch-row"><input type="color" id="p-color" class="color-input-swatch" value="' + p.color + '"><span class="color-hex" id="p-color-hex">' + p.color.toUpperCase() + '</span></div></div>') +
       '<div class="field slider-field"><div class="slider-head"><label for="p-intensity">Intensity</label><span class="slider-value" id="p-intensity-val">' + p.intensity + '%</span></div><input type="range" id="p-intensity" min="0" max="100" value="' + p.intensity + '"></div>' +
-      '<div class="field slider-field"><div class="slider-head"><label for="p-spread">Band Width</label><span class="slider-value" id="p-spread-val">' + p.spread + '%</span></div><input type="range" id="p-spread" min="2" max="100" value="' + p.spread + '"></div>' +
-      '<div class="field slider-field"><div class="slider-head"><label for="p-freq">Frequency</label><span class="slider-value" id="p-freq-val">' + p.frequency + ' Hz</span></div><input type="range" id="p-freq" min="0" max="10" step="0.1" value="' + p.frequency + '"></div>' +
+      '<div class="field slider-field" id="p-spread-field"><div class="slider-head"><label for="p-spread">Band Width</label><span class="slider-value" id="p-spread-val">' + p.spread + '%</span></div><input type="range" id="p-spread" min="2" max="100" value="' + p.spread + '"></div>' +
+      '<div class="field slider-field" id="p-freq-field"><div class="slider-head"><label for="p-freq">Frequency</label><span class="slider-value" id="p-freq-val">' + p.frequency + ' Hz</span></div><input type="range" id="p-freq" min="0" max="10" step="0.1" value="' + p.frequency + '"></div>' +
+      (custom
+        ? '<div class="field slider-field" id="p-dim-field"><div class="slider-head"><label for="p-dim">Dim level</label><span class="slider-value" id="p-dim-val">' + dimLevel + '%</span></div><input type="range" id="p-dim" min="0" max="60" value="' + dimLevel + '"></div>'
+        : '') +
       '<div class="field"><label>Time Sync</label><label class="check-row"><input type="checkbox" id="p-lock" ' + (p.lockClock ? 'checked' : '') + '> Lock to Master Clock (' + p.bpmBase + ' BPM)</label></div>' +
       (builtInPatterns[p.id]
         ? '<button class="btn" id="pattern-reset-btn"' + (isPatternEdited(p) ? '' : ' style="display:none;"') + '>Reset to original</button>'
@@ -1923,13 +2165,16 @@
       document.getElementById('p-intensity-val').textContent = p.intensity + '%';
       if(!ledPlaying) renderLedMatrixStatic(p);
     });
-    document.getElementById('p-color').addEventListener('input', function(e){
+    var colorInput = document.getElementById('p-color');
+    if(colorInput) colorInput.addEventListener('input', function(e){
       p.color = e.target.value;
       savePatternSoon(p);
       document.getElementById('p-color-hex').textContent = p.color.toUpperCase();
       renderPatternGrid(document.getElementById('pattern-search').value); // refresh the card thumbnail too
       if(!ledPlaying) renderLedMatrixStatic(p);
     });
+    if(custom) bindCustomPatternControls(p);
+    syncPatternFields(p);
     document.getElementById('p-spread').addEventListener('input', function(e){
       p.spread = parseInt(e.target.value,10);
       savePatternSoon(p);
@@ -1979,17 +2224,16 @@
       buildLedMatrix(p);
       if(ledPlaying){ startLedPreview(p); } else { renderLedMatrixStatic(p); }
     });
+    document.getElementById('zone-test-clear').addEventListener('click', function(){
+      testZoneNames.length = 0;
+      renderZoneTestPicker();
+      buildLedMatrix(p);
+      if(ledPlaying){ startLedPreview(p); } else { renderLedMatrixStatic(p); }
+    });
 
     buildLedMatrix(p);
     renderLedMatrixStatic(p);
-    document.getElementById('pattern-preview-toggle').addEventListener('click', function(){
-      if(ledPlaying){
-        stopLedPreview(p);
-      } else {
-        startLedPreview(p);
-      }
-      this.textContent = ledPlaying ? 'Stop' : 'Play pattern';
-    });
+    syncPatternPreview();
     document.getElementById('pattern-apply-venue-btn').addEventListener('click', function(){
       var tracks = timelineTracksByVenue[currentVenueId] || [];
       if(!tracks.length) return;
@@ -2039,6 +2283,8 @@
     var selected = v.zoneData.filter(function(z){ return testZoneNames.indexOf(z.name) > -1; }).length;
     all.checked = selected === v.zoneData.length;
     all.indeterminate = selected > 0 && selected < v.zoneData.length;
+    var clear = document.getElementById('zone-test-clear');
+    if(clear) clear.disabled = selected === 0;
   }
 
   var LED_COLS = 24, LED_ROWS = 6;
@@ -2219,28 +2465,57 @@
     return {width: width, height: GLYPH_H, rows: rows};
   }
 
-  // Auburn's interlocking AU mark as an orange outline, taken seat for seat
-  // from the Spring '25 demo show (Section 29 Low, assets/jordan-hare/
-  // show-first-demo.*), so it matches the mark the team already drew in the
-  // Unity sim.
+  // Auburn's interlocking AU athletics mark, traced from the official SVG
+  // (navy #03244d letters, orange #f26522 outline) by rasterizing it and
+  // taking each cell's majority color, with the thin outline kept wherever
+  // it covers 30% of a cell. 48x42 keeps the logo's 250:221 proportions and
+  // is about the height of the tallest zones (47 rows). '1' = letter fill,
+  // '2' = outline (including where the A crosses over the U), '0' = background.
   var AU_LOGO_BITMAP = {
-    width: 17, height: 15,
+    width: 48, height: 42, hasTrim: true,
     rows: [
-      '00000001110000000',
-      '11111111011111111',
-      '10000010001000001',
-      '10000100000100001',
-      '01101000100010110',
-      '00101001010010100',
-      '00110001110001100',
-      '00110000000001100',
-      '00100011111000100',
-      '01100100000100110',
-      '10001010001010001',
-      '10000101110100001',
-      '01111100000111110',
-      '00010000000001000',
-      '00001111111110000'
+      '000000000000000000022222222220000000000000000000',
+      '000000000000000000022222222220000000000000000000',
+      '000000000000000000221111111122000000000000000000',
+      '000000000000000000221111111112000000000000000000',
+      '000000000000000002211111111112200000000000000000',
+      '222222222222222022111111111111220222222222222222',
+      '222222222222222022111111111111220222222222222222',
+      '221111111111122221111111111111122221111111111122',
+      '221111111111122221111111211111122221111111111122',
+      '221111111111122211111112221111112221111111111122',
+      '221111111111122211111122221111111221111111111122',
+      '222221111122222111111122022111111222221111122222',
+      '022221111122221111111220022111111122221111122220',
+      '000221111122221111111220002211111122221111122000',
+      '000221111122211111112200002211111112221111122000',
+      '000221111122211111122222222221111112221111122000',
+      '000221111122111111122222222221111111221111122000',
+      '000221111122111111111111111111111111221111122000',
+      '000221111221111111111111111111111111122111122000',
+      '000221112211111111111111111111111111112211122000',
+      '000221112211111111111111111111111111112211122000',
+      '000221122111111122222222222222221111111221122000',
+      '000221122111111122000000000000022111111221122000',
+      '000221221111111220000000000000002211111122122000',
+      '000221221111112200000000000000002211111122122000',
+      '222222211111112222220000000022222221111112222222',
+      '222222111111112222220000000022222221111111222222',
+      '221111111111111111220000000022111111111111111122',
+      '221111111111111111220000000022111111111111111122',
+      '221111111111111111220000000022111111111111111122',
+      '222222222222222222220000000022222222222222222222',
+      '222222222222222222220000000022222222222222222222',
+      '000221111111222000000000000000000222111111122000',
+      '000021111111122222000000000000022221111111120000',
+      '000022111111111222222222222222222111111111220000',
+      '000002211111111111122222222221111111111112200000',
+      '000002221111111111111111111111111111111122200000',
+      '000000022211111111111111111111111111112222000000',
+      '000000002222111111111111111111111111222200000000',
+      '000000000022222111111111111111111222220000000000',
+      '000000000000222222222222222222222222000000000000',
+      '000000000000000002222222222222200000000000000000'
     ]
   };
 
@@ -2297,13 +2572,16 @@
 
   // Classifies a dot into one of three zones for logos that need a real
   // outline, not just flat lit/unlit: 'core' (the shape's own fill),
-  // 'trim' (a one-pixel outline where the shape borders open background —
-  // found by checking the bitmap's own neighboring pixels), or
+  // 'trim' (the outline — '2' pixels in the bitmap, or for a bitmap without
+  // them, a one-pixel border found from the neighboring pixels), or
   // 'background' (everything else).
   function classifyLogoZone(bitmapKey, col, row, totalCols, totalRows){
     var px = resolveBitmapPixel(bitmapKey, col, row, totalCols, totalRows);
     if(!px) return 'background';
-    if(px.bmp.rows[px.by][px.bx] === '1') return 'core';
+    var v = px.bmp.rows[px.by][px.bx];
+    if(v === '1') return 'core';
+    if(v === '2') return 'trim';
+    if(px.bmp.hasTrim) return 'background';
     for(var dy = -1; dy <= 1; dy++){
       for(var dx = -1; dx <= 1; dx++){
         if(dx === 0 && dy === 0) continue;
@@ -2330,6 +2608,32 @@
     return (n >>> 0) / 4294967296;
   }
 
+  // Blends evenly through `colors` as f goes 0 → 1. Quantized and cached,
+  // since the 3D view asks for every LED on every frame.
+  var gradientCache = {};
+  function gradientColorAt(colors, f){
+    var step = Math.round(Math.max(0, Math.min(1, f)) * 63);
+    var key = colors.join(',') + '|' + step;
+    if(gradientCache[key]) return gradientCache[key];
+    var x = step / 63 * (colors.length - 1);
+    var i = Math.min(colors.length - 2, Math.floor(x));
+    var a = parseInt(colors[i].slice(1), 16), b = parseInt(colors[i + 1].slice(1), 16), k = x - i;
+    var mixed = [16, 8, 0].map(function(shift){
+      var ca = (a >> shift) & 255, cb = (b >> shift) & 255;
+      return ('0' + Math.round(ca + (cb - ca) * k).toString(16)).slice(-2);
+    }).join('');
+    return (gradientCache[key] = '#' + mixed);
+  }
+
+  // How far (0-1) a dot sits along a custom pattern's direction of travel.
+  // Row 0 is the top as seen from the field.
+  function directionPos(dir, col, row, totalCols, totalRows){
+    if(dir === 'right-left') return (totalCols - 1 - col) / totalCols;
+    if(dir === 'top-bottom') return row / totalRows;
+    if(dir === 'bottom-top') return (totalRows - 1 - row) / totalRows;
+    return col / totalCols;
+  }
+
   // Resolves the color for one specific dot. Patterns with a single
   // `color` use it everywhere; patterns with a `colors` array (like a
   // mixed multi-color twinkle) assign each dot ONE fixed color from the
@@ -2347,6 +2651,15 @@
       return lit ? p.color : p.bgColor;
     }
     if(p.colors && p.colors.length){
+      // Custom patterns can lay their colors out by position instead of
+      // scattering them: stripes down the columns, bands across the rows,
+      // or a blend from one side to the other.
+      var n = p.colors.length;
+      totalCols = totalCols || LED_COLS;
+      totalRows = totalRows || 1;
+      if(p.colorLayout === 'stripes') return p.colors[Math.floor(col * n * 2 / totalCols) % n];
+      if(p.colorLayout === 'bands') return p.colors[Math.min(n - 1, Math.floor(row * n / totalRows))];
+      if(p.colorLayout === 'gradient') return gradientColorAt(p.colors, totalCols > 1 ? col / (totalCols - 1) : 0);
       var seed = col * 92821 + row * 68917;
       var idx = Math.floor(pseudoRandom(seed) * p.colors.length) % p.colors.length;
       return p.colors[idx];
@@ -2369,7 +2682,8 @@
     totalRows = totalRows || 1;
     var freq = p.frequency > 0 ? p.frequency : 0.5;
     var peak = Math.max(0.05, p.intensity / 100);
-    var floor = 0.06;
+    // How bright "off" dots stay; custom patterns can set it with Dim level.
+    var floor = Math.min(peak, p.dimLevel != null ? p.dimLevel / 100 : 0.06);
     if(p.motion === 'solid') return peak;
     if(p.motion === 'text'){
       if(p.trimColor){
@@ -2416,13 +2730,42 @@
       var phase = (Math.sin(t * freq * Math.PI * 2) + 1) / 2;
       return floor + phase * (peak - floor);
     }
-    // wave: a lit band of columns sweeps left to right, band width from Spread
-    var bandCols = Math.max(1, (p.spread / 100) * totalCols);
-    var peakCol = (t * freq * (totalCols / 2)) % totalCols;
-    var dist = Math.abs(col - peakCol);
-    dist = Math.min(dist, totalCols - dist); // wrap around for a seamless loop
-    if(dist > bandCols / 2) return floor;
-    var falloff = 1 - (dist / (bandCols/2 + 0.001));
+    var dir = p.direction || 'left-right';
+    var cells = (dir === 'top-bottom' || dir === 'bottom-top') ? totalRows : totalCols;
+    var along = directionPos(dir, col, row, totalCols, totalRows);
+    if(p.motion === 'wipe'){
+      // Light fills the zone from one edge, then empties out the same way.
+      var fill = (t * freq * 0.5) % 1;
+      var at = along + 0.5 / cells;
+      var on = fill < 0.5 ? at <= fill * 2 : at > (fill - 0.5) * 2;
+      return on ? peak : floor;
+    }
+    if(p.motion === 'ripple'){
+      // Rings spread out from the middle of the zone (or close in on it),
+      // ring width from Band Width.
+      var dx = (col + 0.5) / totalCols - 0.5, dy = (row + 0.5) / totalRows - 0.5;
+      var r = Math.sqrt(dx * dx + dy * dy) / Math.SQRT1_2;
+      if(dir === 'inward') r = 1 - r;
+      var ringDist = r - (t * freq * 0.5) % 1;
+      ringDist = Math.abs(ringDist - Math.round(ringDist));
+      var halfRing = Math.max(0.02, p.spread / 100) / 2;
+      if(ringDist > halfRing) return floor;
+      return floor + (1 - ringDist / halfRing) * (peak - floor);
+    }
+    // wave: a lit band sweeps across (left to right unless the pattern
+    // sets a direction), band width from Spread
+    var halfBand = Math.max(1 / cells, p.spread / 100) / 2;
+    var head, dist;
+    if(dir === 'bounce'){
+      head = 1 - Math.abs(1 - 2 * ((t * freq * 0.25) % 1)); // there and back
+      dist = Math.abs(along - head);
+    } else {
+      head = (t * freq * 0.5) % 1;
+      dist = Math.abs(along - head);
+      dist = Math.min(dist, 1 - dist); // wrap around for a seamless loop
+    }
+    if(dist > halfBand) return floor;
+    var falloff = 1 - (dist / (halfBand + 0.001 / cells));
     return floor + falloff * (peak - floor);
   }
 
@@ -2464,7 +2807,15 @@
     ledPlaying = false;
     if(ledRafId) window.cancelAnimationFrame(ledRafId);
     ledRafId = null;
-    renderLedMatrixStatic(p);
+    if(p) renderLedMatrixStatic(p);
+  }
+
+  // The selected pattern's preview plays whenever the Patterns view is
+  // open, so edits show up live, and stops when another view is shown.
+  function syncPatternPreview(){
+    var p = findPattern(selectedPatternId);
+    if(p && document.getElementById('pattern-view').classList.contains('active')) startLedPreview(p);
+    else if(ledPlaying) stopLedPreview(p);
   }
 
   document.getElementById('pattern-grid').addEventListener('click', function(e){
@@ -2864,6 +3215,7 @@
     document.getElementById('tl-timecode').textContent = formatTimecode(playheadSeconds);
     drawDropPreview(); // playback re-renders mid-drag; keep the drop target visible
     updateCuePopover();
+    updateTimelineSaveState();
   }
 
   function deleteSelectedCue(){
@@ -4472,7 +4824,196 @@
     if(previewStadium) previewStadium.setFogDensity(v);
   });
 
+  // ===================== SAVED TIMELINES =====================
+  // A saved timeline is a named copy of the cues, plus the song it was built
+  // to and that song's bookmarks, kept in savedStore's `timelines` store. The
+  // one last saved or opened is reopened on the next visit, and its name is
+  // the project name used by Export.
+  var savedTimelines = [];          // {id, name, venueId, cues, songId, marks, savedAt}, newest first
+  var currentTimelineId = null;
+  var timelineSavedCues = null;     // JSON of the cues as last saved/opened, to spot unsaved changes
+  var timelineSavedName = '';
+  var LAST_TIMELINE_KEY = 'stadiumsync.lastTimelineId';
+  var DEFAULT_PROJECT_NAME = document.getElementById('project-name').textContent;
+
+  function timelineCuesJson(){ return JSON.stringify(timelineCuesByVenue[currentVenueId] || []); }
+  function timelineNameValue(){ return document.getElementById('tl-name').value.trim(); }
+
+  function timelineHasChanges(){
+    if(timelineSavedCues === null) return false; // saved timelines are still loading
+    return timelineCuesJson() !== timelineSavedCues || timelineNameValue() !== timelineSavedName;
+  }
+
+  function updateTimelineSaveState(){
+    var el = document.getElementById('tl-save-state');
+    var text = !currentTimelineId ? 'Not saved yet' : (timelineHasChanges() ? 'Unsaved changes' : 'Saved');
+    if(el.textContent !== text) el.textContent = text; // runs every playback frame; skip no-op writes
+  }
+
+  function confirmDiscardTimelineChanges(){
+    return !timelineHasChanges() || window.confirm('Discard the unsaved changes to this timeline?');
+  }
+
+  function setCurrentTimeline(rec){
+    currentTimelineId = rec ? rec.id : null;
+    timelineSavedCues = rec ? JSON.stringify(rec.cues) : timelineCuesJson();
+    timelineSavedName = rec ? rec.name : '';
+    document.getElementById('tl-name').value = timelineSavedName;
+    document.getElementById('project-name').textContent = rec ? rec.name : DEFAULT_PROJECT_NAME;
+    try {
+      if(rec) localStorage.setItem(LAST_TIMELINE_KEY, rec.id);
+      else localStorage.removeItem(LAST_TIMELINE_KEY);
+    } catch(err){}
+    renderSavedTimelines();
+    renderExportView();
+    updateTimelineSaveState();
+  }
+
+  function saveCurrentTimeline(){
+    var name = timelineNameValue();
+    if(!name){
+      document.getElementById('tl-name').focus();
+      showToast('Name this timeline to save it');
+      return;
+    }
+    // Names identify timelines in the list, so saving under another one's name replaces it.
+    var clash = savedTimelines.find(function(t){ return t.id !== currentTimelineId && t.name.toLowerCase() === name.toLowerCase(); });
+    if(clash && !window.confirm('Replace the saved timeline "' + clash.name + '"?')) return;
+    var rec = {
+      id: clash ? clash.id : (currentTimelineId || 'timeline-' + Date.now()),
+      name: name,
+      venueId: currentVenueId,
+      cues: JSON.parse(timelineCuesJson()),
+      songId: currentSongId,
+      marks: songMarks().slice(),
+      savedAt: Date.now()
+    };
+    savedStore.put('timelines', rec).then(function(ok){
+      if(!ok){ showToast("Couldn't save this timeline"); return; }
+      savedTimelines = [rec].concat(savedTimelines.filter(function(t){ return t.id !== rec.id; }));
+      setCurrentTimeline(rec);
+      showToast('Saved "' + name + '"');
+    });
+  }
+
+  function openTimeline(rec, quiet){
+    // Cues can't point at a pattern deleted since this timeline was saved.
+    var cues = rec.cues.filter(function(c){ return findPattern(c.pattern); });
+    var dropped = rec.cues.length - cues.length;
+    timelineCuesByVenue[currentVenueId] = JSON.parse(JSON.stringify(cues));
+    selectedCue = null;
+    var song = rec.songId && savedSongs.find(function(s){ return s.id === rec.songId; });
+    if(song){
+      if(rec.marks) marksBySong[song.id] = rec.marks.slice();
+      if(song.id !== currentSongId) loadSong(song, true);
+    }
+    setCurrentTimeline(rec);
+    renderTimeline();
+    updatePreviewStadium(playheadSeconds);
+    if(quiet) return;
+    var note = '';
+    if(dropped) note = ' — ' + dropped + (dropped === 1 ? ' cue used a deleted pattern and was' : ' cues used deleted patterns and were') + ' left out';
+    else if(rec.songId && !song) note = ' — its song is no longer saved';
+    showToast('Opened "' + rec.name + '"' + note);
+  }
+
+  function startNewTimeline(){
+    if(!confirmDiscardTimelineChanges()) return;
+    timelineCuesByVenue[currentVenueId] = [];
+    selectedCue = null;
+    setCurrentTimeline(null);
+    renderTimeline();
+    updatePreviewStadium(playheadSeconds);
+    document.getElementById('tl-name').focus();
+  }
+
+  function renderSavedTimelines(){
+    var list = document.getElementById('saved-timelines');
+    list.innerHTML = '';
+    if(!savedTimelines.length) return;
+    var label = document.createElement('span');
+    label.className = 'saved-timelines-label';
+    label.textContent = 'Saved timelines';
+    list.appendChild(label);
+    savedTimelines.forEach(function(t){
+      var item = document.createElement('div');
+      item.className = 'saved-timeline' + (t.id === currentTimelineId ? ' current' : '');
+      item.setAttribute('role', 'listitem');
+      var pick = document.createElement('button');
+      pick.type = 'button';
+      pick.className = 'saved-timeline-name';
+      pick.title = t.id === currentTimelineId ? 'Open now' : 'Open ' + t.name;
+      pick.setAttribute('data-timeline-id', t.id);
+      var name = document.createElement('span');
+      name.textContent = t.name;
+      var date = document.createElement('span');
+      date.className = 'saved-timeline-date';
+      date.textContent = new Date(t.savedAt).toLocaleDateString(undefined, {month:'short', day:'numeric'});
+      pick.appendChild(name);
+      pick.appendChild(date);
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'saved-timeline-delete';
+      del.title = 'Delete saved timeline';
+      del.setAttribute('aria-label', 'Delete ' + t.name);
+      del.setAttribute('data-delete-timeline-id', t.id);
+      del.textContent = '×';
+      item.appendChild(pick);
+      item.appendChild(del);
+      list.appendChild(item);
+    });
+  }
+
+  document.getElementById('saved-timelines').addEventListener('click', function(e){
+    var pick = e.target.closest('[data-timeline-id]');
+    var del = e.target.closest('[data-delete-timeline-id]');
+    if(pick){
+      var rec = savedTimelines.find(function(t){ return t.id === pick.getAttribute('data-timeline-id'); });
+      if(rec && rec.id !== currentTimelineId && confirmDiscardTimelineChanges()) openTimeline(rec);
+    } else if(del){
+      var id = del.getAttribute('data-delete-timeline-id');
+      var doomed = savedTimelines.find(function(t){ return t.id === id; });
+      if(!doomed || !window.confirm('Delete the saved timeline "' + doomed.name + '"?')) return;
+      savedTimelines = savedTimelines.filter(function(t){ return t !== doomed; });
+      savedStore.remove('timelines', id);
+      // Its cues stay on screen, now as an unsaved timeline.
+      if(id === currentTimelineId){
+        var keepName = timelineNameValue();
+        setCurrentTimeline(null);
+        document.getElementById('tl-name').value = keepName;
+      } else {
+        renderSavedTimelines();
+      }
+    }
+  });
+
+  document.getElementById('tl-save').addEventListener('click', saveCurrentTimeline);
+  document.getElementById('tl-new').addEventListener('click', startNewTimeline);
+  document.getElementById('tl-name').addEventListener('input', updateTimelineSaveState);
+  document.getElementById('tl-name').addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); saveCurrentTimeline(); }
+  });
+
+  // Runs after saved patterns and songs are restored, since a timeline's cues
+  // and song refer to them.
+  function restoreSavedTimelines(){
+    return savedStore.getAll('timelines').then(function(records){
+      savedTimelines = records.sort(function(a, b){ return b.savedAt - a.savedAt; });
+      var lastId = null;
+      try { lastId = localStorage.getItem(LAST_TIMELINE_KEY); } catch(err){}
+      var last = savedTimelines.find(function(t){ return t.id === lastId; });
+      if(last) openTimeline(last, true);
+      else setCurrentTimeline(null);
+    });
+  }
+
   // ===================== EXPORT =====================
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(ch){
+      return {'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[ch];
+    });
+  }
+
   function buildShowMetadata(){
     var v = venues.find(function(x){ return x.id === currentVenueId; });
     return {
@@ -4514,7 +5055,7 @@
     return '<html><head><title>Design Specification — '+meta.venue+'</title><meta charset="utf-8">' +
       '<style>body{font-family:Arial,sans-serif; padding:40px; color:#111;} h1{margin-bottom:0;} h2{border-bottom:2px solid #ccc; padding-bottom:6px; margin-top:32px;} table{width:100%; border-collapse:collapse; margin-top:12px;} th,td{border:1px solid #ccc; padding:8px; text-align:left; font-size:13px;} th{background:#f0f0f0;}</style>' +
       '</head><body>' +
-      '<h1>'+meta.project+'</h1><p>'+meta.venue+' &middot; Capacity '+meta.capacity+' &middot; Generated '+new Date(meta.generatedAt).toLocaleString()+'</p>' +
+      '<h1>'+escapeHtml(meta.project)+'</h1><p>'+meta.venue+' &middot; Capacity '+meta.capacity+' &middot; Generated '+new Date(meta.generatedAt).toLocaleString()+'</p>' +
       '<h2>Zone Map</h2><table><tr><th>Zone</th><th>Nodes</th><th>Status</th><th>Pattern</th><th>Intensity</th></tr>'+zoneRows+'</table>' +
       '<h2>Pattern Schedule</h2><table><tr><th>Track</th><th>Pattern</th><th>Start</th><th>End</th></tr>'+cueRows+'</table>' +
       '<h2>Notes</h2><p style="color:#666;">This is a design record for planning and rehearsal only. It does not contain live hardware control data.</p>' +
@@ -4547,7 +5088,10 @@
 
   function renderExportView(){
     var v = venues.find(function(x){ return x.id === currentVenueId; });
-    document.getElementById('export-project-sub').textContent = 'Download the ' + document.getElementById('project-name').textContent.toLowerCase() + ' for ' + v.name + '.';
+    var project = document.getElementById('project-name').textContent;
+    document.getElementById('export-project-sub').textContent = currentTimelineId
+      ? 'Download "' + project + '" for ' + v.name + '.'
+      : 'Download the ' + project.toLowerCase() + ' for ' + v.name + '.';
   }
 
   // ===================== SEAT PAINT =====================
@@ -4824,6 +5368,7 @@
     if(view === 'preview-view') ensurePreviewStadium();
     if(designerStadium) designerStadium.setActive(view === 'designer-view');
     if(previewStadium) previewStadium.setActive(view === 'preview-view');
+    syncPatternPreview();
   }
 
   window.addEventListener('resize', function(){
@@ -4832,7 +5377,13 @@
   });
 
   // init
+  // Open on the whole stadium twinkling, circling overhead in aerial mode.
+  venues.find(function(x){ return x.id === currentVenueId; }).zoneData.forEach(function(z){
+    z.pattern = 'Twinkle Mixed';
+    z.on = true;
+  });
   setActiveStadiumView('designer-view');
+  if(designerStadium) designerStadium.setCameraMode('aerial', {fit:true, snap:true});
   renderLayers();
   renderInspector();
   renderPaintPanel();
@@ -4844,8 +5395,10 @@
   updatePreviewStartHint();
   renderExportView();
   // Bring back what was saved on earlier visits.
-  restoreSavedPatterns().then(function(count){ if(count) refreshPatternViews(); });
-  restoreSavedSongs();
+  Promise.all([
+    restoreSavedPatterns().then(function(count){ if(count) refreshPatternViews(); }),
+    restoreSavedSongs()
+  ]).then(restoreSavedTimelines);
 })();
 </script>
 </body>

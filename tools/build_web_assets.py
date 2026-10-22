@@ -115,7 +115,8 @@ def build_leds(raw_leds, zone_map):
                 zone_rows[deck_offset[s['deck']] + ri].extend(r)
         cols = max(len(v) for v in zone_rows.values())
         for zr, idxs in zone_rows.items():
-            # columns sweep left→right as seen from the field (decreasing angle)
+            # columns follow decreasing angle: right to left as seen from the field in
+            # web space (x is mirrored from Unity); stadium3d.js loadVenue flips it back
             rel = [(-wrap_deg(theta(raw_leds[i]['pos'][0], raw_leds[i]['pos'][2]) - mdir), i) for i in idxs]
             lo, hi = min(a for a, _ in rel), max(a for a, _ in rel)
             span = (hi - lo) or 1.0
