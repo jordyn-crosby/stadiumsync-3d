@@ -75,6 +75,7 @@
     opts = opts || {};
     var computeDotBrightness = opts.computeDotBrightness || function(){ return 0.6; };
     var getDotColor = opts.getDotColor || function(){ return '#00f0ff'; };
+    var getVenueColor = opts.getVenueColor || null;
 
     var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -127,6 +128,7 @@
     var venueZoneOf = null;  // Int16Array: LED → venue.zoneData index (-1 = unmapped)
     var zones = [];          // index-aligned with venue.zoneData: {indices, cols, rows, col, row, around}
     var ledZoneCol = null, ledZoneRow = null, ledAround = null; // the same, per LED
+
     var baseColors = null;   // Float32Array rgb written by setZoneFrame
     var overrideColors = null, overrideMask = null, ledGain = null;
     var highlighted = -1;
@@ -224,6 +226,17 @@
         // stadium center), passed to computeDotBrightness so stadium-spanning
         // patterns like The Wave travel around the whole venue.
         var cx = led.center[0], cz = led.center[2];
+        var minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+        for(var q = 0; q < ledCount; q++){
+          var px = ledPos[q * 3], pz = ledPos[q * 3 + 2];
+          if(px < minX) minX = px; if(px > maxX) maxX = px;
+          if(pz < minZ) minZ = pz; if(pz > maxZ) maxZ = pz;
+        }
+        ledMapX = new Float32Array(ledCount); ledMapY = new Float32Array(ledCount);
+        for(var q2 = 0; q2 < ledCount; q2++){
+          ledMapX[q2] = (ledPos[q2 * 3] - minX) / ((maxX - minX) || 1) * 400;
+          ledMapY[q2] = (maxZ - ledPos[q2 * 3 + 2]) / ((maxZ - minZ) || 1) * 300;
+        }
         ledZoneCol = new Int16Array(ledCount); ledZoneRow = new Int16Array(ledCount); ledAround = new Float32Array(ledCount);
         zones = venue.zoneData.map(function(z, vi){
           var lz = led.zones[ledZoneToVenue.indexOf(vi)];
@@ -268,9 +281,13 @@
         }
         var col = z.col[k], row = z.row[k];
         var bright = computeDotBrightness(pattern, col, t, z.cols, row, z.rows, z.around[k]);
-        var rgb = hexToRgb(getDotColor(pattern, col, row, z.cols, z.rows));
+
+        var li = z.indices[k];
+        var venueHex = getVenueColor ? getVenueColor(pattern, ledMapX[li], ledMapY[li], t) : null;
+        var rgb = hexToRgb(venueHex || getDotColor(pattern, col, row, z.cols, z.rows));
         // `level` (0-1, set per Timeline cue) dims the whole pattern, floor included.
         var boosted = (0.3 + bright * 0.7) * (pattern.level != null ? pattern.level : 1);
+
         baseColors[o] = rgb[0] * boosted; baseColors[o + 1] = rgb[1] * boosted; baseColors[o + 2] = rgb[2] * boosted;
       }
     }
@@ -317,7 +334,7 @@
         // Each LED's place in its zone's pattern grid, exactly as setZoneFrame
         // uses it, so index.html can light any set of seats with the shared
         // pattern math (custom Timeline sections) and match the zones around them.
-        zoneCol: ledZoneCol, zoneRow: ledZoneRow, around: ledAround,
+        zoneCol: ledZoneCol, zoneRow: ledZoneRow, around: ledAround, mapX: ledMapX, mapY: ledMapY,
         zoneCols: zones.map(function(z){ return z.cols; }), zoneRows: zones.map(function(z){ return z.rows; })
       };
     }
