@@ -2840,7 +2840,12 @@
     }
     return p.color;
   }
-
+  // Function to fix previews on some of the lighting patters
+  function previewDotColor(p, col, row, cols, rows, t){
+    var palette = VENUE_PALETTES[currentVenueId] || VENUE_PALETTES['jordan-hare'];
+    return venueWideColorAt(p, (col + 0.5) / cols * 400, (row + 0.5) / rows * 300, t, palette.primary, palette.secondary)
+      || getDotColor(p, col, row, cols, rows);
+  }
   // Computes one LED's brightness (0-1) for pattern `p` at time `t` seconds,
   // within a grid `totalCols` wide (and, for row-aware motions, `totalRows`
   // tall). Reads p's CURRENT values every call, so live slider edits apply
@@ -2945,11 +2950,11 @@
 
   function renderLedMatrixStatic(p){
     ledDots.forEach(function(d){
-      d.el.style.background = getDotColor(p, d.col, d.row, LED_COLS, LED_ROWS);
+      d.el.style.background = previewDotColor(p, d.col, d.row, LED_COLS, LED_ROWS, 0);
       d.el.style.opacity = (p.motion === 'text') ? computeDotBrightness(p, d.col, 0, LED_COLS, d.row, LED_ROWS) : 0.1;
     });
     schematicDots.forEach(function(d){
-      d.el.style.fill = getDotColor(p, d.col, d.row, d.cols, d.rows);
+      d.el.style.fill = previewDotColor(p, d.col, d.row, d.cols, d.rows, 0);
       d.el.style.opacity = (p.motion === 'text') ? computeDotBrightness(p, d.col, 0, d.cols, d.row, d.rows) : 0.12;
     });
     updateSchematicPreview(p);
@@ -2959,11 +2964,11 @@
     if(ledStartTime === null) ledStartTime = timestamp;
     var t = (timestamp - ledStartTime) / 1000;
     ledDots.forEach(function(d){
-      d.el.style.background = getDotColor(p, d.col, d.row, LED_COLS, LED_ROWS);
+      d.el.style.background = previewDotColor(p, d.col, d.row, LED_COLS, LED_ROWS, t);
       d.el.style.opacity = computeDotBrightness(p, d.col, t, LED_COLS, d.row, LED_ROWS);
     });
     schematicDots.forEach(function(d){
-      d.el.style.fill = getDotColor(p, d.col, d.row, d.cols, d.rows);
+      d.el.style.fill = previewDotColor(p, d.col, d.row, d.cols, d.rows, t);
       d.el.style.opacity = computeDotBrightness(p, d.col, t, d.cols, d.row, d.rows);
     });
     ledRafId = window.requestAnimationFrame(function(ts){ ledFrame(p, ts); });
@@ -6178,7 +6183,9 @@
         var p = active[a].pat, col = data.zoneCol[i], row = data.zoneRow[i];
         var cols = data.zoneCols[vz] || 1, rows = data.zoneRows[vz] || 1;
         var bright = computeDotBrightness(p, col, active[a].localT, cols, row, rows, data.around[i]);
-        var rgb = hexRgb(getDotColor(p, col, row, cols, rows));
+        var vpal = VENUE_PALETTES[currentVenueId] || VENUE_PALETTES['jordan-hare'];
+        var rgb = hexRgb(venueWideColorAt(p, data.mapX[i], data.mapY[i], active[a].localT, vpal.primary, vpal.secondary)
+          || getDotColor(p, col, row, cols, rows));
         var boosted = 0.3 + bright * 0.7; // the same curve as setZoneFrame in stadium3d.js
         colors[i * 3] = rgb[0] * boosted; colors[i * 3 + 1] = rgb[1] * boosted; colors[i * 3 + 2] = rgb[2] * boosted;
         mask[i] = 1;
@@ -6221,11 +6228,15 @@
   initialVenue.zoneData.forEach(function(z, i){ currentZoneIndexBySlug[zoneSlug(z.name)] = i; });
 
   function createStadiumFor(canvasId, maxFps){
-    return window.Stadium3D.createStadium3D(document.getElementById(canvasId), {
-      maxFps: maxFps,
-      computeDotBrightness: computeDotBrightness,
-      getDotColor: getDotColor
-    });
+      return window.Stadium3D.createStadium3D(document.getElementById(canvasId), {
+        maxFps: maxFps,
+        computeDotBrightness: computeDotBrightness,
+        getDotColor: getDotColor,
+        getVenueColor: function(p, mapX, mapY, t){
+          var palette = VENUE_PALETTES[currentVenueId] || VENUE_PALETTES['jordan-hare'];
+          return venueWideColorAt(p, mapX, mapY, t, palette.primary, palette.secondary);
+        }
+      });
   }
 
   function ensureDesignerStadium(){
