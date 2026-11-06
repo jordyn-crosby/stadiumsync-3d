@@ -286,7 +286,8 @@
         var venueHex = getVenueColor ? getVenueColor(pattern, ledMapX[li], ledMapY[li], t) : null;
         var rgb = hexToRgb(venueHex || getDotColor(pattern, col, row, z.cols, z.rows));
         // `level` (0-1, set per Timeline cue) dims the whole pattern, floor included.
-        var boosted = (0.3 + bright * 0.7) * (pattern.level != null ? pattern.level : 1);
+        // A brightness of exactly 0 (e.g. a twinkle dot that's off) stays fully dark.
+        var boosted = (bright > 0 ? 0.3 + bright * 0.7 : 0) * (pattern.level != null ? pattern.level : 1);
 
         baseColors[o] = rgb[0] * boosted; baseColors[o + 1] = rgb[1] * boosted; baseColors[o + 2] = rgb[2] * boosted;
       }

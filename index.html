@@ -1152,6 +1152,7 @@
           <div class="sec-list" id="sec-list" role="list" aria-label="Your sections; click to check and edit"></div>
           <div class="sec-timeline-actions" id="sec-timeline-actions">
             <button type="button" class="btn timeline-save-btn" id="sec-add-timeline">Add to timeline</button>
+            <button type="button" class="btn" id="sec-add-all-timeline">Add all to timeline</button>
             <button type="button" class="btn" id="sec-remove-timeline">Take off the timeline</button>
             <label class="sec-keep" title="Student Section, Lower Bowl, Upper Deck and End Zones">
               <input type="checkbox" id="sec-keep-default" checked> Keep the default sections
@@ -1482,7 +1483,7 @@
 <script src="vendor/postprocessing/RenderPass.js"></script>
 <script src="vendor/postprocessing/ShaderPass.js"></script>
 <script src="vendor/postprocessing/UnrealBloomPass.js"></script>
-<script src="stadium3d.js?v=2026-10-22"></script><!-- bump ?v= whenever stadium3d.js changes, so browsers drop their cached copy -->
+<script src="stadium3d.js?v=2026-11-05"></script><!-- bump ?v= whenever stadium3d.js changes, so browsers drop their cached copy -->
 <script>
 (function(){
   var venues = [
@@ -2383,7 +2384,7 @@
     // Patterns the user made get the full set of controls; built-ins keep
     // their own motion and just take color/speed tweaks.
     var custom = !builtInPatterns[p.id] && p.motion !== 'text';
-    var dimLevel = p.dimLevel != null ? p.dimLevel : 6;
+    var dimLevel = p.dimLevel != null ? p.dimLevel : (p.motion === 'twinkle' ? 0 : 6);
     body.innerHTML =
       '<div class="pattern-preview-stage" id="pattern-preview-stage"></div>' +
       '<div class="field">' +
@@ -2950,7 +2951,8 @@
     var freq = p.frequency > 0 ? p.frequency : 0.5;
     var peak = Math.max(0.05, p.intensity / 100);
     // How bright "off" dots stay; custom patterns can set it with Dim level.
-    var floor = Math.min(peak, p.dimLevel != null ? p.dimLevel / 100 : 0.06);
+    // Twinkle defaults to fully dark so the sparkle reads as on/off.
+    var floor = Math.min(peak, p.dimLevel != null ? p.dimLevel / 100 : (p.motion === 'twinkle' ? 0 : 0.06));
     if(p.motion === 'solid') return peak;
     if(p.motion === 'text'){
       if(p.trimColor){
@@ -3110,7 +3112,7 @@
   });
 
   // ===================== TIMELINE EDITOR =====================
-  var TIMELINE_DURATION = 240; // 4:00 show — a realistic single-song light segment, not the full halftime
+  var TIMELINE_DURATION = 300; // 5:00 show — room for one full-length song, not the full halftime
   var BASE_PX_PER_SEC = 960 / TIMELINE_DURATION;
   var timelineZoom = 5; // default zoomed in 5x so pattern blocks are clearly readable
   var PX_PER_SEC = BASE_PX_PER_SEC * timelineZoom;
@@ -6390,6 +6392,9 @@
         sections: rec.sections.filter(function(n){ return typeof n === 'string'; }),
         createdAt: existing ? existing.createdAt : (rec.createdAt || Date.now())
       };
+      // A section with exactly these seats under another name stands in for it rather than being duplicated.
+      var twin = sectionWithSeats(copy.sections, copy.id);
+      if(twin){ sectionIds[rec.id] = twin.id; return; }
       customSections = existing
         ? customSections.map(function(s){ return s === existing ? copy : s; })
         : customSections.concat(copy);
@@ -6520,6 +6525,11 @@
   var checkedSectionIds = [];       // sections checked in the list, for "Add to timeline"
 
   function isOnTimeline(id){ return timelineLayout.customTracks.indexOf(id) !== -1; }
+  // Another custom section covering exactly these seating sections, if any.
+  function sectionWithSeats(names, exceptId){
+    var key = names.slice().sort().join('\n');
+    return customSections.find(function(sec){ return sec.id !== exceptId && sec.sections.slice().sort().join('\n') === key; });
+  }
   function checkedSections(){
     return customSections.filter(function(sec){ return checkedSectionIds.indexOf(sec.id) !== -1; });
   }
@@ -6579,6 +6589,8 @@
       .find(function(n){ return n.toLowerCase() === name.toLowerCase(); });
     if(clash){ showToast('There\'s already a section called "' + clash + '"'); return null; }
     if(!editingSection.sections.length){ showToast('Click the stadium to add seating sections first'); return null; }
+    var twin = sectionWithSeats(editingSection.sections, editingSection.id);
+    if(twin){ showToast('"' + twin.name + '" already has exactly these seating sections'); return null; }
     var existing = customSections.find(function(sec){ return sec.id === editingSection.id; });
     var rec = {
       id: editingSection.id || 'section-' + Date.now(),
@@ -6680,6 +6692,11 @@
     remove.hidden = !toRemove.length;
     remove.textContent = toRemove.length === 1 ? 'Take "' + toRemove[0].name + '" off' : 'Take ' + toRemove.length + ' off the timeline';
     remove.title = 'Take the checked sections off the timeline, with their cues';
+    var notOn = customSections.filter(function(sec){ return !isOnTimeline(sec.id); });
+    var addAll = document.getElementById('sec-add-all-timeline');
+    addAll.hidden = !notOn.length;
+    addAll.title = notOn.length === customSections.length ? 'Add every custom section to the timeline'
+      : 'Add the ' + notOn.length + ' custom ' + (notOn.length === 1 ? 'section' : 'sections') + ' not on the timeline yet';
     document.getElementById('sec-keep-default').checked = timelineLayout.keepDefault;
   }
 
@@ -6722,18 +6739,22 @@
     return names.length > 3 ? names.length + ' sections' : names.join(', ');
   }
 
-  // Adds the checked sections that aren't on the timeline yet, in list
+  // Adds the given sections that aren't on the timeline yet, in list
   // order; ones already there are skipped, so a section is never on it twice.
-  document.getElementById('sec-add-timeline').addEventListener('click', function(){
-    // A checked section with unsaved edits is saved first, so the timeline gets what's on screen.
-    if(editingSection.id && checkedSectionIds.indexOf(editingSection.id) !== -1 && sectionHasChanges() && !saveEditingSection()) return;
-    var toAdd = checkedSections().filter(function(sec){ return !isOnTimeline(sec.id); });
+  function addSectionsToTimeline(pick){
+    // A picked section with unsaved edits is saved first, so the timeline gets what's on screen.
+    if(editingSection.id && pick().some(function(sec){ return sec.id === editingSection.id; }) && sectionHasChanges() && !saveEditingSection()) return;
+    var toAdd = pick().filter(function(sec){ return !isOnTimeline(sec.id); });
     if(!toAdd.length){ showToast('Those sections are already on the timeline'); return; }
     var keep = document.getElementById('sec-keep-default').checked;
     toAdd.forEach(function(sec){ timelineLayout.customTracks.push(sec.id); });
     timelineLayout.keepDefault = keep;
     timelineLayoutChanged();
     showToast('Added ' + listNames(toAdd) + ' to the timeline' + (keep ? '' : ' — default sections hidden'));
+  }
+  document.getElementById('sec-add-timeline').addEventListener('click', function(){ addSectionsToTimeline(checkedSections); });
+  document.getElementById('sec-add-all-timeline').addEventListener('click', function(){
+    addSectionsToTimeline(function(){ return customSections; });
   });
 
   // Takes the checked sections off the timeline, with their cues, after one confirmation.
@@ -6943,7 +6964,7 @@
         var vpal = VENUE_PALETTES[currentVenueId] || VENUE_PALETTES['jordan-hare'];
         var rgb = hexRgb(venueWideColorAt(p, data.mapX[i], data.mapY[i], active[a].localT, vpal.primary, vpal.secondary)
           || getDotColor(p, col, row, cols, rows));
-        var boosted = (0.3 + bright * 0.7) * patternLevel(p); // the same curve as setZoneFrame in stadium3d.js
+        var boosted = (bright > 0 ? 0.3 + bright * 0.7 : 0) * patternLevel(p); // the same curve as setZoneFrame in stadium3d.js
 
         colors[i * 3] = rgb[0] * boosted; colors[i * 3 + 1] = rgb[1] * boosted; colors[i * 3 + 2] = rgb[2] * boosted;
         mask[i] = 1;
