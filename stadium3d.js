@@ -20,6 +20,11 @@
 
   var OFF_RGB = [0.07, 0.08, 0.09];        // unlit LED
   var HIGHLIGHT_RGB = [0.32, 0.36, 0.40];  // unlit LED in the selected zone
+  // The most luminance a lit LED's color has at full brightness. White
+  // (luminance ~1) would otherwise outshine orange (~0.5) and blue (~0.43),
+  // so whites and other pale colors are scaled down to this; saturated
+  // colors are left alone. Same luma weights as the bloom pass.
+  var LED_MAX_LUMA = 0.7;
   var LED_SIZE = 1.1;                      // × Unity's 0.125 radius, so seats still read from the aerial view
 
   // Shared across both instances (Designer + Preview): each asset URL is fetched/parsed once.
@@ -90,13 +95,15 @@
 
     // Bloom makes the LEDs read as light sources rather than colored beads; it plays the
     // role of the Unity project's URP Bloom volume. LED colors stay <= 1 so hues don't clip
-    // (a boosted #2e6fff turns cyan), so the threshold sits above the night-lit stadium
-    // texture but below a lit LED.
+    // (a boosted #2e6fff turns cyan). The glow fades in from the threshold (above the
+    // night-lit stadium texture) over smoothWidth instead of switching on at one level,
+    // so orange and blue glow too, not just white, and the glow follows a cue's brightness.
     var composer = null, bloomPass = null;
     if(window.THREE && THREE.EffectComposer && THREE.UnrealBloomPass){
       composer = new THREE.EffectComposer(renderer);
       composer.addPass(new THREE.RenderPass(scene, camera));
-      bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(1, 1), 0.9, 0.35, 0.5);
+      bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(1, 1), 0.9, 0.35, 0.2);
+      bloomPass.highPassUniforms.smoothWidth.value = 0.4;
       composer.addPass(bloomPass);
     }
 
@@ -128,6 +135,11 @@
     var venueZoneOf = null;  // Int16Array: LED → venue.zoneData index (-1 = unmapped)
     var zones = [];          // index-aligned with venue.zoneData: {indices, cols, rows, col, row, around}
     var ledZoneCol = null, ledZoneRow = null, ledAround = null; // the same, per LED
+    // Each LED's deck (0 lower, 1 middle, 2 top; -1 unknown) and its place in
+    // the box its zone's seats on that deck fill, for patterns that put
+    // something different on each deck (see computeDotBrightness's `deck`).
+    var ledDeck = null, ledDeckCol = null, ledDeckRow = null, ledDeckCols = null, ledDeckRows = null;
+    var deckPos = {level: 0, col: 0, row: 0, cols: 1, rows: 1}; // reused per LED, so no garbage per frame
 
     var baseColors = null;   // Float32Array rgb written by setZoneFrame
     var overrideColors = null, overrideMask = null, ledGain = null;
@@ -255,6 +267,7 @@
           }
           return { indices: idx, col: col, row: row, around: around, cols: lz ? lz.cols : 1, rows: lz ? lz.rows : 1 };
         });
+        computeDecks();
 
         ledMesh = buildLedMesh();
         scene.add(ledMesh);
@@ -269,6 +282,30 @@
       });
     }
 
+    var DECK_LEVELS = {'Lower Deck': 0, 'Upper Deck': 1, 'Top Deck': 2};
+    function computeDecks(){
+      ledDeck = new Int8Array(ledCount);
+      ledDeckCol = new Int16Array(ledCount); ledDeckRow = new Int16Array(ledCount);
+      ledDeckCols = new Int16Array(ledCount); ledDeckRows = new Int16Array(ledCount);
+      var boxes = {}; // "zone:deck" -> [minCol, minRow, maxCol, maxRow]
+      for(var i = 0; i < ledCount; i++){
+        var sec = led.sections && led.sections[led.section[i]];
+        var lv = sec && DECK_LEVELS[sec.deck] !== undefined ? DECK_LEVELS[sec.deck] : -1;
+        ledDeck[i] = lv;
+        if(lv < 0) continue;
+        var key = venueZoneOf[i] + ':' + lv, b = boxes[key];
+        if(!b) b = boxes[key] = [Infinity, Infinity, -Infinity, -Infinity];
+        b[0] = Math.min(b[0], ledZoneCol[i]); b[1] = Math.min(b[1], ledZoneRow[i]);
+        b[2] = Math.max(b[2], ledZoneCol[i]); b[3] = Math.max(b[3], ledZoneRow[i]);
+      }
+      for(var j = 0; j < ledCount; j++){
+        if(ledDeck[j] < 0) continue;
+        var box = boxes[venueZoneOf[j] + ':' + ledDeck[j]];
+        ledDeckCol[j] = ledZoneCol[j] - box[0]; ledDeckRow[j] = ledZoneRow[j] - box[1];
+        ledDeckCols[j] = box[2] - box[0] + 1; ledDeckRows[j] = box[3] - box[1] + 1;
+      }
+    }
+
     function setZoneFrame(index, pattern, t, on){
       var z = zones[index];
       if(!z) return;
@@ -279,10 +316,15 @@
           baseColors[o] = OFF_RGB[0]; baseColors[o + 1] = OFF_RGB[1]; baseColors[o + 2] = OFF_RGB[2];
           continue;
         }
-        var col = z.col[k], row = z.row[k];
-        var bright = computeDotBrightness(pattern, col, t, z.cols, row, z.rows, z.around[k]);
+        var col = z.col[k], row = z.row[k], li = z.indices[k];
+        var deck = null;
+        if(ledDeck[li] >= 0){
+          deck = deckPos;
+          deck.level = ledDeck[li]; deck.col = ledDeckCol[li]; deck.row = ledDeckRow[li];
+          deck.cols = ledDeckCols[li]; deck.rows = ledDeckRows[li];
+        }
+        var bright = computeDotBrightness(pattern, col, t, z.cols, row, z.rows, z.around[k], deck);
 
-        var li = z.indices[k];
         var venueHex = getVenueColor ? getVenueColor(pattern, ledMapX[li], ledMapY[li], t) : null;
         var rgb = hexToRgb(venueHex || getDotColor(pattern, col, row, z.cols, z.rows));
         // `level` (0-1, set per Timeline cue) dims the whole pattern, floor included.
@@ -304,6 +346,17 @@
         var src = (overrideMask && overrideMask[i]) ? overrideColors : baseColors;
         var g = ledGain ? ledGain[i] : 1;
         var r = src[o] * g, gg = src[o + 1] * g, b = src[o + 2] * g;
+        // Cap pale colors' luminance (LED_MAX_LUMA). The cap scales with the
+        // color, so dimmed whites stay in step with dimmed colors; near-black
+        // (unlit) LEDs fade out of it so they keep their own shade.
+        var m = r > gg ? (r > b ? r : b) : (gg > b ? gg : b);
+        if(m > 0.1){
+          var lu = (0.299 * r + 0.587 * gg + 0.114 * b) / m;
+          if(lu > LED_MAX_LUMA){
+            var k = 1 + (LED_MAX_LUMA / lu - 1) * Math.min(1, (m - 0.1) * 10);
+            r *= k; gg *= k; b *= k;
+          }
+        }
         if(hl >= 0 && venueZoneOf[i] === hl){
           if(r < HIGHLIGHT_RGB[0]) r = HIGHLIGHT_RGB[0];
           if(gg < HIGHLIGHT_RGB[1]) gg = HIGHLIGHT_RGB[1];
@@ -336,6 +389,7 @@
         // uses it, so index.html can light any set of seats with the shared
         // pattern math (custom Timeline sections) and match the zones around them.
         zoneCol: ledZoneCol, zoneRow: ledZoneRow, around: ledAround, mapX: ledMapX, mapY: ledMapY,
+        deck: ledDeck, deckCol: ledDeckCol, deckRow: ledDeckRow, deckCols: ledDeckCols, deckRows: ledDeckRows,
         zoneCols: zones.map(function(z){ return z.cols; }), zoneRows: zones.map(function(z){ return z.rows; })
       };
     }

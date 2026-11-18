@@ -411,6 +411,8 @@
   .timeline-save-btn{background:var(--primary); color:var(--on-primary); border-color:var(--primary);}
   .timeline-save-btn:hover{color:var(--on-primary); border-color:var(--primary);}
   .timeline-save-state{font-size:13px; color:var(--on-surface-variant);}
+  .timeline-history-btn{display:inline-flex; align-items:center; gap:6px;}
+  .timeline-history-btn:disabled{opacity:0.45; cursor:default;}
   .saved-timelines{flex-basis:100%; display:flex; flex-wrap:wrap; align-items:center; gap:6px;}
   .saved-timelines:empty{display:none;}
   .saved-timelines-label{font-size:13px; color:var(--on-surface-variant); margin-right:4px;}
@@ -507,6 +509,13 @@
   .cue-handle-end{right:0;}
   .cue-handle::after{content:''; position:absolute; top:9px; bottom:9px; width:2px; left:3px; border-radius:1px; background:rgba(255,255,255,0.75); opacity:0;}
   .cue-block:hover .cue-handle::after, .cue-block.selected .cue-handle::after{opacity:1;}
+  /* Cues too narrow for their edge handles: no handles (the popover's Length
+     changes them), a click area 8px wider on each side, and the delete
+     button centered above the cue instead of inside it. */
+  .cue-block.narrow{overflow:visible;}
+  .cue-block.narrow::before{content:''; position:absolute; top:0; bottom:0; left:-8px; right:-8px;}
+  .cue-block.narrow .cue-dot-grid{overflow:hidden;}
+  .cue-block.narrow .cue-delete{right:auto; left:50%; margin-left:-10px; top:-12px;}
   .cue-delete{
     position:absolute; top:2px; right:10px; z-index:3; width:20px; height:20px; padding:0; border-radius:50%;
     border:0; background:rgba(255,255,255,0.9); color:var(--auburn-blue); font-size:14px; line-height:20px; cursor:pointer;
@@ -1196,6 +1205,12 @@
         <input type="text" id="tl-name" class="timeline-name-input" placeholder="Name this timeline" maxlength="80" autocomplete="off" spellcheck="false">
         <button type="button" class="btn timeline-save-btn" id="tl-save">Save</button>
         <button type="button" class="btn timeline-new-btn" id="tl-new" title="Start an empty timeline">New timeline</button>
+        <button type="button" class="btn timeline-history-btn" id="tl-undo" title="Undo (Cmd/Ctrl+Z)" disabled>
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Undo
+        </button>
+        <button type="button" class="btn timeline-history-btn" id="tl-redo" title="Redo (Shift+Cmd/Ctrl+Z)" disabled>
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>Redo
+        </button>
         <span class="timeline-save-state" id="tl-save-state" role="status"></span>
         <div class="saved-timelines" id="saved-timelines" role="list" aria-label="Saved timelines"></div>
       </div>
@@ -1491,7 +1506,7 @@
 <script src="vendor/postprocessing/RenderPass.js"></script>
 <script src="vendor/postprocessing/ShaderPass.js"></script>
 <script src="vendor/postprocessing/UnrealBloomPass.js"></script>
-<script src="stadium3d.js?v=2026-11-05"></script><!-- bump ?v= whenever stadium3d.js changes, so browsers drop their cached copy -->
+<script src="stadium3d.js?v=2026-11-18"></script><!-- bump ?v= whenever stadium3d.js changes, so browsers drop their cached copy -->
 <script>
 (function(){
   var venues = [
@@ -1853,6 +1868,7 @@
     {id:'au-logo', name:'AU Logo', tags:['Image','Static'], color:'#2e6fff', bgColor:'#ffffff', trimColor:'#e86100', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'text', textBitmap:'au-logo'},
     {id:'auburn-text', name:'AUBURN Text', tags:['Image','Static'], color:'#e86100', bgColor:'#2e6fff', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'text', textBitmap:'auburn-text'},
     {id:'auburn-loop', name:'Auburn Around the Stadium', tags:['Motion','Crowd'], color:'#e86100', colorRole:'primary', intensity:100, spread:25, frequency:1.0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'text-loop', textBitmap:'auburn-loop'},
+    {id:'war-damn-eagle', name:'War Damn Eagle', tags:['Image','Static'], color:'#e86100', colorRole:'primary', intensity:100, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'text', dimLevel:0, textStack:['war-word', 'damn-word', 'eagle-word']},
     {id:'war-eagle-loop', name:'War Eagle Around the Stadium', tags:['Motion','Crowd'], color:'#2e6fff', colorRole:'secondary', intensity:100, spread:38, frequency:1.0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'text-loop', textBitmap:'war-eagle-loop'}
   ];
   var selectedPatternId = 'tiger-wave';
@@ -2301,7 +2317,7 @@
     var show = function(id, on){ var el = document.getElementById(id); if(el) el.style.display = on ? '' : 'none'; };
     show('p-spread-field', p.motion === 'wave' || p.motion === 'ripple' || p.motion === 'crowd-wave' || p.motion === 'text-loop');
     show('p-freq-field', p.motion !== 'solid' && p.motion !== 'text');
-    show('p-dim-field', p.motion !== 'solid');
+    show('p-dim-field', p.motion !== 'solid' && !DARK_BACKGROUND_MOTIONS[p.motion]);
     var motion = CUSTOM_MOTIONS.find(function(m){ return m.value === p.motion; });
     var hint = document.getElementById('p-motion-hint');
     if(hint) hint.textContent = motion ? motion.hint : '';
@@ -2715,6 +2731,7 @@
     'L': ['10000','10000','10000','10000','10000','10000','11111'],
     'M': ['10001','11011','10101','10101','10001','10001','10001'],
     'G': ['01111','10000','10000','10111','10001','10001','01111'],
+    'D': ['11110','10001','10001','10001','10001','10001','11110'],
     'E': ['11111','10000','10000','11110','10000','10000','11111'],
     'O': ['01110','10001','10001','10001','10001','10001','01110'],
     'I': ['11111','00100','00100','00100','00100','00100','11111'],
@@ -2801,7 +2818,11 @@
     'lsu-text': buildTextBitmap('LSU'),
     // Fixed words for the text-loop patterns (not swapped per venue).
     'auburn-loop': buildTextBitmap('AUBURN'),
-    'war-eagle-loop': buildTextBitmap('WAR EAGLE')
+    'war-eagle-loop': buildTextBitmap('WAR EAGLE'),
+    // One word per deck, top to bottom, for War Damn Eagle (textStack).
+    'war-word': buildTextBitmap('WAR'),
+    'damn-word': buildTextBitmap('DAMN'),
+    'eagle-word': buildTextBitmap('EAGLE')
   };
 
   // Which name/bitmap the spelled-out text pattern shows for each venue.
@@ -2962,16 +2983,42 @@
   // `around` (optional, 0-1) is how far round the stadium bowl the LED sits;
   // the 3D view passes it so stadium-spanning motions (The Wave) travel
   // around the whole venue. Without it they run along the grid's columns.
-  function computeDotBrightness(p, col, t, totalCols, row, totalRows, around){
+  // `deck` (optional, {level, col, row, cols, rows}) is which deck the LED is
+  // on (0 lower, 1 middle, 2 top) and its place in the box its zone's seats on
+  // that deck fill; text stacks (one word per deck) use it. Without it they
+  // split the grid into equal bands, one per word.
+  // Motions where a band of light travels (sweeps, The Wave, ripples, text
+  // going round the bowl): only the band shines, every other seat is dark,
+  // so Dim level doesn't apply to them.
+  var DARK_BACKGROUND_MOTIONS = {'wave': true, 'crowd-wave': true, 'ripple': true, 'text-loop': true};
+  function computeDotBrightness(p, col, t, totalCols, row, totalRows, around, deck){
     totalCols = totalCols || LED_COLS;
     row = row || 0;
     totalRows = totalRows || 1;
     var freq = p.frequency > 0 ? p.frequency : 0.5;
     var peak = Math.max(0.05, p.intensity / 100);
     // How bright "off" dots stay; custom patterns can set it with Dim level.
-    // Twinkle defaults to fully dark so the sparkle reads as on/off.
-    var floor = Math.min(peak, p.dimLevel != null ? p.dimLevel / 100 : (p.motion === 'twinkle' ? 0 : 0.06));
+    // Twinkle defaults to fully dark so the sparkle reads as on/off, and
+    // moving-band motions are always dark outside the band.
+    var floor = DARK_BACKGROUND_MOTIONS[p.motion] ? 0
+      : Math.min(peak, p.dimLevel != null ? p.dimLevel / 100 : (p.motion === 'twinkle' ? 0 : 0.06));
     if(p.motion === 'solid') return peak;
+    if(p.motion === 'text' && p.textStack){
+      // One word per deck, the first on the top deck. Each word fits (never
+      // stretched) and centers in its deck's seats.
+      var words = p.textStack, w, wc, wr, wcols, wrows;
+      if(deck){
+        w = words.length - 1 - deck.level;
+        wc = deck.col; wr = deck.row; wcols = deck.cols; wrows = deck.rows;
+      } else {
+        w = Math.min(words.length - 1, Math.floor(row * words.length / totalRows));
+        var bandTop = Math.ceil(w * totalRows / words.length);
+        wc = col; wr = row - bandTop; wcols = totalCols;
+        wrows = Math.ceil((w + 1) * totalRows / words.length) - bandTop;
+      }
+      if(w < 0 || w >= words.length) return floor;
+      return isTextLit(words[w], wc, wr, wcols, wrows) ? peak : floor;
+    }
     if(p.motion === 'text'){
       if(p.trimColor){
         var zone2 = classifyLogoZone(p.textBitmap, col, row, totalCols, totalRows);
@@ -3471,6 +3518,8 @@
     return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0') + ':' + String(cs).padStart(2,'0');
   }
 
+  // Narrower than this, a cue's two 8px edge handles would cover all of it.
+  var NARROW_CUE_PX = 18;
   function renderTimeline(){
     var v = venues.find(function(x){ return x.id === currentVenueId; });
     document.getElementById('timeline-venue-name').textContent = v.name;
@@ -3517,6 +3566,8 @@
           (selectedCue === cue ? ' primary' : '') + (cue.unit ? ' in-unit' : '') +
           (selectedCue && cue !== selectedCue && cue.group && cue.group === selectedCue.group ? ' linked' : '');
         var widthPx = cue.duration * PX_PER_SEC;
+        var narrow = widthPx < NARROW_CUE_PX;
+        if(narrow) block.className += ' narrow';
         block.style.left = (cue.start * PX_PER_SEC) + 'px';
         block.style.width = widthPx + 'px';
         block.setAttribute('data-cue-track', trackName);
@@ -3561,7 +3612,7 @@
           del.textContent = '\u00d7';
           block.appendChild(del);
         }
-        ['start','end'].forEach(function(edge){
+        if(!narrow) ['start','end'].forEach(function(edge){
           var handle = document.createElement('div');
           handle.className = 'cue-handle cue-handle-' + edge;
           handle.setAttribute('data-cue-edge', edge);
@@ -3610,6 +3661,7 @@
     drawDropPreview(); // playback re-renders mid-drag; keep the drop target visible
     updateCuePopover();
     updateTimelineSaveState();
+    noteTimelineHistory();
   }
 
   function buildTrackLabel(trackName){
@@ -4356,7 +4408,8 @@
     if(!block || !wrap.offsetParent){ if(!cuePopoverEditing()) pop.hidden = true; return; }
     var r = block.getBoundingClientRect(), w = wrap.getBoundingClientRect();
     var visLeft = Math.max(r.left, w.left + 140), visRight = Math.min(r.right, w.right);
-    if(visRight - visLeft < 8 && !cuePopoverEditing()){ pop.hidden = true; return; }
+    // Hidden only once the cue is scrolled fully out of view, however short it is.
+    if(visRight <= visLeft && !cuePopoverEditing()){ pop.hidden = true; return; }
     if(!cuePopoverEditing()) fillCuePopover();
     pop.hidden = false;
     var view = document.getElementById('timeline-view').getBoundingClientRect();
@@ -5883,6 +5936,7 @@
     renderTimeline();
     updatePreviewStadium(playheadSeconds);
     renderSectionLibrary();
+    resetTimelineHistory();
     if(quiet) return;
     var note = '';
     if(dropped) note = ' — ' + dropped + (dropped === 1 ? ' cue used a deleted pattern and was' : ' cues used deleted patterns and were') + ' left out';
@@ -5899,8 +5953,95 @@
     renderSectionLibrary();
     renderTimeline();
     updatePreviewStadium(playheadSeconds);
+    resetTimelineHistory();
     document.getElementById('tl-name').focus();
   }
+
+  // ---- Undo / redo ----
+  // Every change to the open timeline's cues or section layout goes through
+  // renderTimeline, which calls noteTimelineHistory: when the state differs
+  // from the last one seen, that last one becomes an undo step. While a
+  // pointer is down (dragging a cue, a slider) nothing is recorded, so a
+  // whole drag is one step. Opening or starting a timeline clears it.
+  var TIMELINE_HISTORY_MAX = 100;
+  var timelineUndo = [], timelineRedo = [], timelineLastState = null, historyPointerDown = false;
+
+  function noteTimelineHistory(){
+    if(historyPointerDown) return;
+    var json = currentTimelineStateJson();
+    if(timelineLastState === null){ timelineLastState = json; return; }
+    if(json === timelineLastState) return;
+    timelineUndo.push(timelineLastState);
+    if(timelineUndo.length > TIMELINE_HISTORY_MAX) timelineUndo.shift();
+    timelineRedo = [];
+    timelineLastState = json;
+    updateHistoryButtons();
+  }
+
+  function resetTimelineHistory(){
+    timelineUndo = []; timelineRedo = [];
+    timelineLastState = currentTimelineStateJson();
+    updateHistoryButtons();
+  }
+
+  function updateHistoryButtons(){
+    document.getElementById('tl-undo').disabled = !timelineUndo.length;
+    document.getElementById('tl-redo').disabled = !timelineRedo.length;
+  }
+
+  // Puts back a recorded state, leaving out cues whose pattern or custom
+  // section has been deleted since (as openTimeline does).
+  function restoreTimelineState(json){
+    var state = JSON.parse(json);
+    timelineLayout = state.layout;
+    timelineLayout.customTracks = timelineLayout.customTracks.filter(function(id){
+      return customSections.some(function(sec){ return sec.id === id; });
+    });
+    if(!timelineLayout.customTracks.length) timelineLayout.keepDefault = true;
+    timelineCuesByVenue[currentVenueId] = state.cues.filter(function(c){
+      return findPattern(c.pattern) && (!isCustomTrack(c.track) || customSectionFor(c.track));
+    });
+    selectCues([]);
+    // Set before and after rendering, so neither the undone state nor any
+    // tidying renderTimeline does is recorded as a new step.
+    timelineLastState = currentTimelineStateJson();
+    renderTimeline();
+    timelineLastState = currentTimelineStateJson();
+    updatePreviewStadium(playheadSeconds);
+    renderSectionLibrary();
+    updateHistoryButtons();
+  }
+
+  function undoTimeline(){
+    if(!timelineUndo.length) return;
+    timelineRedo.push(timelineLastState);
+    restoreTimelineState(timelineUndo.pop());
+  }
+  function redoTimeline(){
+    if(!timelineRedo.length) return;
+    timelineUndo.push(timelineLastState);
+    restoreTimelineState(timelineRedo.pop());
+  }
+
+  document.getElementById('tl-undo').addEventListener('click', undoTimeline);
+  document.getElementById('tl-redo').addEventListener('click', redoTimeline);
+  document.addEventListener('pointerdown', function(){ historyPointerDown = true; }, true);
+  ['pointerup', 'pointercancel'].forEach(function(type){
+    document.addEventListener(type, function(){
+      // After the drag's own pointerup handler has applied the drop.
+      setTimeout(function(){ historyPointerDown = false; noteTimelineHistory(); }, 0);
+    }, true);
+  });
+  // Cmd/Ctrl+Z undoes, Shift+Cmd/Ctrl+Z (or Ctrl+Y) redoes, on the Timeline
+  // and outside text fields (which keep their own undo).
+  document.addEventListener('keydown', function(e){
+    if(!(e.metaKey || e.ctrlKey) || !document.getElementById('timeline-view').classList.contains('active')) return;
+    var tag = (e.target && e.target.tagName) || '';
+    if(tag === 'INPUT' && e.target.type !== 'range' && e.target.type !== 'checkbox' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+    var key = e.key.toLowerCase();
+    if(key === 'z' && !e.shiftKey){ e.preventDefault(); undoTimeline(); }
+    else if((key === 'z' && e.shiftKey) || (key === 'y' && e.ctrlKey)){ e.preventDefault(); redoTimeline(); }
+  });
 
   function renderSavedTimelines(){
     var list = document.getElementById('saved-timelines');
@@ -7016,6 +7157,7 @@
   // playhead into colors/mask, using each seat's place in its zone's grid so
   // patterns line up with the default sections around them. Returns false if
   // nothing was lit.
+  var deckScratch = {level: 0, col: 0, row: 0, cols: 1, rows: 1}; // reused per seat, as in stadium3d.js
   function fillCustomSectionLayer(data, colors, mask){
     if(!data.zoneCol) return false;
     var t = playheadSeconds, cues = timelineCuesByVenue[currentVenueId] || [];
@@ -7035,7 +7177,13 @@
         if(!active[a].mask[i]) continue;
         var p = active[a].pat, col = data.zoneCol[i], row = data.zoneRow[i];
         var cols = data.zoneCols[vz] || 1, rows = data.zoneRows[vz] || 1;
-        var bright = computeDotBrightness(p, col, active[a].localT, cols, row, rows, data.around[i]);
+        var deck = null;
+        if(data.deck && data.deck[i] >= 0){
+          deck = deckScratch;
+          deck.level = data.deck[i]; deck.col = data.deckCol[i]; deck.row = data.deckRow[i];
+          deck.cols = data.deckCols[i]; deck.rows = data.deckRows[i];
+        }
+        var bright = computeDotBrightness(p, col, active[a].localT, cols, row, rows, data.around[i], deck);
 
         var vpal = VENUE_PALETTES[currentVenueId] || VENUE_PALETTES['jordan-hare'];
         var rgb = hexRgb(venueWideColorAt(p, data.mapX[i], data.mapY[i], active[a].localT, vpal.primary, vpal.secondary)
