@@ -564,6 +564,7 @@
   .cue-popover-swatches{display:flex; flex-wrap:wrap; gap:6px;}
   .cue-popover-brightness{margin-bottom:8px;}
   .cue-popover-brightness input{width:100%; accent-color:var(--accent); margin:0;}
+  .cue-popover-brightness[hidden]{display:none;}
   .cue-popover-match{display:flex; align-items:flex-start; gap:6px; margin-top:6px; font-size:12px; color:var(--on-surface-variant); cursor:pointer;}
   .cue-popover-match[hidden]{display:none;}
   .cue-popover-match input{margin:1px 0 0; accent-color:var(--accent);}
@@ -949,6 +950,12 @@
         </button>
       </li>
       <li class="nav-item">
+        <button class="nav-link" data-view="timeline-view" title="Timeline">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7h8"/><path d="M8.5 12h11"/><path d="M5.5 17h9"/><path d="M16.5 4v5"/></svg>
+          <span class="nav-label">Timeline</span>
+        </button>
+      </li>
+      <li class="nav-item">
         <button class="nav-link" data-view="designer-view" title="Designer" aria-current="page">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l8.5 4.5L12 12.5 3.5 8 12 3.5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/><path d="M3.5 16.5L12 21l8.5-4.5"/></svg>
           <span class="nav-label">Designer</span>
@@ -964,12 +971,6 @@
         <button class="nav-link" data-view="section-view" title="Sections">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="12" rx="9" ry="6.5"/><ellipse cx="12" cy="12" rx="4" ry="2.5"/><path d="M12 5.5v4" /><path d="M19.6 9.2l-4.1 1.5"/><path d="M15.2 7.2l-1.1 2.3" fill="currentColor"/></svg>
           <span class="nav-label">Sections</span>
-        </button>
-      </li>
-      <li class="nav-item">
-        <button class="nav-link" data-view="timeline-view" title="Timeline">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7h8"/><path d="M8.5 12h11"/><path d="M5.5 17h9"/><path d="M16.5 4v5"/></svg>
-          <span class="nav-label">Timeline</span>
         </button>
       </li>
       <li class="nav-item">
@@ -1268,6 +1269,13 @@
             <button type="button" class="cue-popover-reset" id="cue-pop-brightness-reset" title="Back to full brightness">Reset</button>
           </div>
           <input type="range" id="cue-pop-brightness" min="0" max="100" step="1" value="100">
+        </div>
+        <div class="cue-popover-brightness" id="cue-pop-freq-wrap">
+          <div class="cue-popover-colors-head">
+            <label for="cue-pop-freq">Frequency <span id="cue-pop-freq-value"></span></label>
+            <button type="button" class="cue-popover-reset" id="cue-pop-freq-reset" title="Back to the pattern's own frequency">Reset</button>
+          </div>
+          <input type="range" id="cue-pop-freq" min="0" max="10" step="0.1" value="1">
         </div>
         <div class="cue-popover-fields">
           <label class="cue-popover-field">Start<input type="text" id="cue-pop-start" inputmode="decimal" autocomplete="off" spellcheck="false"></label>
@@ -1843,7 +1851,9 @@
     {id:'radar-sweep', name:'Radar Sweep', tags:['Motion','Dynamic'], color:'#e86100', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'solid'},
     {id:'the-wave', name:'The Wave', tags:['Motion','Crowd'], color:'#e86100', colorRole:'primary', intensity:100, spread:15, frequency:1.0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'crowd-wave'},
     {id:'au-logo', name:'AU Logo', tags:['Image','Static'], color:'#2e6fff', bgColor:'#ffffff', trimColor:'#e86100', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'text', textBitmap:'au-logo'},
-    {id:'auburn-text', name:'AUBURN Text', tags:['Image','Static'], color:'#e86100', bgColor:'#2e6fff', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'text', textBitmap:'auburn-text'}
+    {id:'auburn-text', name:'AUBURN Text', tags:['Image','Static'], color:'#e86100', bgColor:'#2e6fff', colorRole:'primary', intensity:90, spread:100, frequency:0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'text', textBitmap:'auburn-text'},
+    {id:'auburn-loop', name:'Auburn Around the Stadium', tags:['Motion','Crowd'], color:'#e86100', colorRole:'primary', intensity:100, spread:25, frequency:1.0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'text-loop', textBitmap:'auburn-loop'},
+    {id:'war-eagle-loop', name:'War Eagle Around the Stadium', tags:['Motion','Crowd'], color:'#2e6fff', colorRole:'secondary', intensity:100, spread:38, frequency:1.0, bpmBase:128, multiplier:1.0, lockClock:false, motion:'text-loop', textBitmap:'war-eagle-loop'}
   ];
   var selectedPatternId = 'tiger-wave';
 
@@ -2289,7 +2299,7 @@
   // Shows only the controls that do something for the pattern's motion.
   function syncPatternFields(p){
     var show = function(id, on){ var el = document.getElementById(id); if(el) el.style.display = on ? '' : 'none'; };
-    show('p-spread-field', p.motion === 'wave' || p.motion === 'ripple' || p.motion === 'crowd-wave');
+    show('p-spread-field', p.motion === 'wave' || p.motion === 'ripple' || p.motion === 'crowd-wave' || p.motion === 'text-loop');
     show('p-freq-field', p.motion !== 'solid' && p.motion !== 'text');
     show('p-dim-field', p.motion !== 'solid');
     var motion = CUSTOM_MOTIONS.find(function(m){ return m.value === p.motion; });
@@ -2709,6 +2719,7 @@
     'O': ['01110','10001','10001','10001','10001','10001','01110'],
     'I': ['11111','00100','00100','00100','00100','00100','11111'],
     'S': ['01111','10000','10000','01110','00001','00001','11110'],
+    'W': ['10001','10001','10001','10101','10101','11011','10001'],
     ' ': ['00000','00000','00000','00000','00000','00000','00000']
   };
   var GLYPH_W = 5, GLYPH_H = 7;
@@ -2787,7 +2798,10 @@
     'auburn-text': buildTextBitmap('AUBURN'),
     'alabama-text': buildTextBitmap('ALABAMA'),
     'georgia-text': buildTextBitmap('GEORGIA'),
-    'lsu-text': buildTextBitmap('LSU')
+    'lsu-text': buildTextBitmap('LSU'),
+    // Fixed words for the text-loop patterns (not swapped per venue).
+    'auburn-loop': buildTextBitmap('AUBURN'),
+    'war-eagle-loop': buildTextBitmap('WAR EAGLE')
   };
 
   // Which name/bitmap the spelled-out text pattern shows for each venue.
@@ -2935,6 +2949,10 @@
     return venueWideColorAt(p, (col + 0.5) / cols * 400, (row + 0.5) / rows * 300, t, palette.primary, palette.secondary)
       || getDotColor(p, col, row, cols, rows);
   }
+  // `around` grows clockwise seen from above (rightward as seen from the
+  // field), so text-loop words run against it: right to left like a ticker,
+  // reading left to right with the first letter in front.
+  var TEXT_LOOP_SIGN = -1;
   // Computes one LED's brightness (0-1) for pattern `p` at time `t` seconds,
   // within a grid `totalCols` wide (and, for row-aware motions, `totalRows`
   // tall). Reads p's CURRENT values every call, so live slider edits apply
@@ -2990,6 +3008,26 @@
       var x = d > 0 ? d / (band * 0.35) : -d / (band * 0.65);
       if(x >= 1) return floor;
       return floor + (0.5 + 0.5 * Math.cos(Math.PI * x)) * (peak - floor);
+    }
+    if(p.motion === 'text-loop'){
+      // Words travelling round the bowl like The Wave, at the same pace
+      // (frequency 1 is one lap every 10 seconds). Band Width is how much of
+      // the lap the word covers; on a flat grid (no `around`) it scrolls
+      // across at the font's own proportions. Letters fill the zone's height
+      // with one font row of margin above and below.
+      var bmp = TEXT_BITMAPS[p.textBitmap];
+      if(!bmp) return floor;
+      var by = Math.floor((row + 0.5) / totalRows * (bmp.height + 2)) - 1;
+      if(by < 0 || by >= bmp.height) return floor;
+      var hasAround = around !== undefined && around !== null;
+      var tpos = hasAround ? TEXT_LOOP_SIGN * around : 1 - (col + 0.5) / totalCols;
+      var width = hasAround ? Math.max(0.05, p.spread / 100)
+        : Math.min(0.95, totalRows / (bmp.height + 2) * bmp.width / totalCols);
+      var behind = t * freq * 0.1 - tpos;
+      behind -= Math.floor(behind); // 0 at the word's leading edge
+      if(behind >= width) return floor;
+      var bx = Math.floor(behind / width * bmp.width);
+      return bmp.rows[by].charAt(bx) === '1' ? peak : floor;
     }
     if(p.motion === 'strobe'){
       var cyclePos2 = (t * freq) % 1;
@@ -3876,7 +3914,7 @@
     var canvas = sp.canvas, ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
     var w = canvas.width / dpr, h = canvas.height / dpr, p = sp.pattern;
-    var spacing = p.motion === 'text' ? 3.5 : 6; // images need more dots to be readable
+    var spacing = p.motion === 'text' || p.motion === 'text-loop' ? 3.5 : 6; // images need more dots to be readable
     var cols = Math.max(2, Math.floor(w / spacing)), rows = Math.max(2, Math.floor(h / spacing));
     var dx = w / cols, dy = h / rows, radius = Math.min(dx, dy) * 0.36;
     var palette = VENUE_PALETTES[currentVenueId] || VENUE_PALETTES['jordan-hare'];
@@ -3892,7 +3930,7 @@
         var around = (Math.atan2(ny * 300, nx * 400) / (2 * Math.PI) + 1) % 1;
         var color = venueWideColorAt(p, (col + 0.5) / cols * 400, (row + 0.5) / rows * 300, t, palette.primary, palette.secondary)
           || getDotColor(p, col, row, cols, rows);
-        ctx.globalAlpha = computeDotBrightness(p, col, t, cols, row, rows, around);
+        ctx.globalAlpha = computeDotBrightness(p, col, t, cols, row, rows, ring ? around : undefined);
         ctx.fillStyle = color;
         ctx.beginPath();
         ctx.arc((col + 0.5) * dx, (row + 0.5) * dy, radius, 0, Math.PI * 2);
@@ -3954,11 +3992,14 @@
   // A cue's `brightness` (0-100, absent = 100) becomes the copy's `level`
   // (0-1), an output gain that every renderer multiplies in: setZoneFrame,
   // fillCustomSectionLayer and the dot previews (see patternLevel).
+  // A cue's `frequency` (Hz, absent = the pattern's own) replaces the
+  // pattern's on the copy.
   function cuePattern(cue){
     var pat = findPattern(cue.pattern);
-    if(!pat || (!cue.recolor && cue.brightness == null)) return pat;
+    if(!pat || (!cue.recolor && cue.brightness == null && cue.frequency == null)) return pat;
     var copy = Object.assign({}, pat, cue.recolor);
     if(cue.brightness != null) copy.level = cue.brightness / 100;
+    if(cue.frequency != null) copy.frequency = cue.frequency;
     return copy;
   }
   function patternLevel(p){ return p && p.level != null ? p.level : 1; }
@@ -3972,6 +4013,20 @@
     renderTimeline();
     updatePreviewStadium(playheadSeconds);
   }
+
+  // Sets a cue's frequency, and its copies' if it's on every section; null
+  // (or the pattern's own value) goes back to the pattern's.
+  function setCueFrequency(cue, hz){
+    var pat = findPattern(cue.pattern);
+    var members = cueGroup(cue);
+    (members.length ? members : [cue]).forEach(function(c){
+      if(hz == null || (pat && hz === pat.frequency)) delete c.frequency; else c.frequency = hz;
+    });
+    renderTimeline();
+    updatePreviewStadium(playheadSeconds);
+  }
+  // Same rule as the library's Frequency slider (syncPatternFields).
+  function patternHasFrequency(p){ return !!p && p.motion !== 'solid' && p.motion !== 'text'; }
 
   // The colors of pattern `p` a cue can change, in getDotColor's terms.
   function patternColorSlots(p){
@@ -4091,7 +4146,7 @@
       });
       timelineTracks().forEach(function(track){
         if(track === cue.track) return;
-        timelineCuesByVenue[currentVenueId].push({track:track, pattern:cue.pattern, start:cue.start, duration:cue.duration, group:group, recolor:cue.recolor, brightness:cue.brightness});
+        timelineCuesByVenue[currentVenueId].push({track:track, pattern:cue.pattern, start:cue.start, duration:cue.duration, group:group, recolor:cue.recolor, brightness:cue.brightness, frequency:cue.frequency});
       });
       syncCueGroup(cue);
     } else {
@@ -4198,7 +4253,7 @@
   function cuePopoverEditing(){
     var a = document.activeElement;
     return !!a && (a.id === 'cue-pop-start' || a.id === 'cue-pop-duration' || a.id === 'cue-pop-pattern' || a.id === 'cue-pop-copy' ||
-      a.id === 'cue-pop-brightness' || !!a.closest('#cue-pop-colors-wrap'));
+      a.id === 'cue-pop-brightness' || a.id === 'cue-pop-freq' || !!a.closest('#cue-pop-colors-wrap'));
   }
 
   // One color picker per color the selected cue's pattern has. The pickers
@@ -4272,6 +4327,13 @@
     document.getElementById('cue-pop-brightness').value = pct;
     document.getElementById('cue-pop-brightness-value').textContent = pct + '%';
     document.getElementById('cue-pop-brightness-reset').hidden = pct >= 100;
+    document.getElementById('cue-pop-freq-wrap').hidden = !patternHasFrequency(pat);
+    if(pat){
+      var hz = selectedCue.frequency != null ? selectedCue.frequency : pat.frequency;
+      document.getElementById('cue-pop-freq').value = hz;
+      document.getElementById('cue-pop-freq-value').textContent = hz + ' Hz';
+      document.getElementById('cue-pop-freq-reset').hidden = selectedCue.frequency == null;
+    }
     // Copying is pointless while the cue is already on every section.
     var copyEl = document.getElementById('cue-pop-copy');
     var linked = cueGroup(selectedCue).length > 1;
@@ -4362,7 +4424,7 @@
     var pat = findPattern(patternId);
     if(!cue || !pat || cue.pattern === patternId) return;
     var members = cueGroup(cue);
-    (members.length ? members : [cue]).forEach(function(m){ m.pattern = patternId; delete m.recolor; });
+    (members.length ? members : [cue]).forEach(function(m){ m.pattern = patternId; delete m.recolor; delete m.frequency; });
     renderTimeline();
     updatePreviewStadium(playheadSeconds);
     showToast('Switched to ' + pat.name);
@@ -4374,6 +4436,7 @@
     var copy = {track:track, pattern:cue.pattern, start:start, duration:duration || cue.duration};
     if(cue.recolor) copy.recolor = cue.recolor;
     if(cue.brightness != null) copy.brightness = cue.brightness;
+    if(cue.frequency != null) copy.frequency = cue.frequency;
     timelineCuesByVenue[currentVenueId].push(copy);
     carveOutCue(copy);
     return copy;
@@ -4406,6 +4469,18 @@
   document.getElementById('cue-pop-brightness-reset').addEventListener('click', function(){
     if(!selectedCue) return;
     setCueBrightness(selectedCue, 100);
+  });
+  document.getElementById('cue-pop-freq').addEventListener('input', function(e){
+    if(!selectedCue) return;
+    var hz = parseFloat(e.target.value);
+    document.getElementById('cue-pop-freq-value').textContent = hz + ' Hz';
+    setCueFrequency(selectedCue, hz);
+    document.getElementById('cue-pop-freq-reset').hidden = selectedCue.frequency == null;
+  });
+  document.getElementById('cue-pop-freq').addEventListener('change', function(e){ e.target.blur(); });
+  document.getElementById('cue-pop-freq-reset').addEventListener('click', function(){
+    if(!selectedCue) return;
+    setCueFrequency(selectedCue, null);
   });
   document.getElementById('cue-pop-colors').addEventListener('input', function(e){
     var i = e.target.getAttribute('data-slot');
@@ -5928,6 +6003,7 @@
         var row = {track:trackLabel(c.track), pattern: pat ? pat.name : c.pattern, start:c.start, duration:c.duration};
         if(c.recolor) row.colors = c.recolor;
         if(c.brightness != null) row.brightness = c.brightness;
+        if(c.frequency != null) row.frequency = c.frequency;
         return row;
       }),
       customSections: customTracks().map(function(track){
