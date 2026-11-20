@@ -359,6 +359,24 @@
   .pattern-card.new-pattern{
     align-items:center; justify-content:center; border-style:dashed; min-height:150px; gap:8px; color:var(--on-surface-variant);
   }
+  .scheme-library{margin-bottom:var(--space-lg); padding:14px 16px; border-radius:var(--radius-lg); border:1px solid var(--outline-variant); overflow:visible;}
+  .scheme-head{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+  .scheme-head h3{margin-bottom:0;}
+  .scheme-head .field-hint{flex:1; margin:0;}
+  .scheme-head .btn{width:auto;}
+  .scheme-list{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr)); gap:8px; margin-top:12px;}
+  .scheme-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:8px; border-radius:var(--radius); background:var(--surface-high);}
+  .scheme-name{
+    flex:1; min-width:120px; padding:7px 10px; border-radius:var(--radius-sm); border:1px solid var(--outline-variant);
+    background:var(--surface-container); color:var(--on-surface); font-family:var(--font-ui); font-size:14px; font-weight:600;
+  }
+  .scheme-name:focus{outline:none; border-color:var(--accent);}
+  .scheme-colors{display:flex; align-items:center; gap:4px;}
+  .scheme-color{display:flex; align-items:center;}
+  .scheme-color .pattern-color-remove{width:20px; height:20px; font-size:15px; margin-left:0;}
+  .scheme-add-color{width:30px; height:30px; border-radius:var(--radius-sm); border:1px dashed var(--outline-variant); background:transparent; color:var(--on-surface-variant); font-size:18px; line-height:1;}
+  .scheme-add-color:hover{border-color:var(--outline); color:var(--on-surface);}
+  .scheme-row .btn{width:auto; padding:6px 10px; font-size:13px;}
   .pattern-preview-stage{
     min-height:110px; max-height:280px; overflow-y:auto; border-radius:var(--radius-lg); background:#050a0a; border:1px solid var(--outline-variant);
     margin-bottom:20px; padding:8px;
@@ -571,6 +589,7 @@
   .cue-popover-reset{border:0; background:none; padding:0; font-family:var(--font-ui); font-size:12px; font-weight:600; color:var(--accent-text); cursor:pointer;}
   .cue-popover-reset[hidden]{display:none;}
   .cue-popover-swatches{display:flex; flex-wrap:wrap; gap:6px;}
+  .cue-popover-scheme{margin-top:8px;}
   .cue-popover-brightness{margin-bottom:8px;}
   .cue-popover-brightness input{width:100%; accent-color:var(--accent); margin:0;}
   .cue-popover-brightness[hidden]{display:none;}
@@ -1139,6 +1158,14 @@
 
       <div class="pattern-layout">
         <div class="pattern-main">
+          <div class="panel scheme-library">
+            <div class="scheme-head">
+              <h3 id="scheme-heading">Color schemes</h3>
+              <p class="field-hint">Pick one in a cue's settings on the Timeline to recolor that cue.</p>
+              <button type="button" class="btn" id="scheme-new">New color scheme</button>
+            </div>
+            <div class="scheme-list" id="scheme-list" role="list" aria-labelledby="scheme-heading"></div>
+          </div>
           <div class="toolbar-row">
             <div class="search-field">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -1283,6 +1310,7 @@
             <button type="button" class="cue-popover-reset" id="cue-pop-color-reset" title="Go back to the pattern's own colors">Reset</button>
           </div>
           <div class="cue-popover-swatches" id="cue-pop-colors"></div>
+          <label class="cue-popover-field cue-popover-scheme">Color scheme<select id="cue-pop-scheme"></select></label>
           <label class="cue-popover-match" id="cue-pop-match-row">
             <input type="checkbox" id="cue-pop-match" checked><span id="cue-pop-match-label"></span>
           </label>
@@ -1503,6 +1531,7 @@
             <h4>Export</h4>
             <label class="check-row"><input type="checkbox" data-backup="timelines" checked> Saved timelines (light shows) <span class="backup-count" id="bk-count-timelines"></span></label>
             <label class="check-row"><input type="checkbox" data-backup="patterns" checked> Patterns you made or changed <span class="backup-count" id="bk-count-patterns"></span></label>
+            <label class="check-row"><input type="checkbox" data-backup="schemes" checked> Color schemes <span class="backup-count" id="bk-count-schemes"></span></label>
             <label class="check-row"><input type="checkbox" data-backup="sections" checked> Custom sections <span class="backup-count" id="bk-count-sections"></span></label>
             <label class="check-row"><input type="checkbox" data-backup="designer" checked> Designer zones and seat paint <span class="backup-count" id="bk-count-designer"></span></label>
             <label class="check-row"><input type="checkbox" data-backup="preferences" checked> Preferences (night mode, snap to beats)</label>
@@ -1748,7 +1777,7 @@
       if(dbPromise) return dbPromise;
       dbPromise = new Promise(function(resolve){
         try {
-          var req = indexedDB.open('stadiumsync', 4);
+          var req = indexedDB.open('stadiumsync', 5);
           req.onupgradeneeded = function(){
             var db = req.result;
             if(!db.objectStoreNames.contains('patterns')) db.createObjectStore('patterns', {keyPath:'id'});
@@ -1756,6 +1785,7 @@
             if(!db.objectStoreNames.contains('timelines')) db.createObjectStore('timelines', {keyPath:'id'});
             if(!db.objectStoreNames.contains('sections')) db.createObjectStore('sections', {keyPath:'id'});
             if(!db.objectStoreNames.contains('workspace')) db.createObjectStore('workspace', {keyPath:'key'});
+            if(!db.objectStoreNames.contains('schemes')) db.createObjectStore('schemes', {keyPath:'id'});
           };
           req.onsuccess = function(){
             // Let a newer version of the app open in another tab upgrade the database.
@@ -1978,6 +2008,119 @@
     clearTimeout(patternSaveTimers[id]);
     savedStore.remove('patterns', id);
   }
+
+  // ---- Color schemes ----
+  // A small library of named color sets ({id, name, colors:[1-4 hex],
+  // createdAt}), kept in savedStore's `schemes` store. They don't change any
+  // pattern: picking one in a cue's popover recolors just that cue (see
+  // applySchemeToCue). The first visit saves Auburn as the first scheme.
+  var AUBURN_SCHEME = {id:'scheme-auburn', name:'Auburn', colors:['#e86100', '#2e6fff'], createdAt:0};
+  var colorSchemes = [JSON.parse(JSON.stringify(AUBURN_SCHEME))];
+  var schemeSaveTimers = {};
+
+  function saveSchemeSoon(scheme){
+    clearTimeout(schemeSaveTimers[scheme.id]);
+    schemeSaveTimers[scheme.id] = setTimeout(function(){
+      savedStore.put('schemes', JSON.parse(JSON.stringify(scheme)));
+    }, 300);
+  }
+
+  function restoreColorSchemes(){
+    return savedStore.getAll('schemes').then(function(records){
+      var seeded = false;
+      try { seeded = localStorage.getItem('stadiumsync.schemesSeeded') === '1'; } catch(err){}
+      if(!records.length && !seeded){
+        // First visit: save Auburn so it's an ordinary scheme from now on.
+        return savedStore.put('schemes', JSON.parse(JSON.stringify(AUBURN_SCHEME))).then(function(ok){
+          if(ok){ try { localStorage.setItem('stadiumsync.schemesSeeded', '1'); } catch(err){} }
+        });
+      }
+      colorSchemes = records.sort(function(a, b){ return (a.createdAt || 0) - (b.createdAt || 0); });
+      renderSchemeLibrary();
+    });
+  }
+
+  function renderSchemeLibrary(){
+    var list = document.getElementById('scheme-list');
+    list.innerHTML = '';
+    if(!colorSchemes.length){
+      list.innerHTML = '<p class="empty-note">No color schemes yet.</p>';
+      return;
+    }
+    colorSchemes.forEach(function(scheme){
+      var row = document.createElement('div');
+      row.className = 'scheme-row';
+      row.setAttribute('role', 'listitem');
+      row.setAttribute('data-scheme-id', scheme.id);
+      row.innerHTML =
+        '<input type="text" class="scheme-name" maxlength="40" aria-label="Color scheme name">' +
+        '<div class="scheme-colors">' + scheme.colors.map(function(c, i){
+          return '<div class="scheme-color">' +
+            '<input type="color" class="color-input-swatch" data-scheme-color="' + i + '" value="' + c + '" aria-label="Color ' + (i + 1) + '">' +
+            (scheme.colors.length > 1 ? '<button type="button" class="pattern-color-remove" data-scheme-remove="' + i + '" title="Remove color" aria-label="Remove color ' + (i + 1) + '">×</button>' : '') +
+          '</div>';
+        }).join('') +
+        (scheme.colors.length < MAX_PATTERN_COLORS ? '<button type="button" class="scheme-add-color" data-scheme-add title="Add color" aria-label="Add color">+</button>' : '') +
+        '</div>' +
+        '<button type="button" class="btn" data-scheme-delete>Delete</button>';
+      row.querySelector('.scheme-name').value = scheme.name;
+      list.appendChild(row);
+    });
+  }
+
+  function schemeFromEvent(e){
+    var row = e.target.closest('[data-scheme-id]');
+    var id = row && row.getAttribute('data-scheme-id');
+    return colorSchemes.find(function(s){ return s.id === id; });
+  }
+
+  document.getElementById('scheme-new').addEventListener('click', function(){
+    var scheme = {id:'scheme-' + Date.now(), name:'New color scheme ' + (colorSchemes.length + 1), colors:['#e86100', '#f5f5f5'], createdAt:Date.now()};
+    colorSchemes.push(scheme);
+    savedStore.put('schemes', JSON.parse(JSON.stringify(scheme)));
+    renderSchemeLibrary();
+    var input = document.querySelector('[data-scheme-id="' + scheme.id + '"] .scheme-name');
+    input.focus();
+    input.select();
+  });
+
+  var schemeList = document.getElementById('scheme-list');
+  schemeList.addEventListener('input', function(e){
+    var scheme = schemeFromEvent(e);
+    if(!scheme) return;
+    var i = e.target.getAttribute('data-scheme-color');
+    if(i !== null) scheme.colors[+i] = e.target.value;
+    else if(e.target.classList.contains('scheme-name')) scheme.name = e.target.value;
+    else return;
+    saveSchemeSoon(scheme);
+  });
+  // An emptied name goes back to what it was once the field is left.
+  schemeList.addEventListener('change', function(e){
+    var scheme = schemeFromEvent(e);
+    if(!scheme || !e.target.classList.contains('scheme-name')) return;
+    scheme.name = e.target.value.trim() || 'Color scheme';
+    e.target.value = scheme.name;
+    saveSchemeSoon(scheme);
+  });
+  schemeList.addEventListener('click', function(e){
+    var scheme = schemeFromEvent(e);
+    if(!scheme) return;
+    var remove = e.target.closest('[data-scheme-remove]');
+    if(remove){
+      scheme.colors.splice(+remove.getAttribute('data-scheme-remove'), 1);
+    } else if(e.target.closest('[data-scheme-add]')){
+      scheme.colors.push(EXTRA_COLOR_CHOICES.find(function(c){ return scheme.colors.indexOf(c) === -1; }) || '#ffffff');
+    } else if(e.target.closest('[data-scheme-delete]')){
+      colorSchemes = colorSchemes.filter(function(s){ return s !== scheme; });
+      clearTimeout(schemeSaveTimers[scheme.id]);
+      savedStore.remove('schemes', scheme.id);
+      renderSchemeLibrary();
+      showToast('Deleted ' + scheme.name);
+      return;
+    } else return;
+    saveSchemeSoon(scheme);
+    renderSchemeLibrary();
+  });
 
   // Each school's primary/secondary colors. Auburn is the "home" palette
   // that everything reverts to when an Auburn venue is loaded.
@@ -4155,6 +4298,36 @@
     updatePreviewStadium(playheadSeconds);
   }
 
+  // The recolor that puts `scheme` on pattern `pat`. Plain patterns take the
+  // scheme's colors outright; text and stadium-wide patterns keep their own
+  // color slots and fill them from the scheme in order (wrapping round), with
+  // a background changed only if the scheme has a color left over for it.
+  function schemeRecolor(pat, scheme){
+    var cs = scheme.colors, r = {};
+    if(!pat.bgColor && !pat.trimColor && pat.motion !== 'text' && !venueWideColorAt(pat, 0, 0, 0, '#000', '#000')){
+      r.color = cs[0];
+      if(cs.length > 1 || pat.colors) r.colors = cs.slice();
+      return r;
+    }
+    var n = 0;
+    patternColorSlots(pat).forEach(function(slot){
+      if(slot.key === 'bgColor'){ if(n < cs.length) r.bgColor = cs[n]; return; }
+      var c = cs[n++ % cs.length];
+      if(slot.key === 'colors') (r.colors = r.colors || pat.colors.slice())[slot.index] = c;
+      else r[slot.key] = c;
+    });
+    return r;
+  }
+
+  function applySchemeToCue(cue, scheme){
+    recolorTargets(cue).forEach(function(c){
+      var pat = findPattern(c.pattern);
+      if(pat) c.recolor = schemeRecolor(pat, scheme);
+    });
+    renderTimeline();
+    updatePreviewStadium(playheadSeconds);
+  }
+
   function resetCueColors(cue){
     recolorTargets(cue).forEach(function(c){ delete c.recolor; });
     renderTimeline();
@@ -4333,7 +4506,7 @@
 
   function cuePopoverEditing(){
     var a = document.activeElement;
-    return !!a && (a.id === 'cue-pop-start' || a.id === 'cue-pop-duration' || a.id === 'cue-pop-pattern' || a.id === 'cue-pop-copy' ||
+    return !!a && (a.id === 'cue-pop-start' || a.id === 'cue-pop-duration' || a.id === 'cue-pop-pattern' || a.id === 'cue-pop-copy' || a.id === 'cue-pop-scheme' ||
       a.id === 'cue-pop-brightness' || a.id === 'cue-pop-freq' || !!a.closest('#cue-pop-colors-wrap'));
   }
 
@@ -4363,6 +4536,8 @@
     }
     slots.forEach(function(slot, i){ list.children[i].value = slot.value; });
     document.getElementById('cue-pop-color-reset').hidden = !selectedCue.recolor;
+    setSelectOptions(document.getElementById('cue-pop-scheme'), [{value:'', label:colorSchemes.length ? 'Choose a color scheme…' : 'No color schemes yet'}].concat(
+      colorSchemes.map(function(s){ return {value:s.id, label:s.name}; })), '');
     var others = matchingCues(selectedCue).filter(function(c){ return cueGroup(selectedCue).indexOf(c) === -1; });
     var tracks = others.map(function(c){ return c.track; }).filter(function(t, i, all){ return all.indexOf(t) === i; });
     document.getElementById('cue-pop-match-row').hidden = !tracks.length;
@@ -4570,6 +4745,14 @@
     var slot = patternColorSlots(cuePattern(selectedCue))[+i];
     if(slot) setCueColor(selectedCue, slot, e.target.value);
   });
+  document.getElementById('cue-pop-scheme').addEventListener('change', function(e){
+    var select = e.target;
+    var scheme = colorSchemes.find(function(s){ return s.id === select.value; });
+    select.blur();
+    if(!selectedCue || !scheme) return;
+    applySchemeToCue(selectedCue, scheme);
+    showToast('Applied ' + scheme.name + ' colors');
+  });
   document.getElementById('cue-pop-color-reset').addEventListener('click', function(){
     if(!selectedCue) return;
     resetCueColors(selectedCue);
@@ -4583,7 +4766,7 @@
     setTimeout(function(){ if(!cuePopoverEditing()){ fillCuePopover(); updateCuePopover(); } }, 0);
   });
 
-  ['cue-pop-pattern', 'cue-pop-copy'].forEach(function(id){
+  ['cue-pop-pattern', 'cue-pop-copy', 'cue-pop-scheme'].forEach(function(id){
     var select = document.getElementById(id);
     select.addEventListener('keydown', function(e){
       if(e.key === 'Escape'){ e.stopPropagation(); select.blur(); }
@@ -6541,6 +6724,7 @@
     var songBytes = savedSongs.reduce(function(sum, s){ return sum + (s.size || 0); }, 0);
     document.getElementById('bk-count-timelines').textContent = count(savedTimelines.length, 'timeline', 'timelines');
     document.getElementById('bk-count-patterns').textContent = count(userPatterns().length, 'pattern', 'patterns');
+    document.getElementById('bk-count-schemes').textContent = count(colorSchemes.length, 'scheme', 'schemes');
     document.getElementById('bk-count-sections').textContent = count(customSections.length, 'section', 'sections');
     document.getElementById('bk-count-designer').textContent = painted ? painted.toLocaleString() + ' painted seats' : 'No seat paint';
     document.getElementById('bk-count-songs').textContent = count(savedSongs.length, 'song', 'songs') + (savedSongs.length ? ' · ' + formatBytes(songBytes) : '');
@@ -6553,6 +6737,7 @@
     if(choice.timelines) backup.timelines = JSON.parse(JSON.stringify(savedTimelines));
     if(choice.patterns) backup.patterns = JSON.parse(JSON.stringify(userPatterns()));
     if(choice.sections) backup.sections = JSON.parse(JSON.stringify(customSections));
+    if(choice.schemes) backup.schemes = JSON.parse(JSON.stringify(colorSchemes));
     if(choice.designer){
       var seats = workspaceSeats();
       backup.designer = {zones:workspaceZones(), paint:{groups:workspacePaintGroups(), seatCount:seats ? seats.length : 0, seats:encodeSeatRuns(seats)}};
@@ -6605,6 +6790,7 @@
     add(data.timelines, 'timeline', 'timelines');
     add(data.patterns, 'pattern', 'patterns');
     add(data.sections, 'custom section', 'custom sections');
+    add(data.schemes, 'color scheme', 'color schemes');
     add(data.songs, 'song', 'songs');
     if(data.designer) parts.push('Designer zones and seat paint');
     if(data.preferences) parts.push('preferences');
@@ -6630,6 +6816,20 @@
       }
       patternIds[rec.id] = copy.id;
       savedStore.put('patterns', JSON.parse(JSON.stringify(copy)));
+    });
+
+    (data.schemes || []).forEach(function(rec){
+      if(!rec || typeof rec.id !== 'string' || typeof rec.name !== 'string' || !Array.isArray(rec.colors)) return;
+      var colors = rec.colors.filter(function(c){ return /^#[0-9a-f]{6}$/i.test(c); }).slice(0, MAX_PATTERN_COLORS);
+      if(!colors.length) return;
+      var existing = colorSchemes.find(function(s){ return s.id === rec.id; }) ||
+        colorSchemes.find(function(s){ return s.name.toLowerCase() === rec.name.toLowerCase(); });
+      var copy = {id:existing ? existing.id : rec.id, name:rec.name, colors:colors, createdAt:existing ? existing.createdAt : (rec.createdAt || Date.now())};
+      colorSchemes = existing
+        ? colorSchemes.map(function(s){ return s === existing ? copy : s; })
+        : colorSchemes.concat(copy);
+      clearTimeout(schemeSaveTimers[copy.id]);
+      savedStore.put('schemes', copy);
     });
 
     (data.sections || []).forEach(function(rec){
@@ -6726,6 +6926,7 @@
     }
 
     refreshPatternViews();
+    renderSchemeLibrary();
     renderTimelinePalette();
     renderSectionLibrary();
     renderSavedSongs();
@@ -7554,6 +7755,7 @@
   renderPaintPanel();
   renderPatternGrid('');
   renderPatternInspector();
+  renderSchemeLibrary();
   renderTimeline();
   buildPreviewSchematic();
   updatePreviewStadium(playheadSeconds);
@@ -7562,6 +7764,7 @@
   // Bring back what was saved on earlier visits.
   Promise.all([
     restoreSavedPatterns().then(function(count){ if(count) refreshPatternViews(); }),
+    restoreColorSchemes(),
     restoreSavedSongs(),
     restoreCustomSections(),
     restoreWorkspace()
