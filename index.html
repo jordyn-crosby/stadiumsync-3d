@@ -589,7 +589,19 @@
   .cue-popover-reset{border:0; background:none; padding:0; font-family:var(--font-ui); font-size:12px; font-weight:600; color:var(--accent-text); cursor:pointer;}
   .cue-popover-reset[hidden]{display:none;}
   .cue-popover-swatches{display:flex; flex-wrap:wrap; gap:6px;}
-  .cue-popover-scheme{margin-top:8px;}
+  .cue-color-slot{
+    width:30px; height:30px; border-radius:var(--radius-sm); border:1px solid var(--outline-variant); padding:0; cursor:pointer;
+  }
+  .cue-color-slot[aria-pressed="true"]{outline:2px solid var(--accent); outline-offset:2px;}
+  .cue-popover-picker{margin-top:10px; padding:8px; border-radius:var(--radius); background:var(--surface-high);}
+  .cue-popover-picker[hidden]{display:none;}
+  .cue-popover-custom{display:flex; align-items:center; gap:6px; cursor:pointer;}
+  .cue-popover-custom .color-input-swatch{width:24px; height:24px;}
+  .cue-scheme-row{display:flex; align-items:center; gap:6px; margin-top:6px; font-size:12px; color:var(--on-surface-variant);}
+  .cue-scheme-name{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .cue-scheme-color{width:24px; height:24px; flex-shrink:0; border-radius:50%; border:1px solid var(--outline-variant); padding:0; cursor:pointer;}
+  .cue-scheme-color:hover{border-color:var(--outline);}
+  .cue-scheme-color.current{outline:2px solid var(--accent); outline-offset:1px;}
   .cue-popover-brightness{margin-bottom:8px;}
   .cue-popover-brightness input{width:100%; accent-color:var(--accent); margin:0;}
   .cue-popover-brightness[hidden]{display:none;}
@@ -1161,7 +1173,7 @@
           <div class="panel scheme-library">
             <div class="scheme-head">
               <h3 id="scheme-heading">Color schemes</h3>
-              <p class="field-hint">Pick one in a cue's settings on the Timeline to recolor that cue.</p>
+              <p class="field-hint">Their colors show up as quick picks when you change a cue's color on the Timeline.</p>
               <button type="button" class="btn" id="scheme-new">New color scheme</button>
             </div>
             <div class="scheme-list" id="scheme-list" role="list" aria-labelledby="scheme-heading"></div>
@@ -1241,6 +1253,7 @@
         <input type="text" id="tl-name" class="timeline-name-input" placeholder="Name this timeline" maxlength="80" autocomplete="off" spellcheck="false">
         <button type="button" class="btn timeline-save-btn" id="tl-save">Save</button>
         <button type="button" class="btn timeline-new-btn" id="tl-new" title="Start an empty timeline">New timeline</button>
+        <button type="button" class="btn" id="tl-duplicate" title="Save a copy of this timeline and switch to it">Duplicate</button>
         <button type="button" class="btn timeline-history-btn" id="tl-undo" title="Undo (Cmd/Ctrl+Z)" disabled>
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Undo
         </button>
@@ -1310,7 +1323,13 @@
             <button type="button" class="cue-popover-reset" id="cue-pop-color-reset" title="Go back to the pattern's own colors">Reset</button>
           </div>
           <div class="cue-popover-swatches" id="cue-pop-colors"></div>
-          <label class="cue-popover-field cue-popover-scheme">Color scheme<select id="cue-pop-scheme"></select></label>
+          <div class="cue-popover-picker" id="cue-pop-picker" hidden>
+            <div class="cue-popover-colors-head">
+              <span id="cue-pop-picker-label"></span>
+              <label class="cue-popover-custom">Custom<input type="color" class="color-input-swatch" id="cue-pop-custom"></label>
+            </div>
+            <div id="cue-pop-scheme-swatches"></div>
+          </div>
           <label class="cue-popover-match" id="cue-pop-match-row">
             <input type="checkbox" id="cue-pop-match" checked><span id="cue-pop-match-label"></span>
           </label>
@@ -1428,8 +1447,8 @@
             <button type="button" class="btn" id="auto-orbit-toggle" style="margin-top:8px;" aria-pressed="false">Auto-rotate: off</button>
           </div>
           <div class="field slider-field">
-            <div class="slider-head"><label for="fog-density">Fog</label><span class="slider-value" id="fog-value">45%</span></div>
-            <input type="range" id="fog-density" min="0" max="100" value="45">
+            <div class="slider-head"><label for="fog-density">Fog</label><span class="slider-value" id="fog-value">0%</span></div>
+            <input type="range" id="fog-density" min="0" max="100" value="0" autocomplete="off">
           </div>
           <div class="field music-sync-field">
             <label>Music</label>
@@ -2012,11 +2031,30 @@
   // ---- Color schemes ----
   // A small library of named color sets ({id, name, colors:[1-4 hex],
   // createdAt}), kept in savedStore's `schemes` store. They don't change any
-  // pattern: picking one in a cue's popover recolors just that cue (see
-  // applySchemeToCue). The first visit saves Auburn as the first scheme.
+  // pattern: they're offered as ready-made colors when one of a cue's colors
+  // is picked in its popover (see fillCueColors). The first visit saves
+  // Auburn as the first scheme.
   var AUBURN_SCHEME = {id:'scheme-auburn', name:'Auburn', colors:['#e86100', '#2e6fff'], createdAt:0};
   var colorSchemes = [JSON.parse(JSON.stringify(AUBURN_SCHEME))];
   var schemeSaveTimers = {};
+
+  // Schemes keep their colors lightest first, darkest last (by relative
+  // luminance), both on the Patterns page and in a cue's quick picks.
+  function colorLuminance(hex){
+    var n = parseInt(String(hex).slice(1), 16);
+    var lin = function(v){ v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    return 0.2126 * lin(n >> 16 & 255) + 0.7152 * lin(n >> 8 & 255) + 0.0722 * lin(n & 255);
+  }
+  function lightToDark(colors){
+    return colors.slice().sort(function(a, b){ return colorLuminance(b) - colorLuminance(a); });
+  }
+  // Puts a scheme's colors in order; true if that changed anything.
+  function sortSchemeColors(scheme){
+    var sorted = lightToDark(scheme.colors);
+    var changed = sorted.join() !== scheme.colors.join();
+    scheme.colors = sorted;
+    return changed;
+  }
 
   function saveSchemeSoon(scheme){
     clearTimeout(schemeSaveTimers[scheme.id]);
@@ -2036,6 +2074,8 @@
         });
       }
       colorSchemes = records.sort(function(a, b){ return (a.createdAt || 0) - (b.createdAt || 0); });
+      // Schemes saved before colors were kept in order get sorted once.
+      colorSchemes.forEach(function(sc){ if(sortSchemeColors(sc)) saveSchemeSoon(sc); });
       renderSchemeLibrary();
     });
   }
@@ -2075,7 +2115,7 @@
   }
 
   document.getElementById('scheme-new').addEventListener('click', function(){
-    var scheme = {id:'scheme-' + Date.now(), name:'New color scheme ' + (colorSchemes.length + 1), colors:['#e86100', '#f5f5f5'], createdAt:Date.now()};
+    var scheme = {id:'scheme-' + Date.now(), name:'New color scheme ' + (colorSchemes.length + 1), colors:['#f5f5f5', '#e86100'], createdAt:Date.now()};
     colorSchemes.push(scheme);
     savedStore.put('schemes', JSON.parse(JSON.stringify(scheme)));
     renderSchemeLibrary();
@@ -2094,9 +2134,14 @@
     else return;
     saveSchemeSoon(scheme);
   });
-  // An emptied name goes back to what it was once the field is left.
+  // An emptied name goes back to what it was once the field is left; a color,
+  // once its picker closes, moves to its place light to dark.
   schemeList.addEventListener('change', function(e){
     var scheme = schemeFromEvent(e);
+    if(scheme && e.target.hasAttribute('data-scheme-color')){
+      if(sortSchemeColors(scheme)){ saveSchemeSoon(scheme); renderSchemeLibrary(); }
+      return;
+    }
     if(!scheme || !e.target.classList.contains('scheme-name')) return;
     scheme.name = e.target.value.trim() || 'Color scheme';
     e.target.value = scheme.name;
@@ -2110,6 +2155,7 @@
       scheme.colors.splice(+remove.getAttribute('data-scheme-remove'), 1);
     } else if(e.target.closest('[data-scheme-add]')){
       scheme.colors.push(EXTRA_COLOR_CHOICES.find(function(c){ return scheme.colors.indexOf(c) === -1; }) || '#ffffff');
+      sortSchemeColors(scheme);
     } else if(e.target.closest('[data-scheme-delete]')){
       colorSchemes = colorSchemes.filter(function(s){ return s !== scheme; });
       clearTimeout(schemeSaveTimers[scheme.id]);
@@ -4298,36 +4344,6 @@
     updatePreviewStadium(playheadSeconds);
   }
 
-  // The recolor that puts `scheme` on pattern `pat`. Plain patterns take the
-  // scheme's colors outright; text and stadium-wide patterns keep their own
-  // color slots and fill them from the scheme in order (wrapping round), with
-  // a background changed only if the scheme has a color left over for it.
-  function schemeRecolor(pat, scheme){
-    var cs = scheme.colors, r = {};
-    if(!pat.bgColor && !pat.trimColor && pat.motion !== 'text' && !venueWideColorAt(pat, 0, 0, 0, '#000', '#000')){
-      r.color = cs[0];
-      if(cs.length > 1 || pat.colors) r.colors = cs.slice();
-      return r;
-    }
-    var n = 0;
-    patternColorSlots(pat).forEach(function(slot){
-      if(slot.key === 'bgColor'){ if(n < cs.length) r.bgColor = cs[n]; return; }
-      var c = cs[n++ % cs.length];
-      if(slot.key === 'colors') (r.colors = r.colors || pat.colors.slice())[slot.index] = c;
-      else r[slot.key] = c;
-    });
-    return r;
-  }
-
-  function applySchemeToCue(cue, scheme){
-    recolorTargets(cue).forEach(function(c){
-      var pat = findPattern(c.pattern);
-      if(pat) c.recolor = schemeRecolor(pat, scheme);
-    });
-    renderTimeline();
-    updatePreviewStadium(playheadSeconds);
-  }
-
   function resetCueColors(cue){
     recolorTargets(cue).forEach(function(c){ delete c.recolor; });
     renderTimeline();
@@ -4506,13 +4522,14 @@
 
   function cuePopoverEditing(){
     var a = document.activeElement;
-    return !!a && (a.id === 'cue-pop-start' || a.id === 'cue-pop-duration' || a.id === 'cue-pop-pattern' || a.id === 'cue-pop-copy' || a.id === 'cue-pop-scheme' ||
+    return !!a && (a.id === 'cue-pop-start' || a.id === 'cue-pop-duration' || a.id === 'cue-pop-pattern' || a.id === 'cue-pop-copy' ||
       a.id === 'cue-pop-brightness' || a.id === 'cue-pop-freq' || !!a.closest('#cue-pop-colors-wrap'));
   }
 
-  // One color picker per color the selected cue's pattern has. The pickers
-  // are rebuilt only when the cue or its pattern changes, so the 100ms
-  // re-renders during playback don't close one that's open.
+  // One swatch per color the selected cue's pattern has; clicking one opens
+  // the quick picks for it (fillCueColorPicker). The swatches are rebuilt
+  // only when the cue or its pattern changes, so the 100ms re-renders during
+  // playback don't swallow a click.
   function fillCueColors(){
     var wrap = document.getElementById('cue-pop-colors-wrap');
     var pat = findPattern(selectedCue.pattern);
@@ -4524,25 +4541,56 @@
     if(list.getAttribute('data-for') !== key){
       list.setAttribute('data-for', key);
       list.innerHTML = '';
+      cueColorSlot = null; // a different cue starts with no color picked
       slots.forEach(function(slot, i){
-        var input = document.createElement('input');
-        input.type = 'color';
-        input.className = 'color-input-swatch';
-        input.setAttribute('data-slot', i);
-        input.title = slot.label;
-        input.setAttribute('aria-label', slot.label);
-        list.appendChild(input);
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'cue-color-slot';
+        btn.setAttribute('data-slot', i);
+        btn.title = slot.label + ' — click to change';
+        btn.setAttribute('aria-label', 'Change ' + slot.label.toLowerCase());
+        list.appendChild(btn);
       });
     }
-    slots.forEach(function(slot, i){ list.children[i].value = slot.value; });
+    if(cueColorSlot !== null && cueColorSlot >= slots.length) cueColorSlot = null;
+    slots.forEach(function(slot, i){
+      list.children[i].style.background = slot.value;
+      list.children[i].setAttribute('aria-pressed', String(i === cueColorSlot));
+    });
     document.getElementById('cue-pop-color-reset').hidden = !selectedCue.recolor;
-    setSelectOptions(document.getElementById('cue-pop-scheme'), [{value:'', label:colorSchemes.length ? 'Choose a color scheme…' : 'No color schemes yet'}].concat(
-      colorSchemes.map(function(s){ return {value:s.id, label:s.name}; })), '');
+    fillCueColorPicker(cueColorSlot === null ? null : slots[cueColorSlot]);
     var others = matchingCues(selectedCue).filter(function(c){ return cueGroup(selectedCue).indexOf(c) === -1; });
     var tracks = others.map(function(c){ return c.track; }).filter(function(t, i, all){ return all.indexOf(t) === i; });
     document.getElementById('cue-pop-match-row').hidden = !tracks.length;
     document.getElementById('cue-pop-match').checked = recolorMatching;
     document.getElementById('cue-pop-match-label').textContent = 'Also change ' + pat.name + ' on ' + tracks.map(trackLabel).join(', ') + ' at this time';
+  }
+
+  // Picking one of a cue's colors opens a row of quick picks under it: every
+  // color scheme's colors, plus a Custom color picker. The rows are rebuilt
+  // only when the schemes change, so a click isn't lost to a re-render.
+  var cueColorSlot = null; // index into patternColorSlots of the color being changed
+  function fillCueColorPicker(slot){
+    var picker = document.getElementById('cue-pop-picker');
+    picker.hidden = !slot;
+    if(!slot) return;
+    document.getElementById('cue-pop-picker-label').textContent = 'Change ' + slot.label.toLowerCase() + ' to';
+    var custom = document.getElementById('cue-pop-custom');
+    if(document.activeElement !== custom) custom.value = slot.value;
+    var rows = document.getElementById('cue-pop-scheme-swatches');
+    var sig = JSON.stringify(colorSchemes.map(function(sc){ return [sc.name, sc.colors]; }));
+    if(rows.getAttribute('data-for') !== sig){
+      rows.setAttribute('data-for', sig);
+      rows.innerHTML = colorSchemes.length ? colorSchemes.map(function(sc){
+        return '<div class="cue-scheme-row"><span class="cue-scheme-name">' + escapeHtml(sc.name) + '</span>' +
+          lightToDark(sc.colors).map(function(c){
+            return '<button type="button" class="cue-scheme-color" data-hex="' + c + '" style="background:' + c + '" title="' + escapeHtml(sc.name) + ' ' + c.toUpperCase() + '" aria-label="' + escapeHtml(sc.name) + ' ' + c + '"></button>';
+          }).join('') + '</div>';
+      }).join('') : '<div class="cue-popover-hint">Make color schemes on the Patterns page to pick from them here.</div>';
+    }
+    rows.querySelectorAll('[data-hex]').forEach(function(b){
+      b.classList.toggle('current', b.getAttribute('data-hex').toLowerCase() === String(slot.value).toLowerCase());
+    });
   }
 
   function setSelectOptions(select, options, value){
@@ -4557,8 +4605,10 @@
   }
 
   // Shows the selected cue's real values, clearing any unreadable entry.
+  var cuePopoverCue = null; // the cue the popover's fields were last filled for
   function fillCuePopover(){
     if(!selectedCue) return;
+    cuePopoverCue = selectedCue;
     var sel = currentSelection();
     document.getElementById('cue-pop-multi').hidden = sel.length < 2;
     document.getElementById('cue-pop-single').hidden = sel.length >= 2;
@@ -4614,7 +4664,13 @@
     var visLeft = Math.max(r.left, w.left + 140), visRight = Math.min(r.right, w.right);
     // Hidden only once the cue is scrolled fully out of view, however short it is.
     if(visRight <= visLeft && !cuePopoverEditing()){ pop.hidden = true; return; }
-    if(!cuePopoverEditing()) fillCuePopover();
+    // Another cue picked while something in the popover still had focus (a
+    // color swatch, say): show the new cue's settings, and let go of the old
+    // control so it can't edit the new cue.
+    if(selectedCue !== cuePopoverCue && cuePopoverEditing()){
+      fillCuePopover();
+      if(pop.contains(document.activeElement)) document.activeElement.blur();
+    } else if(!cuePopoverEditing()) fillCuePopover();
     pop.hidden = false;
     var view = document.getElementById('timeline-view').getBoundingClientRect();
     var left = Math.max(w.left + 140, Math.min(visLeft, w.right - pop.offsetWidth));
@@ -4739,19 +4795,25 @@
     if(!selectedCue) return;
     setCueFrequency(selectedCue, null);
   });
-  document.getElementById('cue-pop-colors').addEventListener('input', function(e){
-    var i = e.target.getAttribute('data-slot');
-    if(!selectedCue || i === null) return;
-    var slot = patternColorSlots(cuePattern(selectedCue))[+i];
-    if(slot) setCueColor(selectedCue, slot, e.target.value);
+  // Clicking a color picks it for changing (again to put the picker away).
+  document.getElementById('cue-pop-colors').addEventListener('click', function(e){
+    var btn = e.target.closest('[data-slot]');
+    if(!selectedCue || !btn) return;
+    var i = +btn.getAttribute('data-slot');
+    cueColorSlot = cueColorSlot === i ? null : i;
+    fillCueColors();
   });
-  document.getElementById('cue-pop-scheme').addEventListener('change', function(e){
-    var select = e.target;
-    var scheme = colorSchemes.find(function(s){ return s.id === select.value; });
-    select.blur();
-    if(!selectedCue || !scheme) return;
-    applySchemeToCue(selectedCue, scheme);
-    showToast('Applied ' + scheme.name + ' colors');
+  function setPickedCueColor(hex){
+    var slot = cueColorSlot === null ? null : patternColorSlots(cuePattern(selectedCue))[cueColorSlot];
+    if(slot) setCueColor(selectedCue, slot, hex);
+    fillCueColors();
+  }
+  document.getElementById('cue-pop-scheme-swatches').addEventListener('click', function(e){
+    var b = e.target.closest('[data-hex]');
+    if(selectedCue && b) setPickedCueColor(b.getAttribute('data-hex'));
+  });
+  document.getElementById('cue-pop-custom').addEventListener('input', function(e){
+    if(selectedCue) setPickedCueColor(e.target.value);
   });
   document.getElementById('cue-pop-color-reset').addEventListener('click', function(){
     if(!selectedCue) return;
@@ -4766,7 +4828,7 @@
     setTimeout(function(){ if(!cuePopoverEditing()){ fillCuePopover(); updateCuePopover(); } }, 0);
   });
 
-  ['cue-pop-pattern', 'cue-pop-copy', 'cue-pop-scheme'].forEach(function(id){
+  ['cue-pop-pattern', 'cue-pop-copy'].forEach(function(id){
     var select = document.getElementById(id);
     select.addEventListener('keydown', function(e){
       if(e.key === 'Escape'){ e.stopPropagation(); select.blur(); }
@@ -4816,6 +4878,9 @@
     if(e.button !== 0) return;
     drag.startX = e.clientX;
     drag.startY = e.clientY;
+    // Times come from how far the pointer moved plus how far the timeline
+    // has scrolled since (see dragAutoScroll).
+    drag.startScroll = document.getElementById('timeline-wrap').scrollLeft;
     drag.active = false;
     timelineDrag = drag;
     e.preventDefault();
@@ -4855,6 +4920,38 @@
   });
 
   document.addEventListener('pointermove', function(e){
+    if(!timelineDrag) return;
+    timelineDrag.pointer = {clientX:e.clientX, clientY:e.clientY, shiftKey:e.shiftKey};
+    updateTimelineDrag(e);
+    if(timelineDrag && timelineDrag.active && !timelineDrag.scrollFrame) dragAutoScroll();
+  });
+
+  // While a drag is held near (or past) the left or right edge of the
+  // timeline, it scrolls that way, faster the closer the pointer is, and the
+  // drag is redrawn each frame so what's held follows along. So a cue can be
+  // dragged anywhere in its section without letting go.
+  var DRAG_SCROLL_EDGE_PX = 60, DRAG_SCROLL_MAX_PX = 22;
+  function dragAutoScroll(){
+    var d = timelineDrag;
+    if(!d || !d.active || !d.pointer){ if(d) d.scrollFrame = 0; return; }
+    var wrap = document.getElementById('timeline-wrap'), r = wrap.getBoundingClientRect();
+    var p = d.pointer, step = 0;
+    // Only while the pointer is level with the timeline (a pattern still
+    // down in the Patterns strip doesn't scroll it).
+    if(p.clientY >= r.top && p.clientY <= r.bottom){
+      var left = r.left + 140; // section names cover the first 140px
+      var into = function(dist){ return Math.ceil(DRAG_SCROLL_MAX_PX * Math.min(1, Math.max(0, 1 - dist / DRAG_SCROLL_EDGE_PX))); };
+      if(p.clientX < left + DRAG_SCROLL_EDGE_PX) step = -into(p.clientX - left);
+      else if(p.clientX > r.right - DRAG_SCROLL_EDGE_PX) step = into(r.right - p.clientX);
+    }
+    var before = wrap.scrollLeft;
+    if(step) wrap.scrollLeft = before + step;
+    if(wrap.scrollLeft !== before) updateTimelineDrag(p);
+    d.scrollFrame = step ? window.requestAnimationFrame(function(){ d.scrollFrame = 0; dragAutoScroll(); }) : 0;
+  }
+
+  // Moves whatever is being dragged to the pointer `e` ({clientX, clientY, shiftKey}).
+  function updateTimelineDrag(e){
     var d = timelineDrag;
     if(!d) return;
     if(!d.active){
@@ -4901,7 +4998,8 @@
       return;
     }
 
-    var deltaSec = (e.clientX - d.startX) / PX_PER_SEC;
+    var scrolled = document.getElementById('timeline-wrap').scrollLeft - d.startScroll;
+    var deltaSec = (e.clientX - d.startX + scrolled) / PX_PER_SEC;
     var cue = d.cue;
     if(d.members && d.members.length > 1 && (d.kind === 'move' || d.kind === 'copy')){
       // Several cues: each keeps its own section and its place relative to
@@ -4942,7 +5040,7 @@
       cue.duration = d.origEnd - cue.start;
     }
     updateDraggedBlock(cue);
-  });
+  }
 
   // Where a cue of length `len` dragged to `start` lands among the other cues
   // on `track` (`ignore` is the cue being moved), so it slots in instead of
@@ -5003,8 +5101,10 @@
   }
 
   function updateMarquee(d, x, y){
-    var left = Math.min(d.startX, x), top = Math.min(d.startY, y);
-    var right = Math.max(d.startX, x), bottom = Math.max(d.startY, y);
+    // The corner it started from scrolls with the timeline.
+    var startX = d.startX - (document.getElementById('timeline-wrap').scrollLeft - d.startScroll);
+    var left = Math.min(startX, x), top = Math.min(d.startY, y);
+    var right = Math.max(startX, x), bottom = Math.max(d.startY, y);
     d.box.style.left = left + 'px'; d.box.style.top = top + 'px';
     d.box.style.width = (right - left) + 'px'; d.box.style.height = (bottom - top) + 'px';
     var hit = [];
@@ -5024,6 +5124,7 @@
   function endTimelineDrag(cancelled){
     var d = timelineDrag;
     timelineDrag = null;
+    if(d && d.scrollFrame) window.cancelAnimationFrame(d.scrollFrame);
     if(!d || !d.active) return;
     suppressTimelineClick = true;
     setTimeout(function(){ suppressTimelineClick = false; }, 0);
@@ -6106,8 +6207,19 @@
     // Names identify timelines in the list, so saving under another one's name replaces it.
     var clash = savedTimelines.find(function(t){ return t.id !== currentTimelineId && t.name.toLowerCase() === name.toLowerCase(); });
     if(clash && !window.confirm('Replace the saved timeline "' + clash.name + '"?')) return;
-    var rec = {
-      id: clash ? clash.id : (currentTimelineId || 'timeline-' + Date.now()),
+    var rec = timelineRecord(clash ? clash.id : (currentTimelineId || 'timeline-' + Date.now()), name);
+    savedStore.put('timelines', rec).then(function(ok){
+      if(!ok){ showToast("Couldn't save this timeline"); return; }
+      savedTimelines = [rec].concat(savedTimelines.filter(function(t){ return t.id !== rec.id; }));
+      setCurrentTimeline(rec);
+      showToast('Saved "' + name + '"');
+    });
+  }
+
+  // The open timeline as it stands on screen, as a saved record.
+  function timelineRecord(id, name){
+    return {
+      id: id,
       name: name,
       venueId: currentVenueId,
       cues: JSON.parse(timelineCuesJson()),
@@ -6118,11 +6230,21 @@
       customOnTop: timelineLayout.customOnTop,
       savedAt: Date.now()
     };
+  }
+
+  // Saves the open timeline, unsaved edits included, as a new one named
+  // "<name> copy" and switches to it; the original stays as last saved.
+  function duplicateTimeline(){
+    var base = (timelineNameValue() || 'Untitled timeline') + ' copy', name = base;
+    var taken = function(n){ return savedTimelines.some(function(t){ return t.name.toLowerCase() === n.toLowerCase(); }); };
+    for(var i = 2; taken(name); i++) name = base + ' ' + i;
+    var rec = timelineRecord('timeline-' + Date.now(), name);
     savedStore.put('timelines', rec).then(function(ok){
-      if(!ok){ showToast("Couldn't save this timeline"); return; }
-      savedTimelines = [rec].concat(savedTimelines.filter(function(t){ return t.id !== rec.id; }));
+      if(!ok){ showToast("Couldn't save the copy"); return; }
+      savedTimelines = [rec].concat(savedTimelines);
       setCurrentTimeline(rec);
-      showToast('Saved "' + name + '"');
+      resetTimelineHistory();
+      showToast('Made "' + name + '" — you\'re editing the copy now');
     });
   }
 
@@ -6317,6 +6439,7 @@
 
   document.getElementById('tl-save').addEventListener('click', saveCurrentTimeline);
   document.getElementById('tl-new').addEventListener('click', startNewTimeline);
+  document.getElementById('tl-duplicate').addEventListener('click', duplicateTimeline);
   document.getElementById('tl-name').addEventListener('input', updateTimelineSaveState);
   document.getElementById('tl-name').addEventListener('keydown', function(e){
     if(e.key === 'Enter'){ e.preventDefault(); saveCurrentTimeline(); }
@@ -6379,7 +6502,9 @@
     var a = document.createElement('a');
     a.href = url; a.download = filename;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Some browsers (Safari especially) read the file after click() returns, so
+    // freeing it at once can cancel a big download like the show video.
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
   }
 
   function buildDesignSpecHTML(meta){
@@ -6824,7 +6949,7 @@
       if(!colors.length) return;
       var existing = colorSchemes.find(function(s){ return s.id === rec.id; }) ||
         colorSchemes.find(function(s){ return s.name.toLowerCase() === rec.name.toLowerCase(); });
-      var copy = {id:existing ? existing.id : rec.id, name:rec.name, colors:colors, createdAt:existing ? existing.createdAt : (rec.createdAt || Date.now())};
+      var copy = {id:existing ? existing.id : rec.id, name:rec.name, colors:lightToDark(colors), createdAt:existing ? existing.createdAt : (rec.createdAt || Date.now())};
       colorSchemes = existing
         ? colorSchemes.map(function(s){ return s === existing ? copy : s; })
         : colorSchemes.concat(copy);
