@@ -83,7 +83,10 @@
     var getVenueColor = opts.getVenueColor || null;
 
     var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    // opts.renderSize ({width, height}) renders at that exact size whatever the canvas's
+    // on-screen size (for video recording); otherwise the canvas's own size × device pixels.
+    var renderSize = opts.renderSize || null;
+    renderer.setPixelRatio(renderSize ? 1 : Math.min(window.devicePixelRatio || 1, 2));
 
     var scene = new THREE.Scene();
     scene.background = new THREE.Color(0x050a0a);
@@ -629,8 +632,8 @@
     }
 
     function onResize(){
-      var w = canvas.clientWidth || canvas.parentElement.clientWidth || 1;
-      var h = canvas.clientHeight || canvas.parentElement.clientHeight || 1;
+      var w = renderSize ? renderSize.width : canvas.clientWidth || canvas.parentElement.clientWidth || 1;
+      var h = renderSize ? renderSize.height : canvas.clientHeight || canvas.parentElement.clientHeight || 1;
       if(w < 2 || h < 2) return;
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
@@ -697,6 +700,7 @@
       setTimeOfDay: setTimeOfDay,
       setFogDensity: setFogDensity,
       onResize: onResize,
+      setRenderSize: function(width, height){ renderSize = {width: width, height: height}; onResize(); },
       setActive: setActive,
       set onFrame(fn){ onFrameHook = fn; },
       get onFrame(){ return onFrameHook; },

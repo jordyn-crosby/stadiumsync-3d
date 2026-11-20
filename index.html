@@ -907,7 +907,7 @@
   /* ===== Export ===== */
   .export-layout{display:grid; grid-template-columns:1fr 300px; gap:var(--gutter); align-items:start;}
   .export-row{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
-  .export-main select{
+  .export-main select, .video-panel select{
     width:100%; background:var(--surface-high); border:1px solid var(--outline-variant); color:var(--on-surface);
     padding:9px 10px; border-radius:var(--radius); font-size:14px;
   }
@@ -922,6 +922,15 @@
   }
   .export-history-item .file-name{font-family:var(--font-ui); font-weight:600; display:block;}
   .export-history-item .file-meta{color:var(--on-surface-variant); font-size:12px;}
+  /* Recording the show to a video file, from its own aerial stadium view. */
+  .video-panel{margin-top:var(--gutter); border-radius:var(--radius-lg); border:1px solid var(--outline-variant);}
+  .video-cols{display:grid; grid-template-columns:1fr 280px; gap:24px; align-items:start;}
+  .video-cols label{display:block; margin-bottom:6px; font-size:14px; font-weight:600;}
+  .video-stage{position:relative; aspect-ratio:16/9; background:#000; border-radius:var(--radius); overflow:hidden;}
+  .video-length{margin:12px 0 0; font-size:14px; color:var(--on-surface-variant);}
+  .video-cols .generate-btn{width:100%;}
+  .video-progress{width:100%; margin-top:12px; accent-color:var(--accent);}
+  @media (max-width:900px){ .video-cols{grid-template-columns:1fr;} }
   /* Backing up everything the user made, and bringing it into another browser. */
   .backup-panel{margin-top:var(--gutter); border-radius:var(--radius-lg); border:1px solid var(--outline-variant);}
   .backup-note{margin:0 0 16px; font-size:14px; color:var(--on-surface-variant); max-width:70ch;}
@@ -1467,6 +1476,25 @@
         </div>
       </div>
 
+      <div class="panel video-panel" aria-labelledby="video-heading">
+        <h3 id="video-heading">Show video</h3>
+        <p class="backup-note">Records the show from start to finish with its song, from a camera circling above the stadium, and saves it as an .mp4. It records in real time, so a 3-minute show takes 3 minutes. Keep this page open and in front until it's done.</p>
+        <div class="video-cols">
+          <div class="video-stage"><canvas id="stadium3d-canvas-record" class="stadium3d-canvas" aria-label="Aerial view of the show video"></canvas></div>
+          <div>
+            <label for="video-size">Size</label>
+            <select id="video-size">
+              <option value="1080">1080p (1920 × 1080)</option>
+              <option value="720">720p (1280 × 720)</option>
+            </select>
+            <p class="video-length" id="video-length"></p>
+            <button type="button" class="btn generate-btn" id="video-record">Record video</button>
+            <progress class="video-progress" id="video-progress" max="1" value="0" hidden></progress>
+            <p class="backup-hint" id="video-hint" role="status"></p>
+          </div>
+        </div>
+      </div>
+
       <div class="panel backup-panel" aria-labelledby="backup-heading">
         <h3 id="backup-heading">Back up or move your work</h3>
         <p class="backup-note">Your work is saved in this browser as you go. Download a backup to keep a copy, or to open your work in another browser or on another computer by importing it there.</p>
@@ -1506,7 +1534,7 @@
 <script src="vendor/postprocessing/RenderPass.js"></script>
 <script src="vendor/postprocessing/ShaderPass.js"></script>
 <script src="vendor/postprocessing/UnrealBloomPass.js"></script>
-<script src="stadium3d.js?v=2026-11-18"></script><!-- bump ?v= whenever stadium3d.js changes, so browsers drop their cached copy -->
+<script src="stadium3d.js?v=2026-11-18b"></script><!-- bump ?v= whenever stadium3d.js changes, so browsers drop their cached copy -->
 <script>
 (function(){
   var venues = [
@@ -1603,6 +1631,7 @@
   var selectedLayerIndex = 0;
   var designerStadium = null;
   var previewStadium = null;
+  var recordStadium = null;   // Export's show video: its own aerial stadium, fed like Preview's
   var currentZoneIndexBySlug = {};
   var autoOrbitOn = false;
 
@@ -5741,12 +5770,11 @@
       var cuePrimary = (activeCue && activeCue.recolor && activeCue.recolor.color) || flashPalette.primary;
 
       map[trackName].forEach(function(slug){
-        if(previewStadium){
-          var zoneIdx = currentZoneIndexBySlug[slug];
-          if(zoneIdx !== undefined){
-            var pat3d = isBigFlash ? { color: flashColor, intensity: 100, frequency: 0, motion: 'solid' } : pat;
-            previewStadium.setZoneFrame(zoneIdx, pat3d, localT, !!pat3d);
-          }
+        var zoneIdx = currentZoneIndexBySlug[slug];
+        if(zoneIdx !== undefined){
+          var pat3d = isBigFlash ? { color: flashColor, intensity: 100, frequency: 0, motion: 'solid' } : pat;
+          if(previewStadium) previewStadium.setZoneFrame(zoneIdx, pat3d, localT, !!pat3d);
+          if(recordStadium) recordStadium.setZoneFrame(zoneIdx, pat3d, localT, !!pat3d);
         }
         var dots = previewZoneDots[slug];
         if(!dots) return;
@@ -5826,6 +5854,7 @@
     document.getElementById('fog-value').textContent = v + '%';
     document.getElementById('fog-overlay').setAttribute('opacity', (v/100*0.5).toFixed(2));
     if(previewStadium) previewStadium.setFogDensity(v);
+    if(recordStadium) recordStadium.setFogDensity(v);
   });
 
   // ===================== SAVED TIMELINES =====================
@@ -6202,14 +6231,18 @@
       if(w){ w.document.write(buildDesignSpecHTML(meta)); w.document.close(); }
     }
 
+    addExportHistory(fileBase, wantJson && wantPdf ? 'JSON + PDF' : wantJson ? 'JSON' : 'PDF');
+    showToast('Downloaded');
+  });
+
+  function addExportHistory(fileName, kind){
     var hist = document.getElementById('export-history');
     if(hist.querySelector('.empty-note')) hist.innerHTML = '';
     var item = document.createElement('div');
     item.className = 'export-history-item';
-    item.innerHTML = '<span class="file-name">' + fileBase + '</span><span class="file-meta">' + new Date().toLocaleTimeString() + ' &middot; ' + (wantJson && wantPdf ? 'JSON + PDF' : wantJson ? 'JSON' : 'PDF') + '</span>';
+    item.innerHTML = '<span class="file-name">' + escapeHtml(fileName) + '</span><span class="file-meta">' + new Date().toLocaleTimeString() + ' &middot; ' + kind + '</span>';
     hist.prepend(item);
-    showToast('Downloaded');
-  });
+  }
 
   function renderExportView(){
     var v = venues.find(function(x){ return x.id === currentVenueId; });
@@ -7230,9 +7263,10 @@
   var initialVenue = venues.find(function(x){ return x.id === currentVenueId; });
   initialVenue.zoneData.forEach(function(z, i){ currentZoneIndexBySlug[zoneSlug(z.name)] = i; });
 
-  function createStadiumFor(canvasId, maxFps){
+  function createStadiumFor(canvasId, maxFps, renderSize){
       return window.Stadium3D.createStadium3D(document.getElementById(canvasId), {
         maxFps: maxFps,
+        renderSize: renderSize,
         computeDotBrightness: computeDotBrightness,
         getDotColor: getDotColor,
         getVenueColor: function(p, mapX, mapY, t){
@@ -7266,12 +7300,7 @@
     // Zone patterns in Preview are fed by the timeline (updatePreviewStadium); per frame we
     // only layer on the seat-level overrides — the demo show if it's on, else custom
     // sections and seat paint — and the seat-level music gain.
-    previewStadium.onFrame = function(t){
-      if(!(demoShowOn && demoShow && applyDemoShowFrame(previewStadium, playheadSeconds))){
-        applyShowOverrides(previewStadium, t);
-      }
-      applyMusicLedGain(previewStadium);
-    };
+    previewStadium.onFrame = function(t){ applyShowSeatFrame(previewStadium, t); };
     previewStadium.setTimeOfDay(100); // shows are always at night
     // pick up anything set on the Preview panel before the stadium existed
     previewStadium.setFogDensity(parseInt(document.getElementById('fog-density').value, 10));
@@ -7279,6 +7308,152 @@
     previewStadium.loadVenue(initialVenue).then(onPreviewStadiumLoaded);
     return previewStadium;
   }
+
+  function applyShowSeatFrame(stadium, t){
+    if(!(demoShowOn && demoShow && applyDemoShowFrame(stadium, playheadSeconds))){
+      applyShowOverrides(stadium, t);
+    }
+    applyMusicLedGain(stadium);
+  }
+
+  // ---- Show video (Export) ----
+  // Plays the show on the shared transport from 0:00 while a MediaRecorder captures the
+  // record stadium's canvas plus the song (tapped from the music graph), so the video is
+  // exactly what the Show plays — music effects included — at the cost of recording in
+  // real time. MP4 where the browser's MediaRecorder can write it (Chrome/Edge 126+,
+  // Safari), else WebM.
+  var VIDEO_SIZES = {'1080': [1920, 1080], '720': [1280, 720]};
+  var VIDEO_TYPES = ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4',
+                     'video/webm;codecs=vp9,opus', 'video/webm'];
+  var showRecording = null;   // {recorder, end, timer, audioDest, cancelled}
+
+  function videoSize(){ return VIDEO_SIZES[document.getElementById('video-size').value] || VIDEO_SIZES['1080']; }
+  function videoType(){
+    if(!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) return null;
+    return VIDEO_TYPES.find(function(t){ return MediaRecorder.isTypeSupported(t); }) || null;
+  }
+
+  function ensureRecordStadium(){
+    if(recordStadium || !window.Stadium3D) return recordStadium;
+    var size = videoSize();
+    recordStadium = createStadiumFor('stadium3d-canvas-record', null, {width:size[0], height:size[1]});
+    recordStadium.onFrame = function(t){ applyShowSeatFrame(recordStadium, t); };
+    recordStadium.setTimeOfDay(100);
+    recordStadium.setFogDensity(parseInt(document.getElementById('fog-density').value, 10));
+    recordStadium.setCameraMode('aerial', {fit:true, snap:true});
+    recordStadium.loadVenue(initialVenue).then(function(){ updatePreviewStadium(playheadSeconds); });
+    return recordStadium;
+  }
+
+  // Where the show ends: its last playing cue, the end of the song, or the demo show's end.
+  function showEndSeconds(){
+    var end = 0;
+    (timelineCuesByVenue[currentVenueId] || []).forEach(function(c){
+      if(isTrackShown(c.track)) end = Math.max(end, c.start + c.duration);
+    });
+    if(musicAudioEl && musicAudioEl.src && isFinite(musicAudioEl.duration)) end = Math.max(end, musicAudioEl.duration);
+    if(demoShowOn && demoShow) end = Math.max(end, demoShow.header.frames.length / demoShow.header.fps);
+    return Math.min(TIMELINE_DURATION, end);
+  }
+
+  function formatMinSec(sec){
+    var s = Math.round(sec);
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+
+  function renderVideoPanel(){
+    var btn = document.getElementById('video-record');
+    var hint = document.getElementById('video-hint');
+    var progress = document.getElementById('video-progress');
+    var type = videoType();
+    document.getElementById('video-size').disabled = !!showRecording;
+    progress.hidden = !showRecording;
+    if(showRecording){
+      btn.textContent = 'Cancel recording';
+      progress.value = Math.min(1, playheadSeconds / showRecording.end);
+      hint.textContent = 'Recording ' + formatMinSec(playheadSeconds) + ' of ' + formatMinSec(showRecording.end) + '…';
+      return;
+    }
+    btn.textContent = 'Record video';
+    var end = showEndSeconds();
+    btn.disabled = !type || end <= 0;
+    document.getElementById('video-length').textContent = end > 0
+      ? 'Length ' + formatMinSec(end) + (musicAudioEl && musicAudioEl.src ? ', with ' + document.getElementById('music-file-name').textContent : ', no song loaded')
+      : 'Nothing to record yet. Add cues on the Timeline or load a song in the Show.';
+    hint.textContent = !type ? "This browser can't record video. Try Chrome, Edge or Safari."
+      : type.indexOf('mp4') < 0 ? 'This browser can only save .webm video. Use Chrome, Edge or Safari for .mp4.'
+      : '';
+  }
+
+  function startShowRecording(){
+    var type = videoType();
+    var end = showEndSeconds();
+    var stadium = ensureRecordStadium();
+    if(showRecording || !type || end <= 0 || !stadium) return;
+    var stream = document.getElementById('stadium3d-canvas-record').captureStream(30);
+    var audioDest = null;
+    if(musicAudioEl && musicAudioEl.src && musicAudioCtx && musicAnalyser){
+      audioDest = musicAudioCtx.createMediaStreamDestination();
+      musicAnalyser.connect(audioDest);
+      audioDest.stream.getAudioTracks().forEach(function(track){ stream.addTrack(track); });
+    }
+    var recorder;
+    try {
+      recorder = new MediaRecorder(stream, {mimeType:type, videoBitsPerSecond: videoSize()[1] >= 1080 ? 12e6 : 6e6, audioBitsPerSecond:192000});
+    } catch(err){
+      console.error(err);
+      if(audioDest) musicAnalyser.disconnect(audioDest);
+      showToast('Could not start recording');
+      return;
+    }
+    var rec = showRecording = {recorder:recorder, end:end, timer:null, audioDest:audioDest, cancelled:false};
+    var chunks = [];
+    recorder.ondataavailable = function(e){ if(e.data && e.data.size) chunks.push(e.data); };
+    recorder.onstop = function(){
+      stream.getTracks().forEach(function(track){ track.stop(); });
+      if(rec.cancelled) return;
+      var ext = type.indexOf('mp4') >= 0 ? '.mp4' : '.webm';
+      var name = (document.getElementById('project-name').textContent.trim() || 'Show').replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '_');
+      downloadFile(name + ext, new Blob(chunks, {type:type.split(';')[0]}), type.split(';')[0]);
+      addExportHistory(name + ext, 'Video, ' + formatMinSec(rec.end));
+      showToast('Video downloaded');
+    };
+    stopShowPlayback(); // from 0:00
+    stadium.setCameraMode('aerial', {fit:true, snap:true});
+    recorder.start(1000);
+    toggleShowPlayback();
+    rec.timer = setInterval(function(){
+      if(playheadSeconds >= rec.end - 0.05) stopShowRecording(false);
+      else if(!isPlaying){ stopShowRecording(true); showToast('Recording stopped because the show was paused'); }
+      else renderVideoPanel();
+    }, 100);
+    renderVideoPanel();
+  }
+
+  function stopShowRecording(cancel){
+    var rec = showRecording;
+    if(!rec) return;
+    showRecording = null;
+    clearInterval(rec.timer);
+    rec.cancelled = cancel;
+    if(rec.recorder.state !== 'inactive') rec.recorder.stop();
+    if(rec.audioDest) try { musicAnalyser.disconnect(rec.audioDest); } catch(e){}
+    stopShowPlayback();
+    renderVideoPanel();
+  }
+
+  document.getElementById('video-record').addEventListener('click', function(){
+    if(showRecording) stopShowRecording(true);
+    else startShowRecording();
+  });
+  document.getElementById('video-size').addEventListener('change', function(){
+    var size = videoSize();
+    if(recordStadium) recordStadium.setRenderSize(size[0], size[1]);
+  });
+  // A hidden tab stops drawing frames, which would freeze the video while the song runs on.
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden && showRecording){ stopShowRecording(true); showToast('Recording stopped because the page was hidden'); }
+  });
 
   // Preview stage: the menu and settings float over the 3D view and can be hidden; Full screen
   // hides everything but the transport (which fades back in when the pointer moves).
@@ -7350,10 +7525,12 @@
     if(view === 'designer-view') ensureDesignerStadium();
     if(view === 'preview-view') ensurePreviewStadium();
     if(view === 'section-view'){ ensureSectionStadium(); renderSectionLibrary(); }
-    if(view === 'export-view') renderBackupPanel();
+    if(view === 'export-view'){ renderBackupPanel(); ensureRecordStadium(); renderVideoPanel(); }
+    else if(showRecording){ stopShowRecording(true); showToast('Recording stopped because you left Export'); }
     if(designerStadium) designerStadium.setActive(view === 'designer-view');
     if(previewStadium) previewStadium.setActive(view === 'preview-view');
     if(sectionStadium) sectionStadium.setActive(view === 'section-view');
+    if(recordStadium) recordStadium.setActive(view === 'export-view');
     syncPatternPreview();
   }
 
@@ -7361,6 +7538,7 @@
     if(designerStadium) designerStadium.onResize();
     if(previewStadium) previewStadium.onResize();
     if(sectionStadium) sectionStadium.onResize();
+    if(recordStadium) recordStadium.onResize();
   });
 
   // init
